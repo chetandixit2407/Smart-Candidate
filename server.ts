@@ -5,8 +5,10 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as XLSX from 'xlsx';
 import { db } from './server/database.ts';
-import type { UserRole, Employee, CompanyAsset } from './src/types/index.ts';
 import { ALL_DESK_CODES, mapSpreadsheetSeatToStandardDesk } from './server/seedData.ts';
+import { WCR_ORIGINAL_OFFER_SECTIONS, calculateAnnexureCompensation } from './server/lifecycleEngine.ts';
+import { generateWcrOfferLetterDocx } from './server/wordGenerator.ts';
+import type { UserRole, Employee, OfferLetterData } from './src/types/index.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -491,6 +493,220 @@ app.post('/api/candidates/:id/offer-letter/accept', (req: Request, res: Response
     return;
   }
   res.json(result);
+});
+
+// Email approved offer letter to candidate (requires prior approval by HR)
+app.post('/api/candidates/:id/offer-letter/email', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot dispatch offer letters.' });
+    return;
+  }
+  const result = db.emailOfferLetter(req.params.id, actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+// Download Offer Letter in Genuine Editable Microsoft Word (.docx) Format
+app.get('/api/candidates/:id/offer-letter/docx', async (req: Request, res: Response) => {
+  try {
+    const { role } = getAuthContext(req);
+    const candidate = db.getEmployeeById(req.params.id, role);
+    if (!candidate) {
+      res.status(404).json({ error: 'Candidate not found' });
+      return;
+    }
+
+    let offerData: OfferLetterData = candidate.offerLetter as OfferLetterData;
+    if (!offerData) {
+      const currentYear = new Date().getFullYear();
+      const annexComp = calculateAnnexureCompensation(candidate.offeredCTC, candidate.market || 'Gurgaon');
+      offerData = {
+        refNo: `WCR/HR/OL/${currentYear}/${candidate.employeeCode || Math.floor(100 + Math.random() * 900)}`,
+        issueDate: new Date().toISOString().split('T')[0],
+        candidateName: candidate.fullName,
+        candidateAddress: candidate.currentAddress || candidate.permanentAddress || '',
+        candidateEmail: candidate.email,
+        candidatePhone: candidate.phone,
+        designation: candidate.designation,
+        department: candidate.department,
+        reportingManager: candidate.reportingManager || '',
+        joiningDate: candidate.joiningDate || '1st September 2026',
+        workLocation:
+          candidate.market === 'Dubai'
+            ? 'White Collar Realty DIFC Branch, Gate Precinct 4, Dubai, UAE'
+            : '6th floor, TOWER-A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101',
+        market: candidate.market || 'Gurgaon',
+        probationMonths: 6,
+        noticePeriodDays: 45,
+        validTillDate: (() => {
+          const d = new Date();
+          d.setDate(d.getDate() + 14);
+          return d.toISOString().split('T')[0];
+        })(),
+        status: 'Draft',
+        salaryBreakup: {
+          annualCtc: annexComp.annualCtc,
+          monthlyCtc: annexComp.monthlyCtc,
+          basicMonthly: annexComp.basicMonthly,
+          basicAnnual: annexComp.basicYearly,
+          hraMonthly: Math.round(annexComp.basicMonthly * 0.4),
+          hraAnnual: Math.round(annexComp.basicMonthly * 0.4) * 12,
+          specialAllowanceMonthly: annexComp.pbvpMonthly,
+          specialAllowanceAnnual: annexComp.pbvpYearly,
+          statutoryBonusMonthly: 0,
+          statutoryBonusAnnual: 0,
+          pfEmployerMonthly: candidate.market === 'Dubai' ? 0 : 1800,
+          pfEmployerAnnual: candidate.market === 'Dubai' ? 0 : 21600,
+          gratuityMonthly: Math.round((annexComp.basicMonthly * 15) / (26 * 12)),
+          gratuityAnnual: Math.round((annexComp.basicMonthly * 15) / 26),
+          variableIncentiveAnnual: annexComp.pbvpYearly + annexComp.retentionBonusYearly,
+          grossMonthly: annexComp.monthlyCtc,
+          grossAnnual: annexComp.annualCtc,
+          approxNetInHandMonthly: annexComp.monthlyCtc - (candidate.market === 'Dubai' ? 0 : 2000),
+          currency: annexComp.currency,
+        },
+        clauses: Object.values(WCR_ORIGINAL_OFFER_SECTIONS).map(s => `${s.title}\n${s.content}`),
+        missingFields: [],
+        templateVersion: 'v1.0-official-10page',
+        recruiterName: 'Nisha',
+        recruiterTitle: 'Human Resources Recruiter',
+        ctcLpaFormatted: annexComp.lpaFormatted,
+        basicMonthly: annexComp.basicMonthly,
+        basicYearly: annexComp.basicYearly,
+        pbvpMonthly: annexComp.pbvpMonthly,
+        pbvpYearly: annexComp.pbvpYearly,
+        retentionBonusMonthly: annexComp.retentionBonusMonthly,
+        retentionBonusYearly: annexComp.retentionBonusYearly,
+      };
+    }
+
+    const docxBuffer = await generateWcrOfferLetterDocx(offerData);
+    const sanitizedName = (candidate.fullName || 'Candidate').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `White_Collar_Realty_Offer_Letter_${sanitizedName}.docx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', docxBuffer.length);
+    res.send(docxBuffer);
+  } catch (error: any) {
+    console.error('[Docx Export Error]:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate Word offer letter' });
+  }
+});
+
+app.post('/api/candidates/:id/offer-letter/docx', async (req: Request, res: Response) => {
+  try {
+    const { role } = getAuthContext(req);
+    const candidate = db.getEmployeeById(req.params.id, role);
+    if (!candidate) {
+      res.status(404).json({ error: 'Candidate not found' });
+      return;
+    }
+
+    const customData = req.body || {};
+    const baseOffer = candidate.offerLetter || {};
+    const mergedData: OfferLetterData = {
+      ...baseOffer,
+      ...customData,
+      candidateName: customData.candidateName || candidate.fullName,
+      designation: customData.designation || candidate.designation,
+      department: customData.department || candidate.department,
+      market: customData.market || candidate.market || 'Gurgaon',
+      joiningDate: customData.joiningDate || candidate.joiningDate || '1st September 2026',
+    } as OfferLetterData;
+
+    const docxBuffer = await generateWcrOfferLetterDocx(mergedData);
+    const sanitizedName = (mergedData.candidateName || candidate.fullName || 'Candidate').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `White_Collar_Realty_Offer_Letter_${sanitizedName}.docx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', docxBuffer.length);
+    res.send(docxBuffer);
+  } catch (error: any) {
+    console.error('[Docx Export Error]:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate Word offer letter' });
+  }
+});
+
+// Master Offer Letter Template (Full 10-page legal clauses and annexures)
+app.get('/api/offer-letter/master-template', (req: Request, res: Response) => {
+  res.json({
+    templateVersion: 'v1.0-official-10page',
+    companyName: 'White Collar Realty',
+    tagline: 'A Tradition Of Trust',
+    sections: WCR_ORIGINAL_OFFER_SECTIONS,
+    contactInfo: {
+      phone: '+91 124-4349007',
+      email: 'hr@whitecollarrealty.com',
+      address: '6th floor, TOWER-A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101',
+    },
+  });
+});
+
+// Missing Document Reminders Endpoints
+app.get('/api/candidates/:id/missing-documents', (req: Request, res: Response) => {
+  const result = db.getMissingRequiredDocuments(req.params.id);
+  if (!result.candidate) {
+    res.status(404).json({ error: 'Candidate not found' });
+    return;
+  }
+  res.json(result);
+});
+
+app.post('/api/candidates/:id/reminders/send', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot dispatch reminders.' });
+    return;
+  }
+
+  const { channel, missingDocumentKeys, deadlineHours, messageBody, emailSubject, recipientEmail, recipientPhone } = req.body || {};
+  if (!channel || (channel !== 'EMAIL' && channel !== 'WHATSAPP' && channel !== 'BOTH')) {
+    res.status(400).json({ error: 'channel must be EMAIL, WHATSAPP, or BOTH' });
+    return;
+  }
+
+  const result = db.recordDocumentReminder(
+    req.params.id,
+    {
+      channel,
+      missingDocumentKeys,
+      deadlineHours: typeof deadlineHours === 'number' ? deadlineHours : 24,
+      messageBody,
+      emailSubject,
+      recipientEmail,
+      recipientPhone,
+    },
+    actor,
+    role
+  );
+
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.get('/api/candidates/:id/reminders', (req: Request, res: Response) => {
+  const cand = db.getEmployeeById(req.params.id, 'HR_ADMIN');
+  if (!cand) {
+    res.status(404).json({ error: 'Candidate not found' });
+    return;
+  }
+  res.json({
+    candidateId: cand.id,
+    candidateName: cand.fullName,
+    reminders: cand.documentReminders || [],
+    lastReminderSentAt: cand.lastReminderSentAt,
+    lastReminderChannel: cand.lastReminderChannel,
+    deadline: cand.reminderDeadline,
+  });
 });
 
 // 3. Probation Management

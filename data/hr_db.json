@@ -2554,18 +2554,20 @@
       "profileCompletion": 87,
       "notes": "Offer letter signed. Relieving letter expected by Nov 10.",
       "createdAt": "2026-10-20T10:00:00Z",
-      "updatedAt": "2026-10-29T10:38:09.704Z",
+      "updatedAt": "2026-10-29T11:10:44.267Z",
       "uploadToken": {
-        "token": "wcr-upl-n9niq89s-mvtag59o",
+        "token": "wcr-upl-j106ir23-mvtfzmpw",
         "employeeId": "cand-vikram-malhotra",
         "candidateName": "Vikram Malhotra",
         "candidateEmail": "vikram.m.candidate@gmail.com",
-        "createdAt": "2026-10-29T08:35:31.116Z",
-        "expiresAt": "2026-11-05T08:35:31.116Z",
-        "isUsed": true,
+        "createdAt": "2026-10-29T11:10:38.276Z",
+        "expiresAt": "2026-11-05T11:10:38.276Z",
+        "isUsed": false,
         "revoked": false,
-        "submissionCount": 1,
-        "usedAt": "2026-10-29T08:35:46.588Z"
+        "isRevoked": false,
+        "submissionCount": 0,
+        "isOneTime": false,
+        "expiryDays": 7
       },
       "interviews": [
         {
@@ -2640,6 +2642,15 @@
         }
       ],
       "lifecycleHistory": [
+        {
+          "id": "evt-1793272244267-294w",
+          "timestamp": "2026-10-29T11:10:44.267Z",
+          "stage": "Offer Extended",
+          "title": "Official Offer Letter Dispatched to vikram.m.candidate@gmail.com",
+          "description": "Executive 10-page offer letter (Ref: WCR/HR/OL/2026/WCR-022 (Pending), CTC: ₹16,00,000 p.a. + Brokerage Incentive) emailed by Simran Kaur (HR Head) (HR_ADMIN). Candidate notified for e-signature.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
         {
           "id": "evt-1793270289704-a4ui",
           "timestamp": "2026-10-29T10:38:09.704Z",
@@ -2803,7 +2814,7 @@
           "actorRole": "HR_ADMIN"
         }
       ],
-      "lifecycleStage": "Offer Accepted",
+      "lifecycleStage": "Offer Extended",
       "offerLetter": {
         "refNo": "WCR/HR/OL/2026/WCR-022 (Pending)",
         "issueDate": "2026-10-29",
@@ -2861,8 +2872,45 @@
         "candidateSignatureName": "Vikram Malhotra",
         "signedAt": "2026-10-29T10:38:09.704Z",
         "templateVersion": "v2.4-corporate-standard",
-        "customNotes": ""
-      }
+        "customNotes": "",
+        "emailSentAt": "2026-10-29T11:10:44.267Z",
+        "emailSentBy": "Simran Kaur (HR Head)"
+      },
+      "documentReminders": [
+        {
+          "id": "rem-1793272238287-3e6i",
+          "sentAt": "2026-10-29T11:10:38.287Z",
+          "sentBy": "Simran Kaur (HR Head)",
+          "sentByRole": "HR_ADMIN",
+          "channel": "BOTH",
+          "recipientEmail": "vikram.m.candidate@gmail.com",
+          "recipientPhone": "9811999887",
+          "missingDocumentKeys": [
+            "pan_card",
+            "edu_10th",
+            "edu_12th",
+            "edu_graduation",
+            "photograph"
+          ],
+          "missingDocumentTitles": [
+            "PAN Card",
+            "10th Marksheet & Passing Certificate",
+            "12th / Intermediate Marksheet",
+            "Graduation Degree & Final Marksheet",
+            "Passport Size Photograph (Hard Copy)"
+          ],
+          "deadline": "2026-10-30T11:10:38.287Z",
+          "uploadLink": "/upload-portal/wcr-upl-j106ir23-mvtfzmpw",
+          "uploadToken": "wcr-upl-j106ir23-mvtfzmpw",
+          "status": "SENT",
+          "messageBody": "Dear Vikram Malhotra,\n\nCongratulations on your offer with White Collar Realty as Senior Property Consultant - Golf Course Road (Sales & Investments).\n\nOur HR compliance team has reviewed your pre-onboarding dossier and noticed that the following mandatory documents are still pending submission:\n\n1. PAN Card\n2. 10th Marksheet & Passing Certificate\n3. 12th / Intermediate Marksheet\n4. Graduation Degree & Final Marksheet\n5. Passport Size Photograph (Hard Copy)\n\nPlease upload clear scanned copies within 24 hours via your secure upload link:\n/upload-portal/wcr-upl-j106ir23-mvtfzmpw\n\nSubmission Deadline: 10/30/2026, 11:10:38 AM\n\nFor any questions, reach out to White Collar Realty HR at hr@whitecollarrealty.com or +91 124-4349007.\n\nWarm regards,\nSimran Kaur (HR Head)\nHuman Resources Recruiter\nWhite Collar Realty",
+          "emailSubject": "Action Required: Missing Onboarding Documents - White Collar Realty (Vikram Malhotra)"
+        }
+      ],
+      "lastReminderSentAt": "2026-10-29T11:10:38.287Z",
+      "lastReminderChannel": "BOTH",
+      "reminderDeadline": "2026-10-30T11:10:38.287Z",
+      "isOverdueForDocuments": false
     },
     {
       "id": "cand-aanya-kapoor",
@@ -3031,7 +3079,7 @@
       "profileCompletion": 87,
       "notes": "Relocating to Gurgaon office for dual-market luxury brokerage.",
       "createdAt": "2026-10-22T14:00:00Z",
-      "updatedAt": "2026-10-29T10:06:07.757Z",
+      "updatedAt": "2026-10-29T11:11:45.447Z",
       "uploadToken": {
         "token": "wcr-upl-ba7du5n2-mvtdoo78",
         "employeeId": "cand-aanya-kapoor",
@@ -3046,7 +3094,137 @@
         "isOneTime": false,
         "expiryDays": 3,
         "revokedAt": "2026-10-29T10:06:07.757Z"
-      }
+      },
+      "offerLetter": {
+        "refNo": "WCR/HR/OL/2026/WCR-023 (Pending)",
+        "issueDate": "2026-10-29",
+        "candidateName": "Aanya Kapoor",
+        "candidateAddress": "The Belaire, Golf Course Road, Gurgaon",
+        "candidateEmail": "aanya.kapoor97@gmail.com",
+        "candidatePhone": "9811200112",
+        "designation": "Luxury Portfolio Advisor - Dubai International Desk",
+        "department": "Luxury Residential & Investments",
+        "reportingManager": "Shaquib (Dubai Team)",
+        "joiningDate": "2026-11-20",
+        "workLocation": "6th floor, TOWER-A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101",
+        "market": "Dual Market",
+        "probationMonths": 6,
+        "noticePeriodDays": 45,
+        "validTillDate": "2026-11-12",
+        "status": "Issued",
+        "salaryBreakup": {
+          "annualCtc": 1200000,
+          "monthlyCtc": 100000,
+          "basicMonthly": 40000,
+          "basicAnnual": 480000,
+          "hraMonthly": 20000,
+          "hraAnnual": 240000,
+          "specialAllowanceMonthly": 4540,
+          "specialAllowanceAnnual": 54481,
+          "statutoryBonusMonthly": 583,
+          "statutoryBonusAnnual": 6996,
+          "pfEmployerMonthly": 1800,
+          "pfEmployerAnnual": 21600,
+          "gratuityMonthly": 23077,
+          "gratuityAnnual": 276923,
+          "variableIncentiveAnnual": 120000,
+          "grossMonthly": 65123,
+          "grossAnnual": 781476,
+          "approxNetInHandMonthly": 63123,
+          "currency": "INR"
+        },
+        "clauses": [
+          "1. Performance Based Variable Pay (PBVP)\nPBVP is a performance-linked variable component of your CTC and is not a fixed monthly entitlement.\n● Eligibility: Becomes payable only if monthly revenue of AED 50,000 is earned.\n● Exclusions: Cancelled bookings, refunded bookings, fraudulent transactions, transactions violating Company policy, or bookings later found to be ineligible do not qualify.\n● Verification & Discretion: PBVP shall be processed only after internal verification. The Company reserves the right to withhold, adjust, recover, or reverse PBVP in the event of cancellation, fraud, customer refund, policy violation, or duplicate claims. It does not create any permanent entitlement, and the Company’s decision shall be final and binding.",
+          "2. Retention Bonus\n● Eligibility: Payable only after completion of one year of service, on yearly revenue of AED 5,00,000\n● Exceptions & Notice Period: Employees who resign, abandon employment, or are terminated before completing one year will not be eligible. Employees serving a notice period beyond one year must satisfy all exit formalities and policy requirements.\n● Forfeiture: Disciplinary proceedings, fraud, misconduct, policy violation, or financial liability towards the Company may result in withholding or forfeiture. The policy may be modified or discontinued prospectively.",
+          "3. Sales Incentive Policy\nThe Employee shall become eligible for any Sales Incentive, Performance Bonus, Commission, or any other performance-linked payout only after the Company has successfully received its brokerage/commission from the respective transaction. Accordingly, no incentive, commission, or performance-linked payment shall be payable under, including but not limited to, the following circumstances:\n● The customer cancels, terminates, withdraws, or fails to proceed with the booking/transaction for any reason whatsoever.\n● The customer defaults, delays, or fails to make the payment(s) required under the payment plan or as demanded by the developer.\n● The transaction is put on hold, remains incomplete, or is not successfully concluded.\n● The Company has not received its brokerage, commission, revenue share, or any other receivable from the developer, channel partner, or any other concerned party, irrespective of the reason.\n● Any booking is subsequently reversed, refunded, cancelled, or declared ineligible by the developer or any competent authority.\nThe Company’s records regarding receipt of brokerage/commission and the successful completion of the transaction shall be final and binding for determining the Employee’s eligibility for incentive payouts. No incentive shall accrue merely on the basis of booking generation or booking confirmation unless the Company’s brokerage/commission has been duly realized.",
+          "4. Review, Probation & Confirmation\n● 10-Day Reviewal Period: You will be on a reviewal period for 10 days from your date of joining. Underperformance, inappropriate behavior, disciplinary issues, experience mismatch, false documents, or gross misconduct during this time may result in immediate termination without salary. Appointment letters are issued post-review.\n● Probation Duration: Initially, you will be on probation for six (6) months. Evaluation covers performance, attendance, conduct, technical learning, discipline, and communication skills.\n● Confirmation & Extension: Confirmation is subject to satisfactory results and formal written approval; it is not automatic upon time completion. Probation may be extended if performance does not meet organizational standards.\n● Performance Improvement Plan (PIP): The Company may place an underperforming employee on a PIP. Failure to complete the PIP successfully within the prescribed timeline may result in termination.\n● Termination During Probation: Notice for termination during probation is as stated under Section 9 (Termination & Summary Dismissal).",
+          "5. Working Hours & Office Discipline\n● Schedule: Standard working hours are 10:00 AM to 7:00 PM, Tuesday to Sunday (6 days a week), inclusive of a 30-minute lunch break, a 15-minute morning break, and a 15-minute evening break.\n● Weekly Off: The designated weekly off is Monday. If a client meeting, site visit, or transaction-related work falls on the weekly off, the employee shall attend as per the client's availability, at the office or on-site. Such attendance does not carry overtime. Compensatory off, if any, is at the reporting manager's discretion.\n● Flexibility & Overtime: Schedules may require working early, late, or occasionally on week-offs/holidays depending on business requirements. No overtime payment will be provided.\n● Dress Code / Formal Wear Policy: Formal business attire is mandatory during office hours.\n● Code of Conduct: Employees must maintain professional behavior, workplace ethics, business etiquette, and respect for colleagues/clients. Employees shall follow instructions from reporting managers and refrain from office politics, rumor spreading, disruptive behavior, discrimination, harassment, unauthorized photography/videography, or damaging the Company's reputation.",
+          "6. Late Entry & Early Leaving Policy\n● Standard Reporting Time: Strictly 10:00 AM.\n● Late Penalty: Arrival after 10:15 AM results in a half-day leave deduction. There is no flexibility beyond 10:15 AM.\n● Exceptions: A maximum of three (3) monthly exceptions for late entry/early exit are permitted, subject to department head approval.\n● Procedure: Any late arrival requires written permission from the manager and an update in the designated group stating the reason and estimated time of arrival (ETA).",
+          "7. Leave Policy\n7.1. Casual Leave (CL)\n● Entitlement: 12 CLs per year (1 paid leave per month) awarded only after probation completion. This is inclusive of all casual and medical leaves.\n\n7.2. Carry Forward Leaves (CFL)\n● Carry Forward: Unused CL can be carried forward up to the end of that financial year. Leave encashment is available after the financial year completes. Taking CFL requires written approval from the manager 2 days prior.\n\n7.3. Probation Paid Leave\n● No paid leaves are granted during probation.\n\n7.4. Emergency Leave\n● Must be informed and acknowledged before 10:00 AM on the same working day via call/official message to the Reporting Manager and HR.\n● Intimation after office hours begin or absence without confirmation will be treated as unapproved leave. A written email with reason and proof must be submitted on the next working day.\n\n7.5. Sick Leave\n● Sick Leave is availed from the Casual Leave entitlement under 7.1 (no separate sick-leave quota). Sick leave exceeding 2 days requires submission of medical records for approval.\n\n7.6. Unplanned Leave & Sandwich Policy\n● Sandwich Policy: Unplanned leave taken immediately before and/or after a weekly off (Monday)/holiday shall cause the weekly off/holiday to be counted as unpaid leave (2 days' deduction). Leave must be pre-approved via email at least 10 days in advance.\n● Extended Absence: Absences exceeding 5 days void paid week-off salary.\n● Restricted Period: No leave is allowed for 3 days immediately before and after salary release; any taken will be marked unapproved.\n● Advance Notice Requirements:\n  ○ 1 day leave: Apply at least 1–2 days prior.\n  ○ 2 days leave: Apply at least 4 days in advance.\n\n7.7. Planned Leave\n● Planned leaves (travel, marriage, exams) must be applied for at least 30 days in advance. Unapproved leaves are treated as unauthorized.",
+          "8. Conflict of Interest, Non-Solicitation & Client Diversion\n● Exclusive Employment & Office-Hours Discipline: The employee shall devote full working time to the Company. Personal calls and personal WhatsApp/messaging are not permitted during office hours; any employee found engaged in personal calls or chats during office hours shall face disciplinary action. During the tenure of employment, the employee shall not freelance or take up any secondary work (paid or unpaid), and shall not book, close, route, or process any property transaction, booking, or payment outside the Company, whether directly with any developer or with any other broker or channel partner. Any such act shall be treated as a fundamental breach, and the Company may terminate employment with immediate effect, without notice, with forfeiture of all pending incentives.\n● Professional Integrity & Client Relations: Diverting Company clients, enquiries, or leads to any external party or builder, or accepting any unauthorized external commission, is a breach of professional ethics and may lead to disciplinary action up to and including termination and legal measures.\n● Non-Solicitation & Enforcement (Post-Separation): For 12 months following separation, the former employee is strictly prohibited from contacting, soliciting, or servicing any clients, leads, or business contacts associated with White Collar Realty for personal gain or the benefit of any other entity. Any such misuse or diversion constitutes a material breach of this agreement. The Company reserves the right to seek injunctive relief and claim financial damages for any such breach.\n● Client Communication Channels: All client, investor, and lead communication (calls, WhatsApp, messages, email) shall be conducted only through the Company-provided number, email, and CRM. Use of a personal mobile number, personal WhatsApp, or personal email for client contact is prohibited. All clients, contacts, and chat histories generated through Company work are Company property and shall be handed over in full, along with the Company number, on exit.",
+          "9. Termination & Summary Dismissal\n● Notice by the Company: Where the Company terminates employment (other than summary dismissal):\n  1. Regular Employees: 7 days' prior notice.\n  2. Probationary Employees: 24 hours' notice.\n● Performance Benchmark (First 3 Months): Failure to achieve at least one (1) sales closure within the first three (3) months of joining entitles the Company to terminate employment immediately without further obligation.\n● Summary Dismissal (Immediate Termination Without Notice): Accumulating three (3) written warnings may trigger termination. However, immediate termination without notice may occur for:\n  1. Gross misconduct, gross negligence, or fundamental breach of contract.\n  2. Unlawful communication of confidential Company business or data theft.\n  3. Dishonesty, moral turpitude, or financial fraud/misconduct.\n  4. Falsification or concealment of resume details or background documents.\n  5. Physical or mental medical unfitness.\n  6. Absconding or unauthorized absence as defined under Section 10 (Unannounced Absence Policy).\n  7. Engaging in unauthorized side employment/business, freelancing, or routing any property transaction outside the Company (directly with a developer, broker, or channel partner).\n  8. Unethical behavior, harassment, violence, client diversion, or damaging the Company's image/reputation.\n  9. Habitual indiscipline, repeated late reporting, or failure of PIP.",
+          "10. Unannounced Absence Policy\n● Definition: An absence of three (3) or more consecutive working days without prior approval or communication shall be treated as voluntary departure from the role. This includes failure to participate in transition responsibilities or leaving before the first salary credit during the initial training period.\n● Consequences: Such departure shall be treated as job abandonment, resulting in termination of employment and forfeiture of pending dues and incentives. No relieving documentation shall be issued. All Company property must be returned within 7 days, failing which the Company may initiate legal recovery.",
+          "11. Prevention of Sexual Harassment (POSH)\nWhite Collar Realty enforces a strict zero-tolerance policy against workplace sexual harassment. Mandatory compliance with the Company’s POSH Policy and participation in POSH awareness training are required for all employees.",
+          "12. Document Verification & Company Property\n● Document Verification: Employment is subject to satisfactory background verification of identity, education, experience, address, and employment history. Submitting false information will result in immediate offer withdrawal or termination.\n● Return of Property: Upon resignation, termination, or exit clearance, the employee must return all Company assets including laptops, SIM cards, official emails, CRM access, keys, access cards, marketing materials, and physical files, in good working condition. If any Company asset is not returned, or is lost, stolen, broken, or damaged (beyond normal wear and tear) while in the employee's custody, the employee shall be liable to pay its replacement or repair cost as determined by the Company, and the Company may recover this amount from the employee's salary, incentives, or Full & Final settlement, to the extent permitted by law.",
+          "13. Exit Process, Notice Period & Full & Final (F&F) Settlement\n● Notice by the Employee: Resigning employees must provide 45 working days' written notice. No leaves are permitted during the notice period (granted leaves will extend the notice period by the same duration).\n● Early Release & Buyout: Early release is solely at the Company's discretion, subject to deducting salary equivalent to the unserved days or charging 45 working days' salary as compensation for financial loss.\n● Garden Leave: The Company may place the employee on Garden Leave during the notice period, during which confidentiality and non-solicitation obligations remain active.\n● F&F Settlement: Full and Final settlement is processed after 45 working days from leaving, subject to complete exit clearance, department clearance, handover completion, and full asset return. Failure to serve the notice period, absconding, or failing to return Company assets gives the Company the right to withhold F&F settlements, relieving letters, and unpaid salaries.",
+          "14. Confidentiality, Client data protection and non-disclosure obligations\nAs part of your role with White Collar Realty, you may be provided access to sensitive and confidential information relating to the Company, its clients, investors, prospects, employees, channel partners, developers, vendors and business operations. You acknowledge that such access is provided strictly for authorised Company work and is subject to the following obligations.\n\n14.1 Confidential Information\n“Confidential Information” includes, without limitation, client and investor names, phone numbers, email addresses, contact details, identity information, investment history, properties owned or considered, budgets, transaction values, booking or payment information, portfolio information, investor classification, CRM records, lead databases, cold data, buyer data, spreadsheets, reports, dashboards, call notes, WhatsApp or email records, recordings, meeting notes, site-visit records, internal remarks, project-wise client lists, pricing intelligence, inventories, negotiated terms, brokerage information, business information, source data, analytics, formulas, scripts, system access details, credentials, internal procedures and any information that is marked confidential or would reasonably be understood to be confidential or non-public.\n\n14.2 Strict Need-to-Know Access and Internal Confidentiality\nYou shall access and use Confidential Information only to the minimum extent required for the task assigned to you. You shall not disclose, discuss, show, forward, copy or otherwise make Confidential Information available to any unauthorised person, including any colleague, intern, employee, manager, contractor or other person within the office unless that person is specifically authorised and requires the information for a legitimate assigned business purpose.\n\n14.3 No External Disclosure or Personal Use\nYou shall not share, disclose, transfer, sell, exploit or use Confidential Information for your own benefit or for the benefit of any relative, friend, competitor, broker, agent, employer, future employer, business, developer, channel partner, client or third party. You shall not independently contact, solicit, divert, approach, market to, transact with or attempt to monetise any Company client, investor, lead or prospect except where expressly instructed and authorised as part of your Company duties.\n\n14.4 No Unauthorised Copying, Downloading or Storage\nUnless specifically authorised in writing by the Company, you shall not copy, export, download, print, photograph, screenshot, screen-record, email, WhatsApp, AirDrop, upload, sync, back up, transfer or store Confidential Information on any personal phone, personal laptop, personal email account, personal cloud drive, USB device, messaging application, external storage, public website or any other unapproved system.\n\n14.5 Use of AI Tools, Analytics Platforms and Third-Party Applications\nYou shall not upload, paste, enter or expose identifiable client or investor data, CRM exports, phone numbers, email addresses, financial or investment information, passwords, Company datasets or proprietary information into any public or unapproved artificial-intelligence tool, analytics platform, code repository, file-sharing service or third-party application. Any Company-approved tool may be used only within the scope and safeguards specifically authorised by the Company.\n\n14.6 Data Minimisation, Masking and Security\nWhere full client identity is not required for analysis or testing, you shall use masked, pseudonymised or dummy values as directed by the Company. You shall comply with all Company access controls, password requirements, security instructions and data-handling procedures and shall not attempt to bypass permissions or access data outside your assigned scope.\n\n14.7 No Unauthorised Client or Investor Contact\nClient or investor contact details obtained through Company work shall not be used for personal calls, messages, social-media contact, referrals, introductions, independent sales, future business or any other purpose not expressly authorised by the Company.\n\n14.8 Immediate Reporting of Data or Security Incidents\nYou must immediately report to the Company any suspected or actual loss, unauthorised access, accidental disclosure, misdirected message or email, stolen or lost device, compromised password, unauthorised download or export, phishing incident or any other event that may affect Confidential Information. You shall preserve relevant evidence and fully cooperate with the Company in investigation, containment, remediation and any legal or compliance action.\n\n14.9 Return, Deletion and Cessation of Access\nUpon completion of an assigned task, suspension, resignation, termination, expiry of employment, or whenever requested by the Company, you shall immediately cease access to Company systems, return all Company property and records, and permanently delete any Company data stored in any authorised temporary location. You shall not retain any copy, extract, summary, photograph, screenshot, client contact, report, dataset, derivative data, model or reconstruction of Company information and shall provide written confirmation of deletion or return if required.\n\n14.10 Continuing Obligation After Exit\nThese confidentiality and data-protection obligations shall continue during your employment and shall survive resignation, termination, completion or expiry of your engagement. You shall continue to protect client and investor information, credentials, trade secrets and other non-public Company information for so long as such information remains confidential, proprietary or legally protected.\n\n14.11 Ownership of Data and Work Product\nAll Company-provided data and all datasets, cleaned or merged files, analyses, dashboards, reports, findings, data dictionaries, scripts, queries, transformations, documentation and other work product created by you in the course of Company work shall belong to the Company to the extent permitted by applicable law and the terms of your engagement. You shall have no right to retain, reuse, publish, disclose, sell or commercially exploit such material.\n\n14.12 Breach, Disciplinary Action and Legal Remedies\nAny actual or suspected breach of these obligations may result in immediate restriction or suspension of access, disciplinary action, termination of employment, preservation of digital evidence, internal investigation and legal action as permitted by applicable law. The Company may seek appropriate civil, contractual, statutory and equitable remedies, including injunctions or other preventive relief, recovery of legally recoverable losses or damages and any other remedy available under law.\n\n14.13 Indemnity\nTo the extent permitted by applicable law, you shall be responsible for and shall indemnify the Company against direct losses, liabilities, claims, costs and expenses actually arising from your wilful misconduct, fraud, unauthorised disclosure, unauthorised use, deliberate data misuse or material breach of these obligations, subject to determination under applicable law.\n\n14.14 Lawful Disclosures\nNothing in these obligations prevents a disclosure expressly required by applicable law, a binding order of a competent court or lawful authority, or a protected disclosure that cannot legally be restricted. Where legally permitted, you shall promptly inform the Company before such disclosure and shall disclose only the minimum information legally required.\n\n14.15 Future Employment\nNothing in these clauses is intended to prohibit you from pursuing lawful future employment, profession, trade or business. However, no future employment or engagement gives you any right to use, retain, disclose or exploit White Collar Realty’s Confidential Information, client or investor information, proprietary data or trade secrets.\n\n14.16 Applicable Law and Jurisdiction\nYou shall comply with applicable Indian data-protection, privacy, information-technology, cybersecurity and contractual requirements, together with Company policies and instructions. These obligations shall be governed by the laws of India and, subject to any dispute-resolution provision elsewhere in your offer letter or employment/internship terms, courts having competent jurisdiction at Gurugram, Haryana shall have jurisdiction.",
+          "15. Acceptance & Signatures\nBy signing below, the employee confirms that he has read, understood, and accepted all the terms and conditions of this offer letter."
+        ],
+        "missingFields": [],
+        "approvedBy": "Simran Kaur (HR Head)",
+        "approvedAt": "2026-10-29T11:11:45.429Z",
+        "issuedAt": "2026-10-29T11:11:45.447Z",
+        "templateVersion": "v1.0-official-10page",
+        "customNotes": "",
+        "recruiterName": "Nisha",
+        "recruiterTitle": "Human Resources Recruiter",
+        "recruiterPhone": "+91 124-4349007",
+        "recruiterEmail": "hr@whitecollarrealty.com",
+        "ctcLpaFormatted": "Rs. 12 LPA",
+        "basicMonthly": 75000,
+        "basicYearly": 900000,
+        "pbvpMonthly": 12500,
+        "pbvpYearly": 150000,
+        "retentionBonusMonthly": 12500,
+        "retentionBonusYearly": 150000,
+        "annexureSections": {
+          "section_1": "PBVP is a performance-linked variable component of your CTC and is not a fixed monthly entitlement.\n● Eligibility: Becomes payable only if monthly revenue of AED 50,000 is earned.\n● Exclusions: Cancelled bookings, refunded bookings, fraudulent transactions, transactions violating Company policy, or bookings later found to be ineligible do not qualify.\n● Verification & Discretion: PBVP shall be processed only after internal verification. The Company reserves the right to withhold, adjust, recover, or reverse PBVP in the event of cancellation, fraud, customer refund, policy violation, or duplicate claims. It does not create any permanent entitlement, and the Company’s decision shall be final and binding.",
+          "section_2": "● Eligibility: Payable only after completion of one year of service, on yearly revenue of AED 5,00,000\n● Exceptions & Notice Period: Employees who resign, abandon employment, or are terminated before completing one year will not be eligible. Employees serving a notice period beyond one year must satisfy all exit formalities and policy requirements.\n● Forfeiture: Disciplinary proceedings, fraud, misconduct, policy violation, or financial liability towards the Company may result in withholding or forfeiture. The policy may be modified or discontinued prospectively.",
+          "section_3": "The Employee shall become eligible for any Sales Incentive, Performance Bonus, Commission, or any other performance-linked payout only after the Company has successfully received its brokerage/commission from the respective transaction. Accordingly, no incentive, commission, or performance-linked payment shall be payable under, including but not limited to, the following circumstances:\n● The customer cancels, terminates, withdraws, or fails to proceed with the booking/transaction for any reason whatsoever.\n● The customer defaults, delays, or fails to make the payment(s) required under the payment plan or as demanded by the developer.\n● The transaction is put on hold, remains incomplete, or is not successfully concluded.\n● The Company has not received its brokerage, commission, revenue share, or any other receivable from the developer, channel partner, or any other concerned party, irrespective of the reason.\n● Any booking is subsequently reversed, refunded, cancelled, or declared ineligible by the developer or any competent authority.\nThe Company’s records regarding receipt of brokerage/commission and the successful completion of the transaction shall be final and binding for determining the Employee’s eligibility for incentive payouts. No incentive shall accrue merely on the basis of booking generation or booking confirmation unless the Company’s brokerage/commission has been duly realized.",
+          "section_4": "● 10-Day Reviewal Period: You will be on a reviewal period for 10 days from your date of joining. Underperformance, inappropriate behavior, disciplinary issues, experience mismatch, false documents, or gross misconduct during this time may result in immediate termination without salary. Appointment letters are issued post-review.\n● Probation Duration: Initially, you will be on probation for six (6) months. Evaluation covers performance, attendance, conduct, technical learning, discipline, and communication skills.\n● Confirmation & Extension: Confirmation is subject to satisfactory results and formal written approval; it is not automatic upon time completion. Probation may be extended if performance does not meet organizational standards.\n● Performance Improvement Plan (PIP): The Company may place an underperforming employee on a PIP. Failure to complete the PIP successfully within the prescribed timeline may result in termination.\n● Termination During Probation: Notice for termination during probation is as stated under Section 9 (Termination & Summary Dismissal).",
+          "section_5": "● Schedule: Standard working hours are 10:00 AM to 7:00 PM, Tuesday to Sunday (6 days a week), inclusive of a 30-minute lunch break, a 15-minute morning break, and a 15-minute evening break.\n● Weekly Off: The designated weekly off is Monday. If a client meeting, site visit, or transaction-related work falls on the weekly off, the employee shall attend as per the client's availability, at the office or on-site. Such attendance does not carry overtime. Compensatory off, if any, is at the reporting manager's discretion.\n● Flexibility & Overtime: Schedules may require working early, late, or occasionally on week-offs/holidays depending on business requirements. No overtime payment will be provided.\n● Dress Code / Formal Wear Policy: Formal business attire is mandatory during office hours.\n● Code of Conduct: Employees must maintain professional behavior, workplace ethics, business etiquette, and respect for colleagues/clients. Employees shall follow instructions from reporting managers and refrain from office politics, rumor spreading, disruptive behavior, discrimination, harassment, unauthorized photography/videography, or damaging the Company's reputation.",
+          "section_6": "● Standard Reporting Time: Strictly 10:00 AM.\n● Late Penalty: Arrival after 10:15 AM results in a half-day leave deduction. There is no flexibility beyond 10:15 AM.\n● Exceptions: A maximum of three (3) monthly exceptions for late entry/early exit are permitted, subject to department head approval.\n● Procedure: Any late arrival requires written permission from the manager and an update in the designated group stating the reason and estimated time of arrival (ETA).",
+          "section_7": "7.1. Casual Leave (CL)\n● Entitlement: 12 CLs per year (1 paid leave per month) awarded only after probation completion. This is inclusive of all casual and medical leaves.\n\n7.2. Carry Forward Leaves (CFL)\n● Carry Forward: Unused CL can be carried forward up to the end of that financial year. Leave encashment is available after the financial year completes. Taking CFL requires written approval from the manager 2 days prior.\n\n7.3. Probation Paid Leave\n● No paid leaves are granted during probation.\n\n7.4. Emergency Leave\n● Must be informed and acknowledged before 10:00 AM on the same working day via call/official message to the Reporting Manager and HR.\n● Intimation after office hours begin or absence without confirmation will be treated as unapproved leave. A written email with reason and proof must be submitted on the next working day.\n\n7.5. Sick Leave\n● Sick Leave is availed from the Casual Leave entitlement under 7.1 (no separate sick-leave quota). Sick leave exceeding 2 days requires submission of medical records for approval.\n\n7.6. Unplanned Leave & Sandwich Policy\n● Sandwich Policy: Unplanned leave taken immediately before and/or after a weekly off (Monday)/holiday shall cause the weekly off/holiday to be counted as unpaid leave (2 days' deduction). Leave must be pre-approved via email at least 10 days in advance.\n● Extended Absence: Absences exceeding 5 days void paid week-off salary.\n● Restricted Period: No leave is allowed for 3 days immediately before and after salary release; any taken will be marked unapproved.\n● Advance Notice Requirements:\n  ○ 1 day leave: Apply at least 1–2 days prior.\n  ○ 2 days leave: Apply at least 4 days in advance.\n\n7.7. Planned Leave\n● Planned leaves (travel, marriage, exams) must be applied for at least 30 days in advance. Unapproved leaves are treated as unauthorized.",
+          "section_8": "● Exclusive Employment & Office-Hours Discipline: The employee shall devote full working time to the Company. Personal calls and personal WhatsApp/messaging are not permitted during office hours; any employee found engaged in personal calls or chats during office hours shall face disciplinary action. During the tenure of employment, the employee shall not freelance or take up any secondary work (paid or unpaid), and shall not book, close, route, or process any property transaction, booking, or payment outside the Company, whether directly with any developer or with any other broker or channel partner. Any such act shall be treated as a fundamental breach, and the Company may terminate employment with immediate effect, without notice, with forfeiture of all pending incentives.\n● Professional Integrity & Client Relations: Diverting Company clients, enquiries, or leads to any external party or builder, or accepting any unauthorized external commission, is a breach of professional ethics and may lead to disciplinary action up to and including termination and legal measures.\n● Non-Solicitation & Enforcement (Post-Separation): For 12 months following separation, the former employee is strictly prohibited from contacting, soliciting, or servicing any clients, leads, or business contacts associated with White Collar Realty for personal gain or the benefit of any other entity. Any such misuse or diversion constitutes a material breach of this agreement. The Company reserves the right to seek injunctive relief and claim financial damages for any such breach.\n● Client Communication Channels: All client, investor, and lead communication (calls, WhatsApp, messages, email) shall be conducted only through the Company-provided number, email, and CRM. Use of a personal mobile number, personal WhatsApp, or personal email for client contact is prohibited. All clients, contacts, and chat histories generated through Company work are Company property and shall be handed over in full, along with the Company number, on exit.",
+          "section_9": "● Notice by the Company: Where the Company terminates employment (other than summary dismissal):\n  1. Regular Employees: 7 days' prior notice.\n  2. Probationary Employees: 24 hours' notice.\n● Performance Benchmark (First 3 Months): Failure to achieve at least one (1) sales closure within the first three (3) months of joining entitles the Company to terminate employment immediately without further obligation.\n● Summary Dismissal (Immediate Termination Without Notice): Accumulating three (3) written warnings may trigger termination. However, immediate termination without notice may occur for:\n  1. Gross misconduct, gross negligence, or fundamental breach of contract.\n  2. Unlawful communication of confidential Company business or data theft.\n  3. Dishonesty, moral turpitude, or financial fraud/misconduct.\n  4. Falsification or concealment of resume details or background documents.\n  5. Physical or mental medical unfitness.\n  6. Absconding or unauthorized absence as defined under Section 10 (Unannounced Absence Policy).\n  7. Engaging in unauthorized side employment/business, freelancing, or routing any property transaction outside the Company (directly with a developer, broker, or channel partner).\n  8. Unethical behavior, harassment, violence, client diversion, or damaging the Company's image/reputation.\n  9. Habitual indiscipline, repeated late reporting, or failure of PIP.",
+          "section_10": "● Definition: An absence of three (3) or more consecutive working days without prior approval or communication shall be treated as voluntary departure from the role. This includes failure to participate in transition responsibilities or leaving before the first salary credit during the initial training period.\n● Consequences: Such departure shall be treated as job abandonment, resulting in termination of employment and forfeiture of pending dues and incentives. No relieving documentation shall be issued. All Company property must be returned within 7 days, failing which the Company may initiate legal recovery.",
+          "section_11": "White Collar Realty enforces a strict zero-tolerance policy against workplace sexual harassment. Mandatory compliance with the Company’s POSH Policy and participation in POSH awareness training are required for all employees.",
+          "section_12": "● Document Verification: Employment is subject to satisfactory background verification of identity, education, experience, address, and employment history. Submitting false information will result in immediate offer withdrawal or termination.\n● Return of Property: Upon resignation, termination, or exit clearance, the employee must return all Company assets including laptops, SIM cards, official emails, CRM access, keys, access cards, marketing materials, and physical files, in good working condition. If any Company asset is not returned, or is lost, stolen, broken, or damaged (beyond normal wear and tear) while in the employee's custody, the employee shall be liable to pay its replacement or repair cost as determined by the Company, and the Company may recover this amount from the employee's salary, incentives, or Full & Final settlement, to the extent permitted by law.",
+          "section_13": "● Notice by the Employee: Resigning employees must provide 45 working days' written notice. No leaves are permitted during the notice period (granted leaves will extend the notice period by the same duration).\n● Early Release & Buyout: Early release is solely at the Company's discretion, subject to deducting salary equivalent to the unserved days or charging 45 working days' salary as compensation for financial loss.\n● Garden Leave: The Company may place the employee on Garden Leave during the notice period, during which confidentiality and non-solicitation obligations remain active.\n● F&F Settlement: Full and Final settlement is processed after 45 working days from leaving, subject to complete exit clearance, department clearance, handover completion, and full asset return. Failure to serve the notice period, absconding, or failing to return Company assets gives the Company the right to withhold F&F settlements, relieving letters, and unpaid salaries.",
+          "section_14": "As part of your role with White Collar Realty, you may be provided access to sensitive and confidential information relating to the Company, its clients, investors, prospects, employees, channel partners, developers, vendors and business operations. You acknowledge that such access is provided strictly for authorised Company work and is subject to the following obligations.\n\n14.1 Confidential Information\n“Confidential Information” includes, without limitation, client and investor names, phone numbers, email addresses, contact details, identity information, investment history, properties owned or considered, budgets, transaction values, booking or payment information, portfolio information, investor classification, CRM records, lead databases, cold data, buyer data, spreadsheets, reports, dashboards, call notes, WhatsApp or email records, recordings, meeting notes, site-visit records, internal remarks, project-wise client lists, pricing intelligence, inventories, negotiated terms, brokerage information, business information, source data, analytics, formulas, scripts, system access details, credentials, internal procedures and any information that is marked confidential or would reasonably be understood to be confidential or non-public.\n\n14.2 Strict Need-to-Know Access and Internal Confidentiality\nYou shall access and use Confidential Information only to the minimum extent required for the task assigned to you. You shall not disclose, discuss, show, forward, copy or otherwise make Confidential Information available to any unauthorised person, including any colleague, intern, employee, manager, contractor or other person within the office unless that person is specifically authorised and requires the information for a legitimate assigned business purpose.\n\n14.3 No External Disclosure or Personal Use\nYou shall not share, disclose, transfer, sell, exploit or use Confidential Information for your own benefit or for the benefit of any relative, friend, competitor, broker, agent, employer, future employer, business, developer, channel partner, client or third party. You shall not independently contact, solicit, divert, approach, market to, transact with or attempt to monetise any Company client, investor, lead or prospect except where expressly instructed and authorised as part of your Company duties.\n\n14.4 No Unauthorised Copying, Downloading or Storage\nUnless specifically authorised in writing by the Company, you shall not copy, export, download, print, photograph, screenshot, screen-record, email, WhatsApp, AirDrop, upload, sync, back up, transfer or store Confidential Information on any personal phone, personal laptop, personal email account, personal cloud drive, USB device, messaging application, external storage, public website or any other unapproved system.\n\n14.5 Use of AI Tools, Analytics Platforms and Third-Party Applications\nYou shall not upload, paste, enter or expose identifiable client or investor data, CRM exports, phone numbers, email addresses, financial or investment information, passwords, Company datasets or proprietary information into any public or unapproved artificial-intelligence tool, analytics platform, code repository, file-sharing service or third-party application. Any Company-approved tool may be used only within the scope and safeguards specifically authorised by the Company.\n\n14.6 Data Minimisation, Masking and Security\nWhere full client identity is not required for analysis or testing, you shall use masked, pseudonymised or dummy values as directed by the Company. You shall comply with all Company access controls, password requirements, security instructions and data-handling procedures and shall not attempt to bypass permissions or access data outside your assigned scope.\n\n14.7 No Unauthorised Client or Investor Contact\nClient or investor contact details obtained through Company work shall not be used for personal calls, messages, social-media contact, referrals, introductions, independent sales, future business or any other purpose not expressly authorised by the Company.\n\n14.8 Immediate Reporting of Data or Security Incidents\nYou must immediately report to the Company any suspected or actual loss, unauthorised access, accidental disclosure, misdirected message or email, stolen or lost device, compromised password, unauthorised download or export, phishing incident or any other event that may affect Confidential Information. You shall preserve relevant evidence and fully cooperate with the Company in investigation, containment, remediation and any legal or compliance action.\n\n14.9 Return, Deletion and Cessation of Access\nUpon completion of an assigned task, suspension, resignation, termination, expiry of employment, or whenever requested by the Company, you shall immediately cease access to Company systems, return all Company property and records, and permanently delete any Company data stored in any authorised temporary location. You shall not retain any copy, extract, summary, photograph, screenshot, client contact, report, dataset, derivative data, model or reconstruction of Company information and shall provide written confirmation of deletion or return if required.\n\n14.10 Continuing Obligation After Exit\nThese confidentiality and data-protection obligations shall continue during your employment and shall survive resignation, termination, completion or expiry of your engagement. You shall continue to protect client and investor information, credentials, trade secrets and other non-public Company information for so long as such information remains confidential, proprietary or legally protected.\n\n14.11 Ownership of Data and Work Product\nAll Company-provided data and all datasets, cleaned or merged files, analyses, dashboards, reports, findings, data dictionaries, scripts, queries, transformations, documentation and other work product created by you in the course of Company work shall belong to the Company to the extent permitted by applicable law and the terms of your engagement. You shall have no right to retain, reuse, publish, disclose, sell or commercially exploit such material.\n\n14.12 Breach, Disciplinary Action and Legal Remedies\nAny actual or suspected breach of these obligations may result in immediate restriction or suspension of access, disciplinary action, termination of employment, preservation of digital evidence, internal investigation and legal action as permitted by applicable law. The Company may seek appropriate civil, contractual, statutory and equitable remedies, including injunctions or other preventive relief, recovery of legally recoverable losses or damages and any other remedy available under law.\n\n14.13 Indemnity\nTo the extent permitted by applicable law, you shall be responsible for and shall indemnify the Company against direct losses, liabilities, claims, costs and expenses actually arising from your wilful misconduct, fraud, unauthorised disclosure, unauthorised use, deliberate data misuse or material breach of these obligations, subject to determination under applicable law.\n\n14.14 Lawful Disclosures\nNothing in these obligations prevents a disclosure expressly required by applicable law, a binding order of a competent court or lawful authority, or a protected disclosure that cannot legally be restricted. Where legally permitted, you shall promptly inform the Company before such disclosure and shall disclose only the minimum information legally required.\n\n14.15 Future Employment\nNothing in these clauses is intended to prohibit you from pursuing lawful future employment, profession, trade or business. However, no future employment or engagement gives you any right to use, retain, disclose or exploit White Collar Realty’s Confidential Information, client or investor information, proprietary data or trade secrets.\n\n14.16 Applicable Law and Jurisdiction\nYou shall comply with applicable Indian data-protection, privacy, information-technology, cybersecurity and contractual requirements, together with Company policies and instructions. These obligations shall be governed by the laws of India and, subject to any dispute-resolution provision elsewhere in your offer letter or employment/internship terms, courts having competent jurisdiction at Gurugram, Haryana shall have jurisdiction.",
+          "section_15": "By signing below, the employee confirms that he has read, understood, and accepted all the terms and conditions of this offer letter."
+        },
+        "templateHistory": [
+          {
+            "version": "v1.0-official-10page",
+            "updatedAt": "2026-10-29T00:00:00.000Z",
+            "updatedBy": "Corporate HR (System Master)",
+            "changeSummary": "Exact 10-page master template digitized from corporate Sample Offer Letter PDF."
+          }
+        ],
+        "emailSentAt": "2026-10-29T11:11:45.447Z",
+        "emailSentBy": "Simran Kaur (HR Head)"
+      },
+      "lifecycleHistory": [
+        {
+          "id": "evt-1793272305447-vipl",
+          "timestamp": "2026-10-29T11:11:45.447Z",
+          "stage": "Offer Extended",
+          "title": "Official Offer Letter Dispatched to aanya.kapoor97@gmail.com",
+          "description": "Executive 10-page offer letter (Ref: WCR/HR/OL/2026/WCR-023 (Pending), CTC: Rs. 12 LPA) emailed by Simran Kaur (HR Head) (HR_ADMIN). Candidate notified for e-signature.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793272305429-icvl",
+          "timestamp": "2026-10-29T11:11:45.429Z",
+          "stage": "Offer Extended",
+          "title": "Offer Letter Approved by HR Leadership",
+          "description": "Offer Ref WCR/HR/OL/2026/WCR-023 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793272298852-nf59",
+          "timestamp": "2026-10-29T11:11:38.852Z",
+          "stage": "Offer Extended",
+          "title": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-023 (Pending)",
+          "description": "Prepared offer letter for Luxury Portfolio Advisor - Dubai International Desk (Luxury Residential & Investments) with Annual CTC of INR 1,200,000. Status: Draft.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        }
+      ],
+      "lifecycleStage": "Offer Extended"
     },
     {
       "id": "cand-rohan-verma",
@@ -3691,6 +3869,72 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1793272305447-3dn04",
+      "timestamp": "2026-10-29T11:11:45.447Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Official Offer Letter Dispatched to aanya.kapoor97@gmail.com",
+      "entityType": "Lifecycle",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Executive 10-page offer letter (Ref: WCR/HR/OL/2026/WCR-023 (Pending), CTC: Rs. 12 LPA) emailed by Simran Kaur (HR Head) (HR_ADMIN). Candidate notified for e-signature."
+    },
+    {
+      "id": "log-1793272305429-dckey",
+      "timestamp": "2026-10-29T11:11:45.429Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Offer Letter Approved by HR Leadership",
+      "entityType": "Lifecycle",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Offer Ref WCR/HR/OL/2026/WCR-023 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate."
+    },
+    {
+      "id": "log-1793272298852-nb91f",
+      "timestamp": "2026-10-29T11:11:38.852Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-023 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Prepared offer letter for Luxury Portfolio Advisor - Dubai International Desk (Luxury Residential & Investments) with Annual CTC of INR 1,200,000. Status: Draft."
+    },
+    {
+      "id": "log-1793272244267-m89fj",
+      "timestamp": "2026-10-29T11:10:44.267Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Official Offer Letter Dispatched to vikram.m.candidate@gmail.com",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Executive 10-page offer letter (Ref: WCR/HR/OL/2026/WCR-022 (Pending), CTC: ₹16,00,000 p.a. + Brokerage Incentive) emailed by Simran Kaur (HR Head) (HR_ADMIN). Candidate notified for e-signature."
+    },
+    {
+      "id": "log-1793272238288-cq1xq",
+      "timestamp": "2026-10-29T11:10:38.288Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Document Reminder Dispatched (BOTH)",
+      "entityType": "Candidate",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Sent 24-hour reminder for 5 missing document(s) to 9811999887 / vikram.m.candidate@gmail.com. Deadline: 10/30/2026, 11:10:38 AM."
+    },
+    {
+      "id": "log-1793272238285-p6tek",
+      "timestamp": "2026-10-29T11:10:38.285Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Upload Link Generated",
+      "entityType": "Candidate",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated multi-use upload link (expires in 7 days on 11/5/2026)."
+    },
+    {
       "id": "log-1793270289727-6yqsk",
       "timestamp": "2026-10-29T10:38:09.727Z",
       "actor": "Simran Kaur (HR Head)",
@@ -4133,5 +4377,5 @@
   ],
   "acknowledgedAlerts": {},
   "version": 3,
-  "lastUpdated": "2026-10-29T10:38:09.738Z"
+  "lastUpdated": "2026-10-29T11:11:45.450Z"
 }

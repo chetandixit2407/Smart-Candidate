@@ -185,6 +185,34 @@ export interface SalaryBreakup {
   currency: 'INR' | 'AED';
 }
 
+export interface DocumentReminderRecord {
+  id: string;
+  sentAt: string;
+  sentBy: string;
+  sentByRole: UserRole;
+  channel: 'EMAIL' | 'WHATSAPP' | 'BOTH';
+  recipientEmail: string;
+  recipientPhone: string;
+  missingDocumentKeys: string[];
+  missingDocumentTitles: string[];
+  deadline: string; // ISO date string or formatted (within 24 hours)
+  uploadLink: string;
+  uploadToken: string;
+  status: 'SENT' | 'DELIVERED' | 'ACTION_INITIATED' | 'COMPLETED' | 'OVERDUE';
+  messageBody: string;
+  emailSubject?: string;
+}
+
+export interface OfferTemplateRevision {
+  version: string;
+  updatedAt: string;
+  updatedBy: string;
+  changeSummary: string;
+  recruiterName?: string;
+  recruiterTitle?: string;
+  customClauses?: Record<string, string>;
+}
+
 export interface OfferLetterData {
   refNo: string;
   issueDate: string;
@@ -214,6 +242,22 @@ export interface OfferLetterData {
   pdfPath?: string;
   templateVersion?: string;
   customNotes?: string;
+  // White Collar Realty 10-Page Exact Template Fields
+  recruiterName?: string;
+  recruiterTitle?: string;
+  recruiterPhone?: string;
+  recruiterEmail?: string;
+  ctcLpaFormatted?: string;
+  basicMonthly?: number;
+  basicYearly?: number;
+  pbvpMonthly?: number;
+  pbvpYearly?: number;
+  retentionBonusMonthly?: number;
+  retentionBonusYearly?: number;
+  annexureSections?: Record<string, string>;
+  templateHistory?: OfferTemplateRevision[];
+  emailSentAt?: string;
+  emailSentBy?: string;
 }
 
 export interface ProbationReview {
@@ -401,8 +445,14 @@ export interface Employee {
   aspirations?: AspirationsInfo;
   googleDriveLink?: string;
 
-  // Documents
+  // Documents & Reminders
   documents: Record<string, DocumentRecord>;
+  documentReminders?: DocumentReminderRecord[];
+  lastReminderSentAt?: string;
+  lastReminderChannel?: 'EMAIL' | 'WHATSAPP' | 'BOTH';
+  reminderDeadline?: string;
+  isOverdueForDocuments?: boolean;
+  isDocumentSubmissionOverdue?: boolean;
   
   profileCompletion: number; // 0-100%
   notes?: string;
@@ -520,7 +570,8 @@ export type AlertType =
   | 'INTERNSHIP_COMPLETION'
   | 'PROBATION_EXPIRY'
   | 'NOTICE_PERIOD_LWD'
-  | 'PENDING_DOCUMENT_SUBMISSION';
+  | 'PENDING_DOCUMENT_SUBMISSION'
+  | 'MISSING_DOCUMENTS';
 
 export interface AlertItem {
   id: string;
@@ -546,6 +597,16 @@ export interface AlertItem {
   dismissed?: boolean;
   dismissedAt?: string;
   profileCompletion?: number;
+  // Missing Document Alert Details
+  missingDocuments?: string[];
+  missingDocumentCount?: number;
+  submissionStatus?: string;
+  deadline?: string;
+  isOverdue?: boolean;
+  remindersSentCount?: number;
+  lastReminderSentAt?: string;
+  uploadToken?: string;
+  uploadUrl?: string;
 }
 
 export const ALL_DESK_CODES: string[] = [

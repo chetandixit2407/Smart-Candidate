@@ -17,8 +17,10 @@ import {
   Ban,
   X,
   AlertCircle,
+  AlertTriangle,
   Eye,
   FileText,
+  Send,
 } from 'lucide-react';
 import { Employee, UserRole, UploadToken } from '../types/index.js';
 
@@ -32,6 +34,7 @@ interface CandidatesViewProps {
   onRevokeUploadLink?: (candidateId: string) => Promise<{ success: boolean; message: string }>;
   onOpenCandidatePortal?: (token: string) => void;
   onOpenOfferLetter?: (candidate: Employee) => void;
+  onSendReminder?: (candidateId: string, channel?: 'EMAIL' | 'WHATSAPP' | 'BOTH') => void;
 }
 
 export const CandidatesView: React.FC<CandidatesViewProps> = ({
@@ -44,6 +47,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
   onRevokeUploadLink,
   onOpenCandidatePortal,
   onOpenOfferLetter,
+  onSendReminder,
 }) => {
   const [convertingCand, setConvertingCand] = useState<Employee | null>(null);
   const [assignedCode, setAssignedCode] = useState('');
@@ -172,6 +176,8 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
           const docValues = Object.values(cand.documents || {});
           const verifiedDocs = docValues.filter(d => d.status === 'Verified').length;
           const submittedDocs = docValues.filter(d => d.status === 'Submitted' || d.status === 'Under Review').length;
+          const missingDocs = docValues.filter(d => d.required && (d.status === 'Not Submitted' || d.status === 'Rejected'));
+          const missingDocsCount = missingDocs.length;
           const totalDocs = docValues.length;
 
           const hasActiveToken =
@@ -179,6 +185,10 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
             !cand.uploadToken.isUsed &&
             !cand.uploadToken.isRevoked &&
             new Date(cand.uploadToken.expiresAt).getTime() > Date.now();
+
+          const lastReminder = cand.documentReminders && cand.documentReminders.length > 0
+            ? cand.documentReminders[cand.documentReminders.length - 1]
+            : null;
 
           return (
             <div
@@ -258,6 +268,67 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                   </div>
                 </div>
 
+                {/* Missing Required Documents Alert Banner */}
+                {missingDocsCount > 0 && (
+                  <div className={`p-2.5 rounded-lg border text-xs flex items-center justify-between gap-2 ${
+                    cand.isDocumentSubmissionOverdue
+                      ? 'bg-rose-50 border-rose-200 text-rose-900'
+                      : 'bg-amber-50 border-amber-200 text-amber-900'
+                  }`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <AlertTriangle className={`w-4 h-4 shrink-0 ${cand.isDocumentSubmissionOverdue ? 'text-rose-600' : 'text-amber-600'}`} />
+                      <div className="truncate">
+                        <div className="font-semibold text-[11px] flex items-center gap-1.5">
+                          <span>{missingDocsCount} required {missingDocsCount === 1 ? 'doc' : 'docs'} missing</span>
+                          {cand.isDocumentSubmissionOverdue ? (
+                            <span className="px-1.5 py-0.2 bg-rose-200 text-rose-800 rounded text-[9px] font-bold uppercase tracking-wider">
+                              Overdue
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-amber-700 font-normal">
+                              (24h deadline)
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] opacity-80 truncate">
+                          {missingDocs.map(d => d.title).join(', ')}
+                        </div>
+                      </div>
+                    </div>
+
+                    {onSendReminder && !isViewer && (
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          onSendReminder(cand.id, 'BOTH');
+                        }}
+                        className={`shrink-0 px-2 py-1 rounded text-[11px] font-semibold flex items-center gap-1 shadow-xs transition-colors ${
+                          cand.isDocumentSubmissionOverdue
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                            : 'bg-amber-600 hover:bg-amber-700 text-white'
+                        }`}
+                        title="Send personalized WhatsApp and Email reminder"
+                      >
+                        <Send className="w-3 h-3" />
+                        <span>Remind</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Last reminder info if exists */}
+                {lastReminder && (
+                  <div className="text-[10px] text-slate-500 flex items-center justify-between px-1">
+                    <span className="truncate">
+                      Last reminder: {lastReminder.channel} ({new Date(lastReminder.sentAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})
+                    </span>
+                    <span className="font-medium text-slate-700 shrink-0">
+                      Sent {cand.documentReminders?.length || 1}x
+                    </span>
+                  </div>
+                )}
+
                 {cand.notes && (
                   <p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded">
                     &ldquo;{cand.notes}&rdquo;
@@ -314,6 +385,21 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                       ) : (
                         <Copy className="w-3.5 h-3.5 text-slate-600" />
                       )}
+                    </button>
+                  )}
+
+                  {onSendReminder && !isViewer && missingDocsCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        onSendReminder(cand.id, 'BOTH');
+                      }}
+                      className="px-2.5 py-1.5 text-xs text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-medium flex items-center gap-1 transition-colors"
+                      title="Send WhatsApp & Email missing document reminder"
+                    >
+                      <Send className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Remind</span>
                     </button>
                   )}
 

@@ -83,6 +83,9 @@ class ApiService {
       'UPLOAD_LINK_GENERATED',
       'UPLOAD_LINK_REVOKED',
       'OFFER_LETTER_UPDATED',
+      'OFFER_LETTER_EMAILED',
+      'REMINDER_SENT',
+      'ALERT_UPDATED',
       'LIFECYCLE_EVENT_ADDED',
     ];
 
@@ -578,6 +581,93 @@ class ApiService {
       const err = await res.json();
       throw new Error(err.message || err.error || 'Failed to accept offer letter');
     }
+    return res.json();
+  }
+
+  public async emailOfferLetter(candidateId: string): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/offer-letter/email`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to email offer letter');
+    }
+    return res.json();
+  }
+
+  public async downloadOfferLetterDocx(candidateId: string, customData?: Partial<OfferLetterData>): Promise<void> {
+    const res = await fetch(`/api/candidates/${candidateId}/offer-letter/docx`, {
+      method: customData ? 'POST' : 'GET',
+      headers: this.getHeaders(),
+      body: customData ? JSON.stringify(customData) : undefined,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to download Word document' }));
+      throw new Error(err.message || err.error || 'Failed to download Word document');
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const disposition = res.headers.get('Content-Disposition');
+    let filename = `White_Collar_Realty_Offer_Letter_${candidateId}.docx`;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
+
+  public async getMasterOfferTemplate(): Promise<any> {
+    const res = await fetch('/api/offer-letter/master-template', {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to load master offer template');
+    return res.json();
+  }
+
+  public async getMissingDocuments(candidateId: string): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/missing-documents`, {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to fetch missing documents');
+    return res.json();
+  }
+
+  public async sendDocumentReminder(
+    candidateId: string,
+    payload: {
+      channel: 'EMAIL' | 'WHATSAPP' | 'BOTH';
+      missingDocumentKeys?: string[];
+      deadlineHours?: number;
+      messageBody?: string;
+      emailSubject?: string;
+      recipientEmail?: string;
+      recipientPhone?: string;
+    }
+  ): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/reminders/send`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to send document reminder');
+    }
+    return res.json();
+  }
+
+  public async getCandidateReminders(candidateId: string): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/reminders`, {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to fetch candidate reminders');
     return res.json();
   }
 

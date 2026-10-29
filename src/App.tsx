@@ -17,6 +17,8 @@ import { ConfirmDialog } from './components/ConfirmDialog.js';
 import { HiringLifecycleView } from './components/HiringLifecycleView.js';
 import { ExitManagementView } from './components/ExitManagementView.js';
 import { OfferLetterModal } from './components/OfferLetterModal.js';
+import { CandidateReminderModal } from './components/CandidateReminderModal.js';
+import { HRAlertsFloatingBanner } from './components/HRAlertsFloatingBanner.js';
 import {
   Employee,
   CompanyAsset,
@@ -62,6 +64,8 @@ export default function App() {
   // Modals
   const [selectedPerson, setSelectedPerson] = useState<Employee | null>(null);
   const [offerModalCandidate, setOfferModalCandidate] = useState<Employee | null>(null);
+  const [reminderCandidate, setReminderCandidate] = useState<Employee | null>(null);
+  const [reminderInitialChannel, setReminderInitialChannel] = useState<'EMAIL' | 'WHATSAPP' | 'BOTH'>('BOTH');
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [addModalIsCandidate, setAddModalIsCandidate] = useState<boolean>(false);
   const [liveToast, setLiveToast] = useState<{ text: string; time: number } | null>(null);
@@ -332,8 +336,27 @@ export default function App() {
 
         case 'ALERT_DISMISSED':
         case 'ALERTS_RESET':
+        case 'ALERT_UPDATED':
           refreshAlerts();
           api.getStats().then(setStats);
+          break;
+
+        case 'REMINDER_SENT':
+          setAllEmployees(prev => prev.map(e => (e.id === data.candidateId ? (data.employee || e) : e)));
+          setSelectedPerson(prev => (prev?.id === data.candidateId ? (data.employee || prev) : prev));
+          setReminderCandidate(prev => (prev?.id === data.candidateId ? (data.employee || prev) : prev));
+          showToast(data.message || `Document reminder sent to ${data.employee?.fullName || 'candidate'}`);
+          refreshAlerts();
+          api.getAuditLogs().then(setAuditLogs);
+          break;
+
+        case 'OFFER_LETTER_EMAILED':
+          setAllEmployees(prev => prev.map(e => (e.id === data.candidateId ? (data.employee || e) : e)));
+          setSelectedPerson(prev => (prev?.id === data.candidateId ? (data.employee || prev) : prev));
+          setOfferModalCandidate(prev => (prev?.id === data.candidateId ? (data.employee || prev) : prev));
+          showToast(`10-page offer letter emailed to ${data.employee?.fullName || 'candidate'}`);
+          api.getStats().then(setStats);
+          api.getAuditLogs().then(setAuditLogs);
           break;
 
         default:
@@ -549,6 +572,25 @@ export default function App() {
     showToast('Candidate offer accepted!');
   };
 
+  const handleEmailOffer = async (candidateId: string) => {
+    const res = await api.emailOfferLetter(candidateId);
+    if (res.employee) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
+      setOfferModalCandidate(res.employee);
+    }
+    showToast(`Official 10-page offer letter emailed to ${res.employee?.fullName || 'candidate'}.`);
+    api.getAuditLogs().then(setAuditLogs);
+  };
+
+  const handleOpenReminderModal = (candidateId: string, channel: 'EMAIL' | 'WHATSAPP' | 'BOTH' = 'BOTH') => {
+    const cand = allEmployees.find(e => e.id === candidateId);
+    if (cand) {
+      setReminderCandidate(cand);
+      setReminderInitialChannel(channel);
+    }
+  };
+
   // Exit & FnF Handlers
   const handleInitiateExit = async (employeeId: string, data: any) => {
     const res = await api.initiateExit(employeeId, data);
@@ -688,6 +730,7 @@ export default function App() {
                 onRevokeUploadLink={handleRevokeUploadLink}
                 onOpenCandidatePortal={token => setCandidatePortalToken(token)}
                 onOpenOfferLetter={candidate => setOfferModalCandidate(candidate)}
+                onSendReminder={(candId, channel) => handleOpenReminderModal(candId, channel || 'BOTH')}
               />
             )}
 
@@ -803,10 +846,13 @@ export default function App() {
           onAcceptOffer={async signatureName => {
             await handleAcceptOffer(offerModalCandidate.id, signatureName);
           }}
+          onEmailOffer={async () => {
+            await handleEmailOffer(offerModalCandidate.id);
+          }}
         />
       )}
 
-      {/* Upcoming Alerts Modal (2-Day Advance On-Screen Popup for Birthdays & Internship Completions) */}
+      {/* Upcoming Alerts Modal (2-Day Advance On-Screen Popup for Birthdays, Internship Completions & Missing Docs) */}
       <UpcomingAlertsModal
         isOpen={showAlertsPopup}
         onClose={() => setShowAlertsPopup(false)}
@@ -833,6 +879,48 @@ export default function App() {
           showToast('All dismissed alerts have been reset');
         }}
         userRole={userRole}
+        onSendReminder={(candId, channel) => {
+          handleOpenReminderModal(candId, channel);
+          setShowAlertsPopup(false);
+        }}
+      />
+
+      {/* Candidate Missing Document Reminder Modal (WhatsApp & Email with 24h deadline) */}
+      {reminderCandidate && (
+        <CandidateReminderModal
+          isOpen={!!reminderCandidate}
+          onClose={() => setReminderCandidate(null)}
+          candidate={reminderCandidate}
+          userRole={userRole}
+          initialChannel={reminderInitialChannel}
+          onReminderSent={updated => {
+            setAllEmployees(prev => prev.map(e => (e.id === updated.id ? updated : e)));
+            setSelectedPerson(prev => (prev?.id === updated.id ? updated : prev));
+            setReminderCandidate(updated);
+            refreshAlerts();
+          }}
+        />
+      )}
+
+      {/* Real-time HR In-App Floating Alert Popup for Missing Documents & Overdue Submissions */}
+      <HRAlertsFloatingBanner
+        alerts={alerts}
+        onViewProfile={personId => {
+          const person = allEmployees.find(p => p.id === personId);
+          if (person) {
+            setSelectedPerson(person);
+          }
+        }}
+        onSendReminder={(candidateId, channel) => {
+          handleOpenReminderModal(candidateId, channel);
+        }}
+        onDismissAlert={async alertId => {
+          await api.dismissAlert(alertId);
+          await refreshAlerts();
+          showToast('Alert dismissed');
+        }}
+        userRole={userRole}
+        onOpenFullModal={() => setShowAlertsPopup(true)}
       />
 
       {/* Add Person Modal */}

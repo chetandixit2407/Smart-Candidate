@@ -12,9 +12,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   RotateCcw,
-  Sparkles,
-  Building,
-  Armchair,
+  MessageSquare,
+  Clock,
+  FileText,
+  Send,
 } from 'lucide-react';
 import { AlertItem, UserRole } from '../types/index.js';
 
@@ -28,6 +29,7 @@ interface UpcomingAlertsModalProps {
   onReferenceDateChange: (dateStr: string) => void;
   onResetDismissed: () => Promise<void>;
   userRole: UserRole;
+  onSendReminder?: (candidateId: string, channel: 'EMAIL' | 'WHATSAPP') => void;
 }
 
 export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
@@ -40,8 +42,9 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
   onReferenceDateChange,
   onResetDismissed,
   userRole,
+  onSendReminder,
 }) => {
-  const [filterType, setFilterType] = useState<'ALL' | 'BIRTHDAY' | 'INTERNSHIP_COMPLETION'>('ALL');
+  const [filterType, setFilterType] = useState<'ALL' | 'MISSING_DOCUMENTS' | 'BIRTHDAY' | 'INTERNSHIP_COMPLETION'>('ALL');
   const [dismissingId, setDismissingId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -55,6 +58,7 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
     return a.type === filterType;
   });
 
+  const missingDocsAlertsCount = alerts.filter(a => a.type === 'MISSING_DOCUMENTS').length;
   const birthdayAlertsCount = alerts.filter(a => a.type === 'BIRTHDAY').length;
   const internshipAlertsCount = alerts.filter(a => a.type === 'INTERNSHIP_COMPLETION').length;
 
@@ -141,6 +145,17 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
               All ({alerts.length})
             </button>
             <button
+              onClick={() => setFilterType('MISSING_DOCUMENTS')}
+              className={`px-2.5 sm:px-3 py-1 rounded-md font-medium text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-colors ${
+                filterType === 'MISSING_DOCUMENTS'
+                  ? 'bg-amber-600 text-white font-semibold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <FileText className="w-3 h-3 text-amber-300" />
+              Missing Docs ({missingDocsAlertsCount})
+            </button>
+            <button
               onClick={() => setFilterType('BIRTHDAY')}
               className={`px-2.5 sm:px-3 py-1 rounded-md font-medium text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-colors ${
                 filterType === 'BIRTHDAY'
@@ -197,31 +212,41 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
           {filteredAlerts.length > 0 ? (
             filteredAlerts.map(alert => {
               const isBirthday = alert.type === 'BIRTHDAY';
+              const isMissingDocs = alert.type === 'MISSING_DOCUMENTS';
+              const isOverdue = alert.isOverdue;
 
               return (
                 <div
                   key={alert.id}
-                  className={`p-5 rounded-xl border transition-all ${
-                    isBirthday
+                  className={`p-4 sm:p-5 rounded-xl border transition-all ${
+                    isMissingDocs
+                      ? isOverdue
+                        ? 'bg-gradient-to-br from-rose-50/80 via-white to-rose-50/40 border-rose-300 shadow-xs'
+                        : 'bg-gradient-to-br from-amber-50/80 via-white to-amber-50/40 border-amber-300 shadow-xs'
+                      : isBirthday
                       ? 'bg-gradient-to-br from-amber-50/70 via-white to-amber-50/40 border-amber-300/80 shadow-xs'
                       : 'bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 border-blue-300/80 shadow-xs'
                   }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     {/* Left: Avatar & Profile Overview */}
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-3.5 sm:gap-4 min-w-0">
                       {/* Avatar / Photo */}
                       {alert.photoUrl ? (
                         <img
                           src={alert.photoUrl}
                           alt={alert.fullName}
                           referrerPolicy="no-referrer"
-                          className="w-14 h-14 rounded-xl object-cover border-2 border-amber-400 shadow-sm shrink-0"
+                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover border-2 border-amber-400 shadow-sm shrink-0"
                         />
                       ) : (
                         <div
-                          className={`w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold font-mono shadow-xs shrink-0 ${
-                            isBirthday
+                          className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center text-base sm:text-lg font-bold font-mono shadow-xs shrink-0 ${
+                            isMissingDocs
+                              ? isOverdue
+                                ? 'bg-rose-100 text-rose-900 border border-rose-300'
+                                : 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : isBirthday
                               ? 'bg-amber-100 text-amber-900 border border-amber-300'
                               : 'bg-blue-100 text-blue-900 border border-blue-300'
                           }`}
@@ -231,16 +256,25 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
                       )}
 
                       {/* Info Body */}
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase tracking-wider flex items-center gap-1 ${
-                              isBirthday
+                              isMissingDocs
+                                ? isOverdue
+                                  ? 'bg-rose-100 text-rose-950 border border-rose-300'
+                                  : 'bg-amber-100 text-amber-950 border border-amber-300'
+                                : isBirthday
                                 ? 'bg-amber-100 text-amber-950 border border-amber-300'
                                 : 'bg-blue-100 text-blue-950 border border-blue-300'
                             }`}
                           >
-                            {isBirthday ? (
+                            {isMissingDocs ? (
+                              <>
+                                <FileText className="w-3 h-3 text-amber-800" />
+                                Candidate Onboarding · Required Documents
+                              </>
+                            ) : isBirthday ? (
                               <>
                                 <Cake className="w-3 h-3 text-amber-700" />
                                 Employee Birthday · Repeats Annually
@@ -255,48 +289,49 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
 
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
-                              alert.daysRemaining === 0
+                              isOverdue
+                                ? 'bg-rose-600 text-white'
+                                : alert.daysRemaining === 0
                                 ? 'bg-rose-100 text-rose-800 border border-rose-300'
                                 : alert.daysRemaining === 1
                                 ? 'bg-amber-100 text-amber-900 border border-amber-300'
                                 : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                             }`}
                           >
-                            {alert.daysRemaining === 0
-                              ? '⚠️ Today!'
+                            {isOverdue
+                              ? '⚠️ OVERDUE (>24h Deadline)'
+                              : alert.daysRemaining === 0
+                              ? '⚠️ Due Today!'
                               : alert.daysRemaining === 1
                               ? '⏳ 1 Day Remaining (Tomorrow)'
-                              : '🔔 Exactly 2 Days Remaining'}
+                              : '🔔 2 Days Remaining'}
                           </span>
                         </div>
 
-                        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <h3 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
                           {alert.fullName}
-                          {isBirthday && (
-                            <span className="text-sm">🎂</span>
+                          {isBirthday && <span className="text-sm">🎂</span>}
+                          {isMissingDocs && (
+                            <span className="text-xs font-normal text-slate-500 font-mono">
+                              ({alert.submissionStatus || 'Pending Submission'})
+                            </span>
                           )}
                         </h3>
 
-                        <div className="text-xs text-slate-600 flex items-center gap-3 flex-wrap">
+                        <div className="text-xs text-slate-600 flex items-center gap-2 sm:gap-3 flex-wrap">
                           <span className="font-semibold text-slate-800">{alert.designation}</span>
                           <span className="text-slate-300">·</span>
-                          <span className="flex items-center gap-1 text-slate-600">
-                            <Building className="w-3 h-3 text-slate-400" />
-                            {alert.department}
-                          </span>
+                          <span className="text-slate-600">{alert.department}</span>
                           {alert.desk && (
                             <>
                               <span className="text-slate-300">·</span>
-                              <span className="flex items-center gap-1 font-mono text-slate-700">
-                                <Armchair className="w-3 h-3 text-indigo-500" />
-                                Desk {alert.desk}
-                              </span>
+                              <span className="font-mono text-slate-700">Desk {alert.desk}</span>
                             </>
                           )}
                         </div>
 
                         {/* Contact details */}
-                        <div className="pt-1.5 flex items-center gap-4 text-xs font-mono text-slate-600 flex-wrap">
+                        <div className="pt-1 flex items-center gap-3 text-xs font-mono text-slate-600 flex-wrap">
                           <span className="flex items-center gap-1">
                             <Phone className="w-3 h-3 text-slate-400" />
                             {isViewer ? '••••••••••' : alert.phone}
@@ -312,6 +347,25 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
                           )}
                         </div>
 
+                        {/* Missing documents pill tags */}
+                        {isMissingDocs && alert.missingDocuments && alert.missingDocuments.length > 0 && (
+                          <div className="pt-2">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-900 mb-1">
+                              Missing Required Documents ({alert.missingDocuments.length}):
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {alert.missingDocuments.map((docTitle, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-0.5 rounded text-[11px] font-medium bg-white text-slate-800 border border-amber-300 shadow-2xs"
+                                >
+                                  {docTitle}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Summary Narrative */}
                         <p className="text-xs text-slate-700 mt-2 bg-white/80 p-2.5 rounded-lg border border-slate-200 leading-relaxed">
                           {alert.summary}
@@ -321,29 +375,83 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
 
                     {/* Right: Actions */}
                     <div className="flex flex-row sm:flex-col items-stretch sm:items-end justify-between sm:justify-start gap-2 shrink-0 pt-2 sm:pt-0 w-full sm:w-auto border-t sm:border-t-0 border-slate-100">
-                      <button
-                        onClick={() => {
-                          onViewProfile(alert.personId);
-                          onClose();
-                        }}
-                        className={`flex-1 sm:flex-none px-4 py-2 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors ${
-                          isBirthday
-                            ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-                            : 'bg-blue-600 hover:bg-blue-500 text-white'
-                        }`}
-                      >
-                        View Profile
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
+                      {isMissingDocs ? (
+                        /* 4 Actions for Missing Docs: View Profile, Send Email, Send WhatsApp, Dismiss */
+                        <div className="flex flex-col gap-1.5 w-full sm:w-36">
+                          <button
+                            onClick={() => {
+                              onViewProfile(alert.personId);
+                              onClose();
+                            }}
+                            className="w-full px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                          >
+                            <User className="w-3.5 h-3.5" />
+                            View Profile
+                          </button>
 
-                      <button
-                        onClick={() => handleDismiss(alert.id)}
-                        disabled={dismissingId === alert.id}
-                        className="px-3 py-2 sm:py-1.5 text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 whitespace-nowrap"
-                        title="Dismiss alert for this year / milestone (prevents duplicate alerts)"
-                      >
-                        {dismissingId === alert.id ? 'Dismissing...' : 'Dismiss'}
-                      </button>
+                          {onSendReminder && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  onSendReminder(alert.personId, 'EMAIL');
+                                  onClose();
+                                }}
+                                className="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                              >
+                                <Mail className="w-3.5 h-3.5" />
+                                Send Email
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  onSendReminder(alert.personId, 'WHATSAPP');
+                                  onClose();
+                                }}
+                                className="w-full px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                Send WhatsApp
+                              </button>
+                            </>
+                          )}
+
+                          <button
+                            onClick={() => handleDismiss(alert.id)}
+                            disabled={dismissingId === alert.id}
+                            className="w-full px-3 py-1 text-[11px] text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 text-center"
+                            title="Dismiss alert (prevents duplicates until next cycle)"
+                          >
+                            {dismissingId === alert.id ? 'Dismissing...' : 'Dismiss'}
+                          </button>
+                        </div>
+                      ) : (
+                        /* Regular Birthday / Internship Actions */
+                        <>
+                          <button
+                            onClick={() => {
+                              onViewProfile(alert.personId);
+                              onClose();
+                            }}
+                            className={`flex-1 sm:flex-none px-4 py-2 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors ${
+                              isBirthday
+                                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                                : 'bg-blue-600 hover:bg-blue-500 text-white'
+                            }`}
+                          >
+                            View Profile
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => handleDismiss(alert.id)}
+                            disabled={dismissingId === alert.id}
+                            className="px-3 py-2 sm:py-1.5 text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 whitespace-nowrap"
+                            title="Dismiss alert for this year / milestone (prevents duplicate alerts)"
+                          >
+                            {dismissingId === alert.id ? 'Dismissing...' : 'Dismiss'}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

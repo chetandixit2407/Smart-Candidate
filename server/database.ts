@@ -13,6 +13,9 @@ import type {
   UploadToken,
   InterviewRound,
   OfferLetterData,
+  OfferTemplateRevision,
+  DocumentReminderRecord,
+  DocumentRecord,
   ProbationReview,
   ProbationRecord,
   ExitClearanceRecord,
@@ -625,6 +628,14 @@ class DatabaseService {
 
     emp.updatedAt = new Date().toISOString();
     emp.profileCompletion = calculateCompletion(emp);
+
+    // If documents are modified/rejected, clear any dismissal state so HR alert shows immediately
+    if (params.status === 'Missing' || params.status === 'Rejected') {
+      if (this.data.acknowledgedAlerts?.[`missing-docs-${emp.id}`]) {
+        delete this.data.acknowledgedAlerts[`missing-docs-${emp.id}`];
+      }
+    }
+
     this.persist();
 
     this.logAudit(
@@ -638,6 +649,7 @@ class DatabaseService {
     );
 
     this.broadcast('DOCUMENT_STATUS_CHANGED', { employeeId: emp.id, docKey, doc, profileCompletion: emp.profileCompletion });
+    this.broadcast('ALERT_UPDATED', { candidateId: emp.id });
     this.broadcast('EMPLOYEE_UPDATED', emp);
     return emp;
   }
@@ -885,6 +897,7 @@ class DatabaseService {
 
     this.broadcast('CANDIDATE_DOCUMENTS_SUBMITTED', payload);
     this.broadcast('UPLOAD_SUBMITTED', payload);
+    this.broadcast('ALERT_UPDATED', { candidateId: candidate.id });
     this.broadcast('EMPLOYEE_UPDATED', candidate);
 
     return {
@@ -1145,6 +1158,215 @@ class DatabaseService {
     this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter });
     this.broadcast('EMPLOYEE_UPDATED', candidate);
     return { success: true, candidate, offerLetter: candidate.offerLetter, message: 'Offer accepted successfully.' };
+  }
+
+  public emailOfferLetter(
+    candidateId: string,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; candidate?: Employee; message: string; error?: string } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate || !candidate.offerLetter) {
+      return { success: false, message: 'Candidate or offer letter not found.', error: 'Candidate or offer letter not found.' };
+    }
+
+    // STRICT REQUIREMENT: HR must approve it before emailing the offer letter to the candidate
+    if (candidate.offerLetter.status !== 'Approved' && candidate.offerLetter.status !== 'Issued' && candidate.offerLetter.status !== 'Accepted') {
+      return {
+        success: false,
+        message: 'Compliance check failed: The offer letter must be formally approved by HR Admin before emailing the candidate.',
+        error: 'The offer letter must be formally approved by HR Admin before emailing the candidate.',
+      };
+    }
+
+    const now = new Date().toISOString();
+    candidate.offerLetter.status = candidate.offerLetter.status === 'Accepted' ? 'Accepted' : 'Issued';
+    candidate.offerLetter.issuedAt = candidate.offerLetter.issuedAt || now;
+    candidate.offerLetter.emailSentAt = now;
+    candidate.offerLetter.emailSentBy = actor;
+    candidate.candidateStatus = candidate.candidateStatus === 'Offer Accepted' ? 'Offer Accepted' : 'Offer Extended';
+    candidate.updatedAt = now;
+
+    this.addLifecycleEvent(
+      candidate,
+      'Offer Extended',
+      `Official Offer Letter Dispatched to ${candidate.email}`,
+      `Executive 10-page offer letter (Ref: ${candidate.offerLetter.refNo}, CTC: ${candidate.offerLetter.ctcLpaFormatted || candidate.offeredCTC}) emailed by ${actor} (${actorRole}). Candidate notified for e-signature.`,
+      actor,
+      actorRole
+    );
+
+    this.persist();
+    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter });
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
+    return {
+      success: true,
+      candidate,
+      message: `Official 10-page offer letter successfully emailed to ${candidate.fullName} at ${candidate.email}.`,
+    };
+  }
+
+  public getMissingRequiredDocuments(candidateId: string): {
+    candidate: Employee | null;
+    missingDocs: DocumentRecord[];
+    missingCount: number;
+    allDocsCount: number;
+    isOverdue: boolean;
+    deadline?: string;
+  } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate) {
+      return { candidate: null, missingDocs: [], missingCount: 0, allDocsCount: 0, isOverdue: false };
+    }
+
+    const docs = candidate.documents || {};
+    const missingDocs: DocumentRecord[] = [];
+    let allDocsCount = 0;
+
+    Object.values(docs).forEach(d => {
+      allDocsCount++;
+      if (d.required && (d.status === 'Missing' || d.status === 'Not Submitted' || d.status === 'Rejected')) {
+        missingDocs.push(d);
+      }
+    });
+
+    const isOverdue = Boolean(
+      candidate.reminderDeadline &&
+      new Date(candidate.reminderDeadline).getTime() < Date.now() &&
+      missingDocs.length > 0
+    );
+
+    return {
+      candidate,
+      missingDocs,
+      missingCount: missingDocs.length,
+      allDocsCount,
+      isOverdue,
+      deadline: candidate.reminderDeadline,
+    };
+  }
+
+  public recordDocumentReminder(
+    candidateId: string,
+    payload: {
+      channel: 'EMAIL' | 'WHATSAPP' | 'BOTH';
+      missingDocumentKeys?: string[];
+      deadlineHours?: number;
+      messageBody?: string;
+      emailSubject?: string;
+      recipientEmail?: string;
+      recipientPhone?: string;
+    },
+    actor: string,
+    actorRole: UserRole
+  ): {
+    success: boolean;
+    candidate?: Employee;
+    reminder?: DocumentReminderRecord;
+    whatsappUrl?: string;
+    mailtoUrl?: string;
+    uploadUrl: string;
+    message: string;
+  } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate) return { success: false, uploadUrl: '', message: 'Candidate not found.' };
+
+    let token = candidate.uploadToken?.token;
+    if (!candidate.uploadToken || candidate.uploadToken.revoked || candidate.uploadToken.isUsed) {
+      const generated = this.generateUploadToken(candidate.id, actor, actorRole, { expiryDays: 7, isOneTime: false });
+      token = generated.token?.token;
+    }
+
+    const host = process.env.PUBLIC_APP_URL || '';
+    const uploadUrl = token ? `/upload-portal/${token}` : '';
+    const fullUploadUrl = token ? `${host ? host : ''}/upload-portal/${token}` : '';
+
+    const missingDocs = Object.values(candidate.documents || {}).filter(
+      d => d.required && (d.status === 'Missing' || d.status === 'Not Submitted' || d.status === 'Rejected')
+    );
+    const missingTitles = missingDocs.map(d => d.title);
+    const missingKeys = missingDocs.map(d => d.key);
+
+    const deadlineHours = payload.deadlineHours || 24;
+    const deadlineDate = new Date(Date.now() + deadlineHours * 60 * 60 * 1000);
+    const deadlineIso = deadlineDate.toISOString();
+
+    const recipientPhone = payload.recipientPhone || candidate.phone;
+    const recipientEmail = payload.recipientEmail || candidate.email;
+
+    const missingListStr = missingTitles.map((t, idx) => `${idx + 1}. ${t}`).join('\n');
+    const defaultSubject = `Action Required: Missing Onboarding Documents - White Collar Realty (${candidate.fullName})`;
+    const defaultBody =
+      `Dear ${candidate.fullName},\n\n` +
+      `Congratulations on your offer with White Collar Realty as ${candidate.designation} (${candidate.department}).\n\n` +
+      `Our HR compliance team has reviewed your pre-onboarding dossier and noticed that the following mandatory documents are still pending submission:\n\n` +
+      `${missingListStr}\n\n` +
+      `Please upload clear scanned copies within 24 hours via your secure upload link:\n` +
+      `${fullUploadUrl || uploadUrl}\n\n` +
+      `Submission Deadline: ${deadlineDate.toLocaleString()}\n\n` +
+      `For any questions, reach out to White Collar Realty HR at hr@whitecollarrealty.com or +91 124-4349007.\n\n` +
+      `Warm regards,\n` +
+      `${actor}\nHuman Resources Recruiter\nWhite Collar Realty`;
+
+    const finalMessage = payload.messageBody || defaultBody;
+    const finalSubject = payload.emailSubject || defaultSubject;
+
+    const reminderId = `rem-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const reminderRecord: DocumentReminderRecord = {
+      id: reminderId,
+      sentAt: new Date().toISOString(),
+      sentBy: actor,
+      sentByRole: actorRole,
+      channel: payload.channel,
+      recipientEmail,
+      recipientPhone,
+      missingDocumentKeys: payload.missingDocumentKeys || missingKeys,
+      missingDocumentTitles: missingTitles,
+      deadline: deadlineIso,
+      uploadLink: fullUploadUrl || uploadUrl,
+      uploadToken: token || '',
+      status: payload.channel === 'WHATSAPP' ? 'ACTION_INITIATED' : 'SENT',
+      messageBody: finalMessage,
+      emailSubject: finalSubject,
+    };
+
+    if (!candidate.documentReminders) candidate.documentReminders = [];
+    candidate.documentReminders.unshift(reminderRecord);
+    candidate.lastReminderSentAt = reminderRecord.sentAt;
+    candidate.lastReminderChannel = payload.channel;
+    candidate.reminderDeadline = deadlineIso;
+    candidate.isOverdueForDocuments = false;
+    candidate.updatedAt = new Date().toISOString();
+
+    const cleanPhone = recipientPhone.replace(/\D/g, '');
+    const intlPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${intlPhone}&text=${encodeURIComponent(finalMessage)}`;
+    const mailtoUrl = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(finalSubject)}&body=${encodeURIComponent(finalMessage)}`;
+
+    this.logAudit(
+      actor,
+      actorRole,
+      `Document Reminder Dispatched (${payload.channel})`,
+      'Candidate',
+      candidate.id,
+      candidate.fullName,
+      `Sent 24-hour reminder for ${missingTitles.length} missing document(s) to ${recipientPhone} / ${recipientEmail}. Deadline: ${deadlineDate.toLocaleString()}.`
+    );
+
+    this.persist();
+    this.broadcast('REMINDER_SENT', { candidateId: candidate.id, reminder: reminderRecord, candidate });
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
+    this.broadcast('ALERT_UPDATED', { candidateId: candidate.id });
+
+    return {
+      success: true,
+      candidate,
+      reminder: reminderRecord,
+      whatsappUrl,
+      mailtoUrl,
+      uploadUrl: fullUploadUrl || uploadUrl,
+      message: `24-hour reminder successfully recorded and dispatched via ${payload.channel}.`,
+    };
   }
 
   // 3. Probation Reviews & Confirmation
@@ -2269,6 +2491,72 @@ class DatabaseService {
             dismissed: isDismissed,
             dismissedAt: ack?.dismissedAt,
             profileCompletion: person.profileCompletion,
+          });
+        }
+      }
+    });
+
+    // 5. Candidate Missing Required Document Alerts (Real-Time HR Popup Alerts)
+    this.data.employees.forEach(candidate => {
+      if (!candidate.isCandidate) return;
+
+      const docs = candidate.documents || {};
+      const missingDocs: DocumentRecord[] = [];
+      Object.values(docs).forEach(d => {
+        if (d.required && (d.status === 'Missing' || d.status === 'Not Submitted' || d.status === 'Rejected')) {
+          missingDocs.push(d);
+        }
+      });
+
+      if (missingDocs.length > 0) {
+        // Unique alert ID per candidate missing docs state
+        const alertId = `missing-docs-${candidate.id}`;
+        const ack = this.data.acknowledgedAlerts?.[alertId];
+        const isDismissed = Boolean(ack);
+
+        let isOverdue = false;
+        let daysRemaining = 1;
+        if (candidate.reminderDeadline) {
+          const deadlineTime = new Date(candidate.reminderDeadline).getTime();
+          const nowTime = now.getTime();
+          isOverdue = deadlineTime < nowTime;
+          daysRemaining = Math.max(0, Math.ceil((deadlineTime - nowTime) / (1000 * 60 * 60 * 24)));
+        }
+
+        if (!activeOnly || !isDismissed) {
+          const missingTitles = missingDocs.map(d => d.title);
+          alerts.push({
+            id: alertId,
+            type: 'MISSING_DOCUMENTS',
+            personId: candidate.id,
+            fullName: candidate.fullName,
+            designation: candidate.designation,
+            department: candidate.department,
+            phone: candidate.phone,
+            email: candidate.email,
+            isCandidate: true,
+            eventDate: candidate.reminderDeadline ? candidate.reminderDeadline.split('T')[0] : (candidate.joiningDate || now.toISOString().split('T')[0]),
+            formattedEventDate: candidate.reminderDeadline ? new Date(candidate.reminderDeadline).toLocaleString() : '24h Submission Window',
+            daysRemaining,
+            joiningDate: candidate.joiningDate,
+            desk: candidate.desk,
+            title: isOverdue
+              ? `⚠️ OVERDUE: Missing Documents - ${candidate.fullName}`
+              : `Pending Documents - ${candidate.fullName} (${missingDocs.length} Required)`,
+            summary: `${candidate.fullName} has ${missingDocs.length} required document(s) pending: ${missingTitles.slice(0, 3).join(', ')}${missingTitles.length > 3 ? ` and ${missingTitles.length - 3} more` : ''}. ${isOverdue ? 'Submission deadline is overdue!' : 'Submission requested within 24 hours.'}`,
+            market: candidate.market,
+            dismissed: isDismissed,
+            dismissedAt: ack?.dismissedAt,
+            profileCompletion: candidate.profileCompletion,
+            missingDocuments: missingTitles,
+            missingDocumentCount: missingDocs.length,
+            submissionStatus: isOverdue ? 'Overdue (Past 24h Deadline)' : (candidate.documentReminders?.length ? 'Reminder Dispatched' : 'Pending Submission'),
+            deadline: candidate.reminderDeadline,
+            isOverdue,
+            remindersSentCount: candidate.documentReminders?.length || 0,
+            lastReminderSentAt: candidate.lastReminderSentAt,
+            uploadToken: candidate.uploadToken?.token,
+            uploadUrl: candidate.uploadToken?.token ? `/upload-portal/${candidate.uploadToken.token}` : undefined,
           });
         }
       }
