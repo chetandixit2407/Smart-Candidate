@@ -437,6 +437,30 @@ class ApiService {
     return data;
   }
 
+  public async downloadDocument(employeeId: string, docKey: string, fallbackFileName?: string): Promise<void> {
+    const res = await fetch(`/api/employees/${employeeId}/documents/${docKey}/download`, {
+      headers: {
+        'x-user-role': this.currentRole,
+        'x-user-name': this.currentUserName,
+      },
+    });
+    if (!res.ok) {
+      throw new Error('Failed to download document from server');
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = fallbackFileName || `${docKey}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }, 200);
+  }
+
   // --- Reset Database ---
   public async resetDatabase(): Promise<void> {
     const res = await fetch('/api/database/reset', {

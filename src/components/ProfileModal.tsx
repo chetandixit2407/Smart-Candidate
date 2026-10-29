@@ -34,6 +34,7 @@ import {
   Copy,
   Share2,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import {
   Employee,
@@ -45,6 +46,7 @@ import {
   AssetCondition,
   ALL_DESK_CODES,
   UploadToken,
+  AuditLog,
 } from '../types/index.js';
 import { LiveDocumentViewerModal } from './LiveDocumentViewerModal.js';
 
@@ -55,6 +57,7 @@ interface ProfileModalProps {
   onUpdate: (updates: Partial<Employee>) => Promise<void>;
   onUpdateDocumentStatus: (docKey: string, status: DocumentStatus, notes: string) => Promise<void>;
   assets: CompanyAsset[];
+  auditLogs?: AuditLog[];
   userRole: UserRole;
   currentUserName: string;
   onIssueAsset?: (assetId: string, employeeId: string, issueDate: string, notes: string) => Promise<void>;
@@ -74,6 +77,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onUpdate,
   onUpdateDocumentStatus,
   assets,
+  auditLogs,
   userRole,
   currentUserName,
   onIssueAsset,
@@ -85,7 +89,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onRevokeUploadLink,
   onOpenCandidatePortal,
 }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'family' | 'experience' | 'education' | 'references' | 'documents' | 'assets'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'family' | 'experience' | 'education' | 'references' | 'documents' | 'assets' | 'audit'>('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<Employee>>({ ...employee });
   const [saving, setSaving] = useState(false);
@@ -93,6 +97,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [successMsg, setSuccessMsg] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [tokenLoading, setTokenLoading] = useState(false);
+
+  // Compute audit logs associated with this personnel record
+  const personAuditLogs = (auditLogs || []).filter(
+    log =>
+      log.entityId === employee.id ||
+      (log.entityName && log.entityName.toLowerCase().includes(employee.fullName.toLowerCase()))
+  );
 
   React.useEffect(() => {
     setFormData({ ...employee });
@@ -232,7 +243,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Completion Gauge */}
             <div className="hidden sm:flex flex-col items-end">
               <div className="flex items-center gap-1.5 text-xs">
@@ -241,13 +252,59 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   {employee.profileCompletion}%
                 </span>
               </div>
-              <div className="w-28 h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1">
+              <div className="w-24 sm:w-28 h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1">
                 <div
                   className="h-full bg-amber-400 transition-all duration-300"
                   style={{ width: `${employee.profileCompletion}%` }}
                 />
               </div>
             </div>
+
+            {/* Direct Edit & Save Controls for Authorized Users */}
+            {!isViewer && (
+              isEditing ? (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...employee });
+                      setIsEditing(false);
+                    }}
+                    className="px-2.5 sm:px-3 py-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors font-medium border border-slate-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveProfile}
+                    disabled={saving}
+                    className="px-3 sm:px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Save Changes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="px-2.5 sm:px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
+                  title="Edit profile fields anytime"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Edit Profile</span>
+                </button>
+              )
+            )}
 
             <button
               onClick={onClose}
@@ -261,13 +318,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         {/* Status Alerts */}
         {errorMsg && (
           <div className="px-4 sm:px-6 py-2.5 bg-rose-50 border-b border-rose-200 text-rose-800 text-xs flex items-center justify-between">
-            <span>{errorMsg}</span>
-            <button onClick={() => setErrorMsg('')} className="text-rose-500 hover:text-rose-700 font-semibold">✕</button>
+            <span className="font-medium">{errorMsg}</span>
+            <button onClick={() => setErrorMsg('')} className="text-rose-500 hover:text-rose-700 font-bold ml-2">✕</button>
           </div>
         )}
         {successMsg && (
-          <div className="px-4 sm:px-6 py-2.5 bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs">
-            {successMsg}
+          <div className="px-4 sm:px-6 py-2.5 bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-medium">{successMsg}</span>
           </div>
         )}
 
@@ -282,6 +340,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               { id: 'references', label: 'References', icon: FileCheck },
               { id: 'documents', label: 'Document Checklist', icon: FileText, badge: Object.values(employee.documents || {}).length },
               { id: 'assets', label: 'Company Assets', icon: Package, badge: assignedAssets.length },
+              { id: 'audit', label: 'Audit History', icon: History, badge: personAuditLogs.length },
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -307,7 +366,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             })}
           </div>
 
-          {!isViewer && activeTab !== 'documents' && activeTab !== 'assets' && (
+          {!isViewer && (
             <div className="flex items-center gap-2 shrink-0 py-1.5 ml-2">
               {isEditing ? (
                 <>
@@ -323,9 +382,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   <button
                     onClick={handleSaveProfile}
                     disabled={saving}
-                    className="px-3.5 py-1.5 bg-slate-900 text-white rounded-md text-xs font-medium hover:bg-slate-800 disabled:opacity-50 whitespace-nowrap"
+                    className="px-3.5 py-1.5 bg-slate-900 text-white rounded-md text-xs font-medium hover:bg-slate-800 disabled:opacity-50 whitespace-nowrap flex items-center gap-1.5"
                   >
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    {saving && <Loader2 className="w-3 h-3 animate-spin" />}
+                    <span>{saving ? 'Saving...' : 'Save Changes'}</span>
                   </button>
                 </>
               ) : (
@@ -617,6 +677,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       <p className="text-xs font-medium text-slate-800 mt-1">{employee.market}</p>
                     )}
                   </div>
+
+                  {employee.isCandidate && (
+                    <div>
+                      <label className="text-xs font-medium text-slate-500">Candidate Pipeline Status</label>
+                      {isEditing ? (
+                        <select
+                          value={formData.candidateStatus || 'Interviewing'}
+                          onChange={e => setFormData({ ...formData, candidateStatus: e.target.value as Employee['candidateStatus'] })}
+                          className="mt-1 w-full px-3 py-1.5 text-xs font-semibold border border-amber-300 bg-amber-50/50 rounded text-amber-900"
+                        >
+                          <option value="Interviewing">Interviewing</option>
+                          <option value="Offer Extended">Offer Extended</option>
+                          <option value="Offer Accepted">Offer Accepted</option>
+                          <option value="Joining Confirmed">Joining Confirmed</option>
+                        </select>
+                      ) : (
+                        <p className="text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-1 rounded border border-amber-200 mt-1 inline-block">
+                          {employee.candidateStatus || 'Interviewing'}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2111,6 +2193,80 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 8: AUDIT HISTORY */}
+          {activeTab === 'audit' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                    <History className="w-4 h-4 text-amber-600" />
+                    Personnel Audit & Modification History
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Chronological activity log capturing profile modifications, document verifications, desk changes, and asset handovers.
+                  </p>
+                </div>
+                <span className="text-xs font-mono font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+                  {personAuditLogs.length} events logged
+                </span>
+              </div>
+
+              {personAuditLogs.length > 0 ? (
+                <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs divide-y divide-slate-100">
+                  {personAuditLogs.map(log => (
+                    <div key={log.id} className="p-4 hover:bg-slate-50/70 transition-colors flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-xs">
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`px-2 py-0.5 rounded font-semibold text-[11px] ${
+                              log.action.includes('Created') || log.action.includes('Allocated') || log.action.includes('Verified')
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                : log.action.includes('Updated') || log.action.includes('Edited')
+                                ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                                : log.action.includes('Revoked') || log.action.includes('Deleted') || log.action.includes('Rejected')
+                                ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                                : 'bg-amber-50 text-amber-800 border border-amber-200'
+                            }`}
+                          >
+                            {log.action}
+                          </span>
+                          <span className="text-slate-400 font-mono text-[11px]">[{log.entityType}]</span>
+                          <span className="text-slate-700 font-medium">{log.entityName}</span>
+                        </div>
+                        <p className="text-slate-600 leading-relaxed font-mono text-[11.5px] bg-slate-50 p-2.5 rounded-lg border border-slate-200/60 break-words">
+                          {log.details}
+                        </p>
+                      </div>
+
+                      <div className="text-left sm:text-right shrink-0 sm:pl-4 space-y-1 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                        <p className="font-semibold text-slate-800">{log.actor}</p>
+                        <p className="text-[11px] text-slate-500 font-mono">{log.actorRole}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">
+                          {new Date(log.timestamp).toLocaleString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-center space-y-2">
+                  <History className="w-9 h-9 text-slate-400 mx-auto" />
+                  <p className="text-xs font-semibold text-slate-700">No specific audit logs recorded for this record yet</p>
+                  <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                    Any edits made to this profile, uploaded documents, or desk and equipment assignments are automatically recorded to the audit trail.
+                  </p>
                 </div>
               )}
             </div>

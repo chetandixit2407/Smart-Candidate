@@ -167,6 +167,8 @@ export default function App() {
           setAllEmployees(prev => prev.map(e => (e.id === data.id ? data : e)));
           setSelectedPerson(prev => (prev?.id === data.id ? data : prev));
           api.getStats().then(setStats);
+          api.getAuditLogs().then(setAuditLogs);
+          api.getDesks().then(d => setDesks(d.desks));
           break;
 
         case 'UPLOAD_SUBMITTED':
@@ -532,6 +534,7 @@ export default function App() {
           onUpdate={handleUpdateEmployee}
           onUpdateDocumentStatus={handleUpdateDocumentStatus}
           assets={assets}
+          auditLogs={auditLogs}
           userRole={userRole}
           currentUserName={userName}
           onIssueAsset={async (assetId, employeeId, issueDate, notes) => {

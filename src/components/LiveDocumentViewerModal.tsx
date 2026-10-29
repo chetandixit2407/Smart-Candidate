@@ -14,8 +14,11 @@ import {
   UserCheck,
   UploadCloud,
   FileCheck,
+  Loader2,
 } from 'lucide-react';
 import { DocumentRecord, DocumentStatus, UserRole } from '../types/index.js';
+import { SecurePdfCanvasViewer } from './SecurePdfCanvasViewer.js';
+import { api } from '../services/api.js';
 
 interface LiveDocumentViewerModalProps {
   document: DocumentRecord;
@@ -44,6 +47,7 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
   const [reviewNotes, setReviewNotes] = useState<string>(document.reviewNotes || '');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(100);
 
@@ -51,17 +55,41 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
 
   const isViewer = userRole === 'DEPT_HEAD_VIEWER';
 
-  // Determine file preview URL or fallback
-  const fileUrl = document.fileData || (document.fileName?.toLowerCase().includes('information') || document.fileName?.toLowerCase().includes('sheet')
-    ? '/assets/aistudio/Chetan_Information_Sheet_-_Sheet1_06bd8f64.pdf'
-    : document.fileName?.toLowerCase().includes('aadhaar') || document.fileName?.toLowerCase().includes('pan')
-    ? '/assets/aistudio/Employees_Details__Birthday___-_Sheet1_8b0b9282.pdf'
-    : null);
+  // Determine file preview source: base64, backend endpoint, or bundled verified sample
+  const fileUrl =
+    document.fileData ||
+    (document.fileName?.toLowerCase().includes('information') || document.fileName?.toLowerCase().includes('sheet')
+      ? '/assets/aistudio/Chetan_Information_Sheet_-_Sheet1_06bd8f64.pdf'
+      : document.fileName?.toLowerCase().includes('aadhaar') || document.fileName?.toLowerCase().includes('pan')
+      ? '/assets/aistudio/Employees_Details__Birthday___-_Sheet1_8b0b9282.pdf'
+      : `/api/employees/${employeeId}/documents/${document.key}/file`);
 
-  const isImage = document.mimeType?.startsWith('image/') ||
-    (document.fileName && /\.(png|jpe?g|webp|gif)$/i.test(document.fileName));
+  const isImage =
+    document.mimeType?.startsWith('image/') ||
+    (document.fileName && /\.(png|jpe?g|webp|gif)$/i.test(document.fileName)) ||
+    (typeof fileUrl === 'string' && fileUrl.startsWith('data:image/'));
 
-  const isPdf = !isImage;
+  const handleDownload = async () => {
+    try {
+      setDownloading(true);
+      setMsg(null);
+      if (document.fileData && document.fileData.startsWith('data:')) {
+        const a = window.document.createElement('a');
+        a.href = document.fileData;
+        a.download = document.fileName || `${document.key}.pdf`;
+        window.document.body.appendChild(a);
+        a.click();
+        window.document.body.removeChild(a);
+      } else {
+        await api.downloadDocument(employeeId, document.key, document.fileName || `${document.key}.pdf`);
+      }
+    } catch (err: unknown) {
+      const errorText = err instanceof Error ? err.message : 'Failed to download document';
+      setMsg({ type: 'error', text: errorText });
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const handleSaveStatus = async () => {
     try {
@@ -140,15 +168,20 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {fileUrl && (
-              <a
-                href={fileUrl}
-                download={document.fileName || `${document.key}.pdf`}
-                className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 border border-slate-700"
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloading}
+                className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 border border-slate-700 disabled:opacity-50"
                 title="Download this document securely"
               >
-                <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Download</span>
-              </a>
+                {downloading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden sm:inline">{downloading ? 'Downloading...' : 'Download'}</span>
+              </button>
             )}
 
             {!isViewer && onUploadFile && (
@@ -207,10 +240,10 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
                   />
                 </div>
               ) : (
-                <iframe
-                  src={`${fileUrl}#toolbar=0`}
-                  title={document.title}
-                  className="w-full h-full min-h-[480px] rounded-lg border border-slate-700 bg-white"
+                <SecurePdfCanvasViewer
+                  source={fileUrl}
+                  fileName={document.fileName || `${document.key}.pdf`}
+                  className="w-full h-full min-h-[460px]"
                 />
               )
             ) : (

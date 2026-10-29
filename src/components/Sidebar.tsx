@@ -77,17 +77,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Armchair,
     },
     {
-      id: 'assets',
-      label: 'Company Assets',
-      icon: Package,
-    },
-    {
-      id: 'import',
-      label: 'Spreadsheet Sync',
-      icon: FileSpreadsheet,
-      badge: pendingDocCount > 0 ? `${pendingDocCount} Docs` : undefined,
-    },
-    {
       id: 'audit',
       label: 'Audit Trail',
       icon: History,
