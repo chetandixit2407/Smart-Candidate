@@ -70,9 +70,54 @@ export const AuditTrailView: React.FC<AuditTrailViewProps> = ({ logs }) => {
         </div>
       </div>
 
-      {/* Audit Log Table */}
+      {/* Audit Log Content: Mobile Cards + Desktop Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
+        {/* Mobile View: Cards */}
+        <div className="block md:hidden divide-y divide-slate-100">
+          {filteredLogs.map(log => (
+            <div key={log.id} className="p-3.5 space-y-2">
+              <div className="flex items-start justify-between gap-2 flex-wrap">
+                <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-xs">
+                  {log.action}
+                </span>
+                <span className="font-mono text-[10px] text-slate-400">
+                  {new Date(log.timestamp).toLocaleString([], {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+
+              <div className="flex items-baseline justify-between gap-2 text-xs">
+                <div>
+                  <span className="text-slate-400 text-[10px] block">Target Entity</span>
+                  <span className="font-medium text-slate-900">{log.entityName}</span>
+                  <span className="text-[10px] text-slate-400 font-mono ml-1">({log.entityType})</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-slate-400 text-[10px] block">Performed By</span>
+                  <span className="font-medium text-slate-800">{log.actor}</span>
+                  <span className="text-[10px] text-slate-400 font-mono block">{log.actorRole}</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs text-slate-600 leading-relaxed break-words">
+                {log.details}
+              </div>
+            </div>
+          ))}
+
+          {filteredLogs.length === 0 && (
+            <div className="px-4 py-8 text-center text-xs text-slate-400">
+              No matching audit records.
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View: Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold select-none">
               <tr>

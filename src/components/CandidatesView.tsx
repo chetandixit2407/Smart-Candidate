@@ -183,12 +183,12 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
               </div>
 
               {/* Bottom Card Actions */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400 font-mono">
+              <div className="pt-3 border-t border-slate-100 flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-2.5">
+                <span className="text-[11px] text-slate-400 font-mono shrink-0">
                   {cand.employeeCode}
                 </span>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                   {cand.uploadToken && !cand.uploadToken.isUsed && !cand.uploadToken.isRevoked ? (
                     <button
                       type="button"
@@ -199,7 +199,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                         setCopiedTokenCandId(cand.id);
                         setTimeout(() => setCopiedTokenCandId(null), 2000);
                       }}
-                      className="px-2.5 py-1 text-xs text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-medium flex items-center gap-1 transition-colors"
+                      className="px-2.5 py-1.5 text-xs text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-medium flex items-center gap-1 transition-colors"
                       title="Copy one-time candidate document upload URL"
                     >
                       {copiedTokenCandId === cand.id ? (
@@ -213,7 +213,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
 
                   <button
                     onClick={() => onSelectCandidate(cand)}
-                    className="px-3 py-1 text-xs text-slate-700 hover:text-slate-900 border border-slate-200 rounded hover:bg-slate-50 font-medium"
+                    className="px-3 py-1.5 text-xs text-slate-700 hover:text-slate-900 border border-slate-200 rounded hover:bg-slate-50 font-medium transition-colors"
                   >
                     View Dossier
                   </button>
@@ -221,10 +221,10 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                   {userRole !== 'DEPT_HEAD_VIEWER' && (
                     <button
                       onClick={e => openConvertModal(e, cand)}
-                      className="px-3 py-1 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-600 rounded transition-colors flex items-center gap-1 shadow-xs"
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-600 rounded transition-colors flex items-center gap-1 shadow-xs"
                     >
                       <UserCheck className="w-3.5 h-3.5" />
-                      Convert to Employee
+                      <span>Convert</span>
                     </button>
                   )}
                 </div>
@@ -234,7 +234,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
         })}
 
         {candidates.length === 0 && (
-          <div className="col-span-2 p-12 bg-white rounded-xl border border-slate-200 text-center text-xs text-slate-400">
+          <div className="col-span-1 md:col-span-2 p-12 bg-white rounded-xl border border-slate-200 text-center text-xs text-slate-400">
             No candidates in pipeline. Use &ldquo;Register New Candidate&rdquo; to add upcoming joiners.
           </div>
         )}
@@ -242,8 +242,8 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
 
       {/* Convert to Employee Modal */}
       {convertingCand && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-6 border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-4 sm:p-6 border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="pb-2 border-b border-slate-100">
               <h3 className="font-semibold text-sm text-slate-900">
                 Confirm Official Onboarding & Employee Code
@@ -266,7 +266,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                   type="text"
                   value={assignedCode}
                   onChange={e => setAssignedCode(e.target.value)}
-                  className="mt-1 w-full px-3 py-1.5 text-xs font-mono border border-slate-300 rounded focus:ring-1 focus:ring-slate-900"
+                  className="mt-1 w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded focus:ring-1 focus:ring-slate-900"
                   placeholder="e.g. WCR-021"
                 />
               </div>
@@ -277,7 +277,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                   type="date"
                   value={confirmedDoj}
                   onChange={e => setConfirmedDoj(e.target.value)}
-                  className="mt-1 w-full px-3 py-1.5 text-xs font-mono border border-slate-300 rounded focus:ring-1 focus:ring-slate-900"
+                  className="mt-1 w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded focus:ring-1 focus:ring-slate-900"
                 />
               </div>
 
@@ -287,7 +287,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                   type="text"
                   value={assignedDesk}
                   onChange={e => setAssignedDesk(e.target.value.toUpperCase())}
-                  className="mt-1 w-full px-3 py-1.5 text-xs font-mono border border-slate-300 rounded focus:ring-1 focus:ring-slate-900"
+                  className="mt-1 w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded focus:ring-1 focus:ring-slate-900"
                   placeholder="e.g. F1, F2, B3..."
                 />
               </div>
@@ -296,16 +296,16 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
             <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
               <button
                 onClick={() => setConvertingCand(null)}
-                className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900"
+                className="px-3.5 py-2 text-xs text-slate-600 hover:text-slate-900"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmConversion}
                 disabled={converting || !assignedCode}
-                className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded text-xs font-semibold disabled:opacity-50"
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded text-xs font-semibold disabled:opacity-50"
               >
-                {converting ? 'Converting...' : 'Confirm & Add to Directory'}
+                {converting ? 'Converting...' : 'Confirm & Add'}
               </button>
             </div>
           </div>

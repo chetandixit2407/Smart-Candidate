@@ -276,12 +276,12 @@ export const SpreadsheetImportView: React.FC<SpreadsheetImportViewProps> = ({
 
       {/* Upload Zone */}
       {!previewData && !summaryReport && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-5">
-          <div className="flex items-center justify-between">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 shadow-xs space-y-4 sm:space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <span className="text-xs font-semibold text-slate-800 uppercase tracking-wider">
               Step 1: Choose Source Spreadsheet Format
             </span>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex flex-col xs:flex-row xs:items-center gap-2 sm:gap-4 text-xs">
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="radio"
@@ -293,7 +293,7 @@ export const SpreadsheetImportView: React.FC<SpreadsheetImportViewProps> = ({
                 />
                 <span>Employee Details (Directory)</span>
               </label>
-              <label className="flex items-center gap-1.5 cursor-pointer ml-3">
+              <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="radio"
                   name="sheetType"
@@ -361,34 +361,36 @@ export const SpreadsheetImportView: React.FC<SpreadsheetImportViewProps> = ({
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-500">Merge Strategy:</span>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+              <div className="flex items-center justify-between sm:justify-start gap-2 text-xs">
+                <span className="text-slate-500 whitespace-nowrap">Merge Strategy:</span>
                 <select
                   value={importMode}
                   onChange={e => setImportMode(e.target.value as 'merge' | 'create_all')}
-                  className="px-2 py-1 bg-white border border-slate-300 rounded text-xs text-slate-800"
+                  className="px-2 py-1 bg-white border border-slate-300 rounded text-xs text-slate-800 flex-1 sm:flex-none"
                 >
-                  <option value="merge">Smart Merge (Preserve & update existing)</option>
-                  <option value="create_all">Create New (Do not merge)</option>
+                  <option value="merge">Smart Merge</option>
+                  <option value="create_all">Create New</option>
                 </select>
               </div>
 
-              <button
-                onClick={() => setPreviewData(null)}
-                className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900"
-              >
-                Discard
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPreviewData(null)}
+                  className="flex-1 sm:flex-none px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg text-center"
+                >
+                  Discard
+                </button>
 
-              <button
-                onClick={handleCommit}
-                disabled={committing}
-                className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center gap-1.5"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                {committing ? 'Committing...' : `Commit ${previewData.totalRows} Records`}
-              </button>
+                <button
+                  onClick={handleCommit}
+                  disabled={committing}
+                  className="flex-1 sm:flex-none px-4 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {committing ? 'Committing...' : `Commit ${previewData.totalRows} Records`}
+                </button>
+              </div>
             </div>
           </div>
 

@@ -85,31 +85,31 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto">
+      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[94vh] animate-in fade-in zoom-in-95 duration-200 my-auto">
         {/* Modal Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white flex items-center justify-between shrink-0 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-              <Bell className="w-5 h-5 animate-pulse" />
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white flex items-start sm:items-center justify-between gap-3 shrink-0 border-b border-slate-800">
+          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0 mt-0.5 sm:mt-0">
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold tracking-tight text-white">
-                  Compliance & Milestone Alerts (2-Day Advance Notice)
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm sm:text-base font-bold tracking-tight text-white truncate sm:text-clip">
+                  Compliance & Milestone Alerts
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500 text-slate-950">
+                <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500 text-slate-950 shrink-0">
                   {alerts.length} Active
                 </span>
               </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Automated on-screen notifications for upcoming employee birthdays and candidate internship completions.
+              <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 line-clamp-1 sm:line-clamp-none">
+                2-day advance notifications for birthdays and candidate internship completions.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -117,81 +117,83 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
 
         {/* Status Toast Banner */}
         {statusMsg && (
-          <div className="px-6 py-2 bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs flex items-center justify-between">
-            <span className="flex items-center gap-1.5 font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="px-4 sm:px-6 py-2 bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs flex items-center justify-between">
+            <span className="flex items-center gap-1.5 font-medium text-[11px] sm:text-xs">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               {statusMsg}
             </span>
-            <button onClick={() => setStatusMsg('')} className="text-emerald-600 hover:text-emerald-900">✕</button>
+            <button onClick={() => setStatusMsg('')} className="text-emerald-600 hover:text-emerald-900 ml-2">✕</button>
           </div>
         )}
 
         {/* Date Testing & Filter Control Bar */}
-        <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+        <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 text-xs shrink-0">
           {/* Filter Pills */}
-          <div className="flex items-center gap-1.5 bg-slate-200/70 p-1 rounded-lg">
+          <div className="flex items-center gap-1 bg-slate-200/70 p-1 rounded-lg overflow-x-auto no-scrollbar">
             <button
               onClick={() => setFilterType('ALL')}
-              className={`px-3 py-1 rounded-md font-medium text-xs transition-colors ${
+              className={`px-2.5 sm:px-3 py-1 rounded-md font-medium text-[11px] sm:text-xs whitespace-nowrap transition-colors ${
                 filterType === 'ALL'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              All Alerts ({alerts.length})
+              All ({alerts.length})
             </button>
             <button
               onClick={() => setFilterType('BIRTHDAY')}
-              className={`px-3 py-1 rounded-md font-medium text-xs flex items-center gap-1.5 transition-colors ${
+              className={`px-2.5 sm:px-3 py-1 rounded-md font-medium text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-colors ${
                 filterType === 'BIRTHDAY'
                   ? 'bg-amber-500 text-slate-950 font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Cake className="w-3.5 h-3.5 text-amber-600" />
+              <Cake className="w-3 h-3 text-amber-700" />
               Birthdays ({birthdayAlertsCount})
             </button>
             <button
               onClick={() => setFilterType('INTERNSHIP_COMPLETION')}
-              className={`px-3 py-1 rounded-md font-medium text-xs flex items-center gap-1.5 transition-colors ${
+              className={`px-2.5 sm:px-3 py-1 rounded-md font-medium text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-colors ${
                 filterType === 'INTERNSHIP_COMPLETION'
                   ? 'bg-blue-600 text-white font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <GraduationCap className="w-3.5 h-3.5" />
+              <GraduationCap className="w-3 h-3" />
               Internships ({internshipAlertsCount})
             </button>
           </div>
 
           {/* Reference Date Simulator */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-between md:justify-end">
             <label className="text-slate-500 font-medium text-[11px] flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              Simulate Reference Date:
+              Simulate Date:
             </label>
-            <input
-              type="date"
-              value={referenceDate}
-              onChange={e => e.target.value && onReferenceDateChange(e.target.value)}
-              className="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-mono text-slate-800 shadow-2xs"
-            />
-            {!isViewer && (
-              <button
-                onClick={handleReset}
-                disabled={resetting}
-                title="Reset all dismissed alerts to test duplicate prevention"
-                className="px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-300 rounded hover:bg-slate-100 transition-colors flex items-center gap-1"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Reset Dismissed
-              </button>
-            )}
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={referenceDate}
+                onChange={e => e.target.value && onReferenceDateChange(e.target.value)}
+                className="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-mono text-slate-800 shadow-2xs"
+              />
+              {!isViewer && (
+                <button
+                  onClick={handleReset}
+                  disabled={resetting}
+                  title="Reset all dismissed alerts to test duplicate prevention"
+                  className="px-2 py-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-300 rounded hover:bg-slate-100 transition-colors flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span className="hidden sm:inline">Reset</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Alerts List Container */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-3 sm:space-y-4">
           {filteredAlerts.length > 0 ? (
             filteredAlerts.map(alert => {
               const isBirthday = alert.type === 'BIRTHDAY';
@@ -318,29 +320,29 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
                     </div>
 
                     {/* Right: Actions */}
-                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0 pt-2 sm:pt-0">
+                    <div className="flex flex-row sm:flex-col items-stretch sm:items-end justify-between sm:justify-start gap-2 shrink-0 pt-2 sm:pt-0 w-full sm:w-auto border-t sm:border-t-0 border-slate-100">
                       <button
                         onClick={() => {
                           onViewProfile(alert.personId);
                           onClose();
                         }}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors ${
+                        className={`flex-1 sm:flex-none px-4 py-2 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors ${
                           isBirthday
                             ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
                             : 'bg-blue-600 hover:bg-blue-500 text-white'
                         }`}
                       >
-                        View Full Profile
+                        View Profile
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
 
                       <button
                         onClick={() => handleDismiss(alert.id)}
                         disabled={dismissingId === alert.id}
-                        className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
+                        className="px-3 py-2 sm:py-1.5 text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 whitespace-nowrap"
                         title="Dismiss alert for this year / milestone (prevents duplicate alerts)"
                       >
-                        {dismissingId === alert.id ? 'Dismissing...' : 'Dismiss Alert'}
+                        {dismissingId === alert.id ? 'Dismissing...' : 'Dismiss'}
                       </button>
                     </div>
                   </div>
@@ -348,7 +350,7 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
               );
             })
           ) : (
-            <div className="p-8 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-center space-y-3">
+            <div className="p-5 sm:p-8 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
@@ -364,30 +366,30 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
                 <p className="text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-2">
                   Test & Verify Dates from Actual Imported Sheets:
                 </p>
-                <div className="flex flex-wrap items-center justify-center gap-2">
+                <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
                   <button
                     onClick={() => onReferenceDateChange('2026-10-29')}
-                    className="px-2.5 py-1 bg-white hover:bg-amber-50 border border-slate-200 rounded text-xs text-slate-700 font-mono transition-colors"
+                    className="px-2.5 py-1 bg-white hover:bg-amber-50 border border-slate-200 rounded text-xs text-slate-700 font-mono transition-colors text-left"
                   >
-                    📅 2026-10-29 (Aryan Birthday & Simran Completion in 2 Days)
+                    📅 2026-10-29 (Aryan & Simran in 2 Days)
                   </button>
                   <button
                     onClick={() => onReferenceDateChange('2026-11-08')}
-                    className="px-2.5 py-1 bg-white hover:bg-blue-50 border border-slate-200 rounded text-xs text-slate-700 font-mono transition-colors"
+                    className="px-2.5 py-1 bg-white hover:bg-blue-50 border border-slate-200 rounded text-xs text-slate-700 font-mono transition-colors text-left"
                   >
-                    📅 2026-11-08 (Pooja DM Intern Completion in 2 Days)
+                    📅 2026-11-08 (Pooja Intern in 2 Days)
                   </button>
                   <button
                     onClick={() => onReferenceDateChange('2026-11-19')}
-                    className="px-2.5 py-1 bg-white hover:bg-amber-50 border border-slate-200 rounded text-xs text-slate-700 font-mono transition-colors"
+                    className="px-2.5 py-1 bg-white hover:bg-amber-50 border border-slate-200 rounded text-xs text-slate-700 font-mono transition-colors text-left"
                   >
                     📅 2026-11-19 (Kimmi Mam Birthday in 2 Days)
                   </button>
                   <button
                     onClick={() => onReferenceDateChange('2026-11-28')}
-                    className="px-2.5 py-1 bg-white hover:bg-blue-50 border border-slate-200 rounded text-xs text-slate-700 font-mono transition-colors"
+                    className="px-2.5 py-1 bg-white hover:bg-blue-50 border border-slate-200 rounded text-xs text-slate-700 font-mono transition-colors text-left"
                   >
-                    📅 2026-11-28 (Chetan Dixit AI Completion in 2 Days)
+                    📅 2026-11-28 (Chetan AI Intern in 2 Days)
                   </button>
                 </div>
               </div>
@@ -396,16 +398,16 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Automated 2-day reminder engine active. Duplicate notifications prevented.</span>
+        <div className="px-4 sm:px-6 py-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0 text-xs text-slate-500">
+          <div className="flex items-center gap-2 text-center sm:text-left text-[11px] sm:text-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span>2-day reminder engine active. Duplicate notifications prevented.</span>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors shadow-xs"
+            className="w-full sm:w-auto px-4 py-2 sm:py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors shadow-xs text-center"
           >
-            Close Notification Center
+            Close Alerts
           </button>
         </div>
       </div>

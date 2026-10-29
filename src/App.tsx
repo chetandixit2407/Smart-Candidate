@@ -31,6 +31,7 @@ export default function App() {
   const [userRole, setUserRole] = useState<UserRole>('HR_ADMIN');
   const [userName, setUserName] = useState<string>('Simran Kaur (HR Head)');
   const [sseConnected, setSseConnected] = useState<boolean>(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Core data states
   const [stats, setStats] = useState<any>(null);
@@ -409,8 +410,8 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-100 text-slate-900 font-sans antialiased overflow-hidden">
-      {/* Sidebar Navigation */}
+    <div className="flex h-screen bg-slate-100 text-slate-900 font-sans antialiased overflow-hidden w-full">
+      {/* Sidebar Navigation (Desktop static + Mobile slide-out drawer) */}
       <Sidebar
         currentTab={currentTab}
         onSelectTab={setCurrentTab}
@@ -420,10 +421,12 @@ export default function App() {
         pendingDocCount={pendingDocCount}
         upcomingCount={candidates.length}
         sseConnected={sseConnected}
+        mobileOpen={mobileMenuOpen}
+        onCloseMobile={() => setMobileMenuOpen(false)}
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden w-full">
         {/* Top Bar following contract */}
         <TopNav
           currentTab={currentTab}
@@ -435,11 +438,12 @@ export default function App() {
           onResetDatabase={handleResetDatabase}
           alertsCount={alerts.length}
           onOpenAlertsModal={() => setShowAlertsPopup(true)}
+          onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
         />
 
         {/* Viewport View Container */}
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 w-full min-w-0 overflow-x-hidden">
+          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 w-full min-w-0">
             {currentTab === 'overview' && (
               <OverviewView
                 stats={stats}

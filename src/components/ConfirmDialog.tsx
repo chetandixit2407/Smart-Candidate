@@ -27,8 +27,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden space-y-4 p-5 animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden space-y-4 p-4 sm:p-5 animate-in fade-in zoom-in-95 duration-150 my-auto">
         <div className="flex items-start gap-3">
           <div
             className={`p-2.5 rounded-full shrink-0 ${

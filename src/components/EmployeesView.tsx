@@ -109,7 +109,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
     <div className="space-y-4">
       {/* Control Bar: Filters & Search */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Search Box */}
           <div className="relative w-full md:w-80">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -121,13 +121,13 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-slate-900 focus:bg-white"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-slate-900 focus:bg-white"
             />
           </div>
 
-          {/* Quick Stats Pill */}
-          <div className="flex items-center gap-3 text-xs text-slate-500 w-full md:w-auto justify-between md:justify-end">
-            <span>
+          {/* Quick Stats & Action Button */}
+          <div className="flex flex-wrap items-center justify-between md:justify-end gap-2.5 text-xs text-slate-500 w-full md:w-auto">
+            <span className="text-[11px] sm:text-xs">
               Showing <strong className="font-mono text-slate-800">{filteredEmployees.length}</strong> of{' '}
               <span className="font-mono">{employees.length}</span> active employees
             </span>
@@ -144,8 +144,8 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
         </div>
 
         {/* Filter Dropdowns */}
-        <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-slate-100 text-xs">
-          <span className="text-slate-400 text-[11px] font-medium flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs">
+          <span className="text-slate-400 text-[11px] font-medium flex items-center gap-1 shrink-0">
             <Filter className="w-3 h-3" /> Filters:
           </span>
 
@@ -155,7 +155,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
               setSelectedDept(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-2.5 py-1 bg-white border border-slate-200 rounded text-slate-700 text-xs focus:ring-1 focus:ring-slate-900"
+            className="flex-1 sm:flex-initial min-w-[120px] px-2.5 py-1.5 bg-white border border-slate-200 rounded text-slate-700 text-xs focus:ring-1 focus:ring-slate-900"
           >
             {departments.map(d => (
               <option key={d} value={d}>
@@ -170,7 +170,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
               setSelectedMarket(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-2.5 py-1 bg-white border border-slate-200 rounded text-slate-700 text-xs focus:ring-1 focus:ring-slate-900"
+            className="flex-1 sm:flex-initial min-w-[120px] px-2.5 py-1.5 bg-white border border-slate-200 rounded text-slate-700 text-xs focus:ring-1 focus:ring-slate-900"
           >
             <option value="All">Market: All Markets</option>
             <option value="Gurgaon">Market: Gurgaon (NCR)</option>
@@ -184,7 +184,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
               setSelectedStatus(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-2.5 py-1 bg-white border border-slate-200 rounded text-slate-700 text-xs focus:ring-1 focus:ring-slate-900"
+            className="flex-1 sm:flex-initial min-w-[120px] px-2.5 py-1.5 bg-white border border-slate-200 rounded text-slate-700 text-xs focus:ring-1 focus:ring-slate-900"
           >
             <option value="All">Status: All Statuses</option>
             <option value="Full-Time">Full-Time</option>
@@ -202,7 +202,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                 setSelectedStatus('All');
                 setCurrentPage(1);
               }}
-              className="text-xs text-amber-700 hover:text-amber-900 font-medium px-2 py-0.5 rounded hover:bg-amber-50"
+              className="text-xs text-amber-700 hover:text-amber-900 font-medium px-2 py-1 rounded hover:bg-amber-50 shrink-0"
             >
               Reset Filters
             </button>
@@ -210,9 +210,126 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
         </div>
       </div>
 
-      {/* Employees Directory Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
+      {/* Employees Directory: Mobile Cards (hidden on md+) & Desktop Table (hidden on mobile) */}
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs w-full min-w-0">
+        {/* Mobile View: High-Usability Cards */}
+        <div className="block md:hidden divide-y divide-slate-100">
+          {paginatedEmployees.map(emp => {
+            const isChetan = emp.fullName.toLowerCase().includes('chetan');
+            const avatar = isChetan ? '/src/assets/images/avatar_chetan_sharma_1793257665587.jpg' : null;
+
+            return (
+              <div
+                key={emp.id}
+                onClick={() => onSelectEmployee(emp)}
+                className="p-3.5 hover:bg-slate-50/80 active:bg-slate-100 cursor-pointer transition-colors space-y-2.5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    {avatar ? (
+                      <img
+                        src={avatar}
+                        alt={emp.fullName}
+                        referrerPolicy="no-referrer"
+                        className="w-10 h-10 rounded-full object-cover border border-amber-400 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-slate-800 text-amber-400 flex items-center justify-center font-bold text-xs shrink-0">
+                        {emp.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      </div>
+                    )}
+                    <div className="overflow-hidden min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900 text-xs truncate">
+                        {emp.fullName}
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-mono truncate">
+                        {emp.phone || emp.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded text-[11px] shrink-0 border border-slate-200">
+                    {emp.employeeCode}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                  <div className="bg-slate-50 p-2 rounded border border-slate-100 min-w-0">
+                    <span className="text-[10px] text-slate-400 block truncate">Role & Dept</span>
+                    <span className="font-medium text-slate-800 text-[11px] truncate block">
+                      {emp.designation}
+                    </span>
+                    <span className="text-[10px] text-slate-500 truncate block">
+                      {emp.department}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 p-2 rounded border border-slate-100 min-w-0">
+                    <span className="text-[10px] text-slate-400 block truncate">Desk & Market</span>
+                    <span className="font-mono font-bold text-amber-800 text-[11px] truncate block">
+                      {emp.desk ? `Desk ${emp.desk}` : 'Unassigned'}
+                    </span>
+                    <span className="text-[10px] text-slate-600 truncate block">
+                      {emp.market}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-slate-400">Readiness:</span>
+                    <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${
+                          emp.profileCompletion >= 90
+                            ? 'bg-emerald-500'
+                            : emp.profileCompletion >= 70
+                            ? 'bg-amber-500'
+                            : 'bg-rose-500'
+                        }`}
+                        style={{ width: `${emp.profileCompletion}%` }}
+                      />
+                    </div>
+                    <span className="font-mono text-[10px] font-bold text-slate-700">
+                      {emp.profileCompletion}%
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        onSelectEmployee(emp);
+                      }}
+                      className="px-2.5 py-1 text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 rounded font-medium transition-colors"
+                    >
+                      Dossier
+                    </button>
+                    {userRole === 'HR_ADMIN' && (
+                      <button
+                        type="button"
+                        onClick={e => handleDelete(e, emp)}
+                        className="p-1 text-rose-500 hover:text-rose-700 rounded hover:bg-rose-50 transition-colors"
+                        title="Delete record"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {paginatedEmployees.length === 0 && (
+            <div className="p-8 text-center text-xs text-slate-400">
+              No employees matching the selected criteria.
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View: Full-featured Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold select-none">
               <tr>

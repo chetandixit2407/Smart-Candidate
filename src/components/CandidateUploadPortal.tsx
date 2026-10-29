@@ -231,41 +231,42 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
       {/* Top Header */}
-      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-bold text-amber-400 text-sm">
+      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-3.5 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-bold text-amber-400 text-xs sm:text-sm shrink-0">
             WCR
           </div>
-          <div>
-            <h1 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-              White Collar Realty — Candidate Onboarding Portal
+          <div className="min-w-0">
+            <h1 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate">
+              Candidate Onboarding Portal
             </h1>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
               Encrypted One-Time Document Upload Link
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             <ShieldCheck className="w-3.5 h-3.5" />
-            TLS 256-bit Encrypted Session
+            TLS 256-bit Encrypted
           </span>
 
           {onExitPortal && (
             <button
               onClick={onExitPortal}
-              className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-1.5"
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-1"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              Exit Portal
+              <span className="hidden sm:inline">Exit Portal</span>
+              <span className="sm:hidden">Exit</span>
             </button>
           )}
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-6">
+      <main className="flex-1 max-w-4xl w-full mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Candidate Banner Card */}
         <div className="bg-slate-800/90 rounded-2xl border border-slate-700/80 p-5 shadow-xl space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -420,13 +421,13 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
         </div>
 
         {/* Bottom Submission Bar */}
-        <div className="p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky bottom-4 shadow-2xl backdrop-blur-md">
+        <div className="p-3.5 sm:p-5 bg-slate-950/90 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 sticky bottom-2 sm:bottom-4 shadow-2xl backdrop-blur-md">
           <div className="text-xs text-slate-400 space-y-0.5">
             <div>
               Ready to submit: <strong className="text-white font-mono">{stagedCount}</strong> documents
             </div>
-            <p className="text-[11px] text-slate-500">
-              By submitting, your one-time link will expire immediately to protect your personal privacy.
+            <p className="text-[10px] sm:text-[11px] text-slate-500">
+              One-time link expires immediately after submitting to protect privacy.
             </p>
           </div>
 
@@ -434,16 +435,16 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
             type="button"
             onClick={handleSubmitAll}
             disabled={stagedCount === 0 || submitting}
-            className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
           >
             {submitting ? (
               <>
                 <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                <span>Uploading & Closing Link...</span>
+                <span>Uploading Documents...</span>
               </>
             ) : (
               <>
-                <span>Submit All Documents for Verification</span>
+                <span>Submit All for Verification</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}

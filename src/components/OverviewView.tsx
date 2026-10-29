@@ -85,36 +85,36 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0">
       {/* 2-Day Advance Milestone Alert Notice Strip */}
       {alerts && alerts.length > 0 && (
-        <div className="p-4 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-blue-500/10 rounded-xl border border-amber-300 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-500 text-slate-950 font-bold shrink-0">
+        <div className="p-3.5 sm:p-4 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-blue-500/10 rounded-xl border border-amber-300 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full min-w-0">
+          <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+            <div className="p-2 rounded-lg bg-amber-500 text-slate-950 font-bold shrink-0 mt-0.5 sm:mt-0">
               <Bell className="w-4 h-4 animate-bounce" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-bold text-xs text-slate-900">
                   {alerts.length} Milestone {alerts.length === 1 ? 'Alert' : 'Alerts'} Scheduled in Next 2 Days
                 </span>
-                <span className="px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500 text-slate-950">
+                <span className="px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500 text-slate-950 shrink-0">
                   Advance 2-Day Notice
                 </span>
               </div>
-              <p className="text-xs text-slate-600 mt-0.5">
+              <p className="text-xs text-slate-600 mt-0.5 break-words line-clamp-2 sm:line-clamp-none">
                 {alerts.map(a => `${a.fullName} (${a.type === 'BIRTHDAY' ? 'Birthday' : 'Internship Completion'} in ${a.daysRemaining === 0 ? 'Today' : `${a.daysRemaining}d`})`).join(' · ')}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
             {onOpenAlertsModal && (
               <button
                 onClick={onOpenAlertsModal}
-                className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
+                className="w-full sm:w-auto justify-center px-3.5 py-2 sm:py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
               >
-                Review Upcoming Alerts
+                <span>Review Upcoming Alerts</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
@@ -123,10 +123,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
       )}
 
       {/* KPI Cards Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5">
         <div
           onClick={() => onNavigateTab('employees')}
-          className="p-4 bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-all cursor-pointer shadow-xs"
+          className="p-3 sm:p-4 bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-all cursor-pointer shadow-xs min-w-0"
         >
           <div className="flex items-center justify-between text-slate-500">
             <span className="text-xs font-medium">Total Employees</span>
@@ -223,39 +223,39 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
       {/* Featured Dossier Spotlight: Chetan Dixit & Onboarding Profile */}
       {chetan && (
-        <div className="p-5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white rounded-xl shadow-md border border-slate-800">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white rounded-xl shadow-md border border-slate-800 w-full min-w-0">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 min-w-0">
+            <div className="flex flex-col xs:flex-row items-start gap-3 sm:gap-4 min-w-0 flex-1">
               <img
                 src="/src/assets/images/avatar_chetan_sharma_1793257665587.jpg"
                 alt={chetan.fullName}
                 referrerPolicy="no-referrer"
-                className="w-16 h-16 rounded-xl object-cover border-2 border-amber-400 shadow-md shrink-0"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border-2 border-amber-400 shadow-md shrink-0"
               />
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold">
+              <div className="space-y-1 min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <span className="text-[11px] sm:text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold">
                     Source Dossier Spotlight · Chetan Information Sheet
                   </span>
-                  <span className="px-2 py-0.2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded text-[10px] font-mono">
+                  <span className="px-2 py-0.2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded text-[10px] font-mono shrink-0">
                     100% Verified Profile
                   </span>
                 </div>
-                <h3 className="text-base font-bold text-white">
+                <h3 className="text-sm sm:text-base font-bold text-white truncate">
                   {chetan.fullName} — {chetan.designation}
                 </h3>
-                <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
+                <p className="text-xs text-slate-300 leading-relaxed max-w-3xl break-words">
                   Unified with birthday roster and candidate information sheet. Assigned to <strong>Desk {chetan.desk || 'C2'}</strong> {chetan.sourceSpreadsheetSeat ? `(Spreadsheet Seat: ${chetan.sourceSpreadsheetSeat})` : ''}. All onboarding, banking, identity, and academic records verified.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-3 shrink-0 w-full lg:w-auto">
               <button
                 onClick={() => onSelectEmployee(chetan)}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
+                className="w-full lg:w-auto justify-center px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
               >
-                Open Full Chetan Dossier
+                <span>Open Full Chetan Dossier</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -283,10 +283,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             {pendingDocItems.slice(0, 8).map((item, idx) => (
               <div
                 key={idx}
-                className="px-5 py-3 flex items-center justify-between hover:bg-slate-50/70 transition-colors"
+                className="px-3.5 sm:px-5 py-3 flex items-center justify-between hover:bg-slate-50/70 transition-colors gap-2 min-w-0"
               >
-                <div className="min-w-0 pr-3">
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1 pr-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                     <p className="text-xs font-semibold text-slate-900 truncate">
                       {item.employee.fullName}
                     </p>
@@ -318,7 +318,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                   </span>
                   <button
                     onClick={() => onSelectEmployee(item.employee)}
-                    className="text-xs text-slate-700 hover:text-slate-900 font-medium px-2 py-1 rounded hover:bg-slate-100 border border-slate-200"
+                    className="text-xs text-slate-700 hover:text-slate-900 font-medium px-2 py-1 rounded hover:bg-slate-100 border border-slate-200 transition-colors"
                   >
                     Verify
                   </button>
@@ -336,7 +336,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
         {/* Upcoming Joiners Pipeline */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs flex flex-col">
-          <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+          <div className="px-4 sm:px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <UserPlus className="w-4 h-4 text-blue-600" />
               <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">
@@ -355,10 +355,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             {candidates.map(cand => (
               <div
                 key={cand.id}
-                className="px-5 py-3 flex items-center justify-between hover:bg-slate-50/70 transition-colors"
+                className="px-3.5 sm:px-5 py-3 flex items-center justify-between hover:bg-slate-50/70 transition-colors gap-2 min-w-0"
               >
-                <div className="min-w-0 pr-3">
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1 pr-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-xs font-semibold text-slate-900 truncate">
                       {cand.fullName}
                     </p>
@@ -369,9 +369,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                   <p className="text-xs text-slate-600 truncate mt-0.5">
                     {cand.designation} · {cand.department}
                   </p>
-                  <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-1">
+                  <div className="flex items-center gap-2 sm:gap-3 text-[11px] text-slate-400 mt-1 flex-wrap">
                     <span>Reserved Desk: <strong className="text-slate-700 font-mono">{cand.desk || 'None'}</strong></span>
-                    <span>·</span>
+                    <span className="hidden sm:inline">·</span>
                     <span>Onboarding: <strong className="text-slate-700 font-mono">{cand.profileCompletion}%</strong></span>
                   </div>
                 </div>
@@ -382,7 +382,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                   </span>
                   <button
                     onClick={() => onSelectEmployee(cand)}
-                    className="text-xs text-slate-700 hover:text-slate-900 font-medium px-2 py-1 rounded hover:bg-slate-100 border border-slate-200"
+                    className="text-xs text-slate-700 hover:text-slate-900 font-medium px-2 py-1 rounded hover:bg-slate-100 border border-slate-200 transition-colors"
                   >
                     View
                   </button>
@@ -400,7 +400,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
       </div>
 
       {/* Recent Activity Log Strip */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+      <div className="bg-white rounded-xl border border-slate-200 p-3.5 sm:p-5 shadow-xs w-full min-w-0">
         <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-slate-400" />
@@ -420,7 +420,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           {stats.recentLogs.slice(0, 3).map(log => (
             <div
               key={log.id}
-              className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 text-xs space-y-1"
+              className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 text-xs space-y-1 min-w-0"
             >
               <div className="flex items-center justify-between text-[11px] text-slate-500">
                 <span className="font-semibold text-slate-800">{log.action}</span>
@@ -428,7 +428,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                   {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
-              <p className="text-slate-700 leading-snug line-clamp-2">{log.details}</p>
+              <p className="text-slate-700 leading-snug line-clamp-2 break-words">{log.details}</p>
               <p className="text-[10px] text-slate-400 pt-1">
                 By: <strong className="text-slate-600">{log.actor}</strong> ({log.actorRole})
               </p>

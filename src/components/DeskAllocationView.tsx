@@ -88,29 +88,29 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0">
       {/* Top Banner & Metrics */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-base font-semibold text-slate-900">
+      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4 w-full min-w-0">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-base font-semibold text-slate-900 truncate">
               White Collar Realty — Floorplan & Desk Matrix
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
               Exact configured desks: A1–A5, B1–B5, C1–C3, D1–D4, E1–E5, F1–F5, G1–G5, H1–H5 (Total 37 Desks).
             </p>
           </div>
 
-          <div className="flex items-center gap-3 text-xs">
-            <div className="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center gap-1.5 text-emerald-800">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs w-full md:w-auto">
+            <div className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center sm:justify-start gap-1.5 text-emerald-800">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
               <span>Available: <strong>{availableCount}</strong></span>
             </div>
-            <div className="px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-300 flex items-center gap-1.5 text-slate-800">
+            <div className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-300 flex items-center justify-center sm:justify-start gap-1.5 text-slate-800">
               <span className="w-2.5 h-2.5 rounded-full bg-slate-600" />
               <span>Occupied: <strong>{occupiedCount}</strong></span>
             </div>
-            <div className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 flex items-center gap-1.5 text-amber-800">
+            <div className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center sm:justify-start gap-1.5 text-amber-800">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
               <span>Reserved: <strong>{reservedCount}</strong></span>
             </div>
@@ -118,15 +118,15 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
         </div>
 
         {/* Filter Bar */}
-        <div className="flex items-center gap-3 pt-3 border-t border-slate-100 text-xs">
-          <span className="text-slate-400 text-[11px] font-medium flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 text-xs">
+          <span className="text-slate-400 text-[11px] font-medium flex items-center gap-1 shrink-0">
             <Filter className="w-3 h-3" /> Filter Bays:
           </span>
 
           <select
             value={selectedBay}
             onChange={e => setSelectedBay(e.target.value)}
-            className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded text-slate-700 text-xs"
+            className="flex-1 sm:flex-initial min-w-[130px] px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-slate-700 text-xs"
           >
             <option value="All">All Bays (A–H)</option>
             {bays.map(b => (
@@ -139,7 +139,7 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
           <select
             value={selectedStatus}
             onChange={e => setSelectedStatus(e.target.value)}
-            className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded text-slate-700 text-xs"
+            className="flex-1 sm:flex-initial min-w-[120px] px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-slate-700 text-xs"
           >
             <option value="All">All Statuses</option>
             <option value="Available">Available</option>
@@ -163,7 +163,7 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
       )}
 
       {/* Visual Bay Cards */}
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 w-full min-w-0">
         {bays
           .filter(b => selectedBay === 'All' || selectedBay === b.id)
           .map(bay => {
@@ -175,20 +175,20 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
             if (filteredBayDesks.length === 0) return null;
 
             return (
-              <div key={bay.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-slate-800" />
-                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <div key={bay.id} className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-3 w-full min-w-0">
+                <div className="flex flex-col xs:flex-row xs:items-center justify-between pb-2 border-b border-slate-100 gap-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-slate-800 shrink-0" />
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider truncate">
                       {bay.label}
                     </h3>
                   </div>
-                  <span className="text-[11px] font-mono text-slate-400">
+                  <span className="text-[11px] font-mono text-slate-400 shrink-0">
                     {bayDesks.filter(d => d.status === 'Occupied').length} Occupied · {bayDesks.filter(d => d.status === 'Available').length} Available
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+                <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3.5">
                   {filteredBayDesks.map(slot => {
                     const occupantPerson = slot.assignedEmployeeId
                       ? allPeople.find(p => p.id === slot.assignedEmployeeId)

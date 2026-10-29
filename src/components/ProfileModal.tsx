@@ -190,43 +190,43 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const avatarUrl = isChetan ? '/src/assets/images/avatar_chetan_sharma_1793257665587.jpg' : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto">
-      <div className="relative w-full max-w-5xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-2 sm:p-4 md:p-6 overflow-y-auto">
+      <div className="relative w-full max-w-5xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[94vh] my-auto">
         {/* Modal Header */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4 min-w-0">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
                 alt={employee.fullName}
                 referrerPolicy="no-referrer"
-                className="w-13 h-13 rounded-full object-cover border-2 border-amber-400/80 shadow-md shrink-0"
+                className="w-10 h-10 sm:w-13 sm:h-13 rounded-full object-cover border-2 border-amber-400/80 shadow-md shrink-0"
               />
             ) : (
-              <div className="w-13 h-13 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-bold text-amber-400 text-lg shrink-0">
+              <div className="w-10 h-10 sm:w-13 sm:h-13 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-bold text-amber-400 text-sm sm:text-lg shrink-0">
                 {employee.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
               </div>
             )}
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg font-semibold tracking-tight text-white truncate">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-semibold tracking-tight text-white truncate">
                   {employee.fullName}
                 </h2>
-                <span className="font-mono text-xs text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-400/30">
+                <span className="font-mono text-[11px] sm:text-xs text-amber-300 bg-amber-500/20 px-1.5 sm:px-2 py-0.5 rounded border border-amber-400/30">
                   {employee.employeeCode}
                 </span>
                 {employee.isCandidate && (
-                  <span className="text-xs text-blue-200 bg-blue-500/20 px-2 py-0.5 rounded border border-blue-400/30">
-                    Candidate / Upcoming Joiner
+                  <span className="text-[10px] sm:text-xs text-blue-200 bg-blue-500/20 px-1.5 sm:px-2 py-0.5 rounded border border-blue-400/30">
+                    Candidate / Joiner
                   </span>
                 )}
                 {employee.desk && (
-                  <span className="text-xs text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                  <span className="text-[10px] sm:text-xs text-slate-300 bg-slate-800 px-1.5 sm:px-2 py-0.5 rounded border border-slate-700">
                     Desk: {employee.desk}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-300 truncate mt-0.5">
+              <p className="text-[11px] sm:text-xs text-slate-300 truncate mt-0.5">
                 {employee.designation} · {employee.department} · {employee.market} Market
               </p>
             </div>
@@ -260,19 +260,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
         {/* Status Alerts */}
         {errorMsg && (
-          <div className="px-6 py-2.5 bg-rose-50 border-b border-rose-200 text-rose-800 text-xs flex items-center justify-between">
+          <div className="px-4 sm:px-6 py-2.5 bg-rose-50 border-b border-rose-200 text-rose-800 text-xs flex items-center justify-between">
             <span>{errorMsg}</span>
             <button onClick={() => setErrorMsg('')} className="text-rose-500 hover:text-rose-700 font-semibold">✕</button>
           </div>
         )}
         {successMsg && (
-          <div className="px-6 py-2.5 bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs">
+          <div className="px-4 sm:px-6 py-2.5 bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs">
             {successMsg}
           </div>
         )}
 
         {/* Tab Strip */}
-        <div className="px-6 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 overflow-x-auto">
+        <div className="px-3 sm:px-6 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-1 py-1.5">
             {[
               { id: 'profile', label: 'Basic Info', icon: User },
@@ -308,7 +308,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </div>
 
           {!isViewer && activeTab !== 'documents' && activeTab !== 'assets' && (
-            <div className="flex items-center gap-2 shrink-0 py-1.5">
+            <div className="flex items-center gap-2 shrink-0 py-1.5 ml-2">
               {isEditing ? (
                 <>
                   <button
@@ -323,7 +323,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   <button
                     onClick={handleSaveProfile}
                     disabled={saving}
-                    className="px-3.5 py-1.5 bg-slate-900 text-white rounded-md text-xs font-medium hover:bg-slate-800 disabled:opacity-50"
+                    className="px-3.5 py-1.5 bg-slate-900 text-white rounded-md text-xs font-medium hover:bg-slate-800 disabled:opacity-50 whitespace-nowrap"
                   >
                     {saving ? 'Saving...' : 'Save Changes'}
                   </button>
@@ -331,7 +331,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               ) : (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  className="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-50 whitespace-nowrap"
                 >
                   Edit Profile
                 </button>
@@ -341,7 +341,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         </div>
 
         {/* Tab Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-5 sm:space-y-6">
           {/* TAB 1: BASIC INFO */}
           {activeTab === 'profile' && (
             <div className="space-y-6">
@@ -2162,13 +2162,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       )}
       {/* Sub-Modal: Issue Company Asset to Employee */}
       {isIssueModalOpen && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl p-6 border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-900/60 p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl p-4 sm:p-6 border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto my-auto">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div>
                 <h3 className="font-semibold text-sm text-slate-900 flex items-center gap-1.5">
                   <Package className="w-4 h-4 text-amber-600" />
-                  Issue Company Asset to {employee.fullName}
+                  Issue Asset to {employee.fullName}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Assign existing stock or register a new piece of company inventory.
@@ -2392,8 +2392,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
       {/* Sub-Modal: Return Company Asset */}
       {returningAsset && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-6 border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-900/60 p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-4 sm:p-6 border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto my-auto">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div>
                 <h3 className="font-semibold text-sm text-slate-900 flex items-center gap-1.5">
@@ -2486,8 +2486,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
       {/* Sub-Modal: Edit Asset Details */}
       {editingAsset && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-6 border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-900/60 p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-4 sm:p-6 border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto my-auto">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div>
                 <h3 className="font-semibold text-sm text-slate-900 flex items-center gap-1.5">
