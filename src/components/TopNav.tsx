@@ -1,5 +1,5 @@
-import React from 'react';
-import { Download, Plus, Shield, RefreshCw, Bell } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Download, Plus, Shield, RefreshCw, Bell, ChevronDown, FileSpreadsheet } from 'lucide-react';
 import { UserRole } from '../types/index.js';
 
 interface TopNavProps {
@@ -30,6 +30,18 @@ export const TopNav: React.FC<TopNavProps> = ({
   };
 
   const titleInfo = tabTitles[currentTab] || { main: 'HR Management', sub: 'White Collar Realty' };
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <header className="h-14 border-b border-slate-200 bg-white flex items-center justify-between px-6 shrink-0 gap-6">
@@ -98,14 +110,68 @@ export const TopNav: React.FC<TopNavProps> = ({
           </button>
         )}
 
-        <a
-          href="/api/export/excel"
-          download
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors whitespace-nowrap"
-        >
-          <Download className="w-3.5 h-3.5" />
-          Export Master Excel
-        </a>
+        {/* Master Excel Export with Single-Sheet Option */}
+        <div className="relative" ref={menuRef}>
+          <div className="inline-flex rounded-lg shadow-xs border border-slate-300 bg-white">
+            <a
+              href="/api/export/excel/single-sheet"
+              download
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors rounded-l-lg border-r border-slate-200"
+              title="Export all employees and candidates in one single worksheet sorted alphabetically by name"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Export Master Excel</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="px-2 py-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-r-lg transition-colors"
+              title="Choose Excel format"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {showExportMenu && (
+            <div className="absolute right-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95">
+              <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Export Format Options
+              </div>
+              <a
+                href="/api/export/excel/single-sheet"
+                download
+                onClick={() => setShowExportMenu(false)}
+                className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-emerald-50/60 transition-colors text-slate-800 group"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-slate-900 group-hover:text-emerald-800">
+                    Single-Sheet Master Roster
+                  </p>
+                  <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                    One row per person (sorted alphabetically A-Z), all personal, contact, desk, asset, and verification fields.
+                  </p>
+                </div>
+              </a>
+              <a
+                href="/api/export/excel"
+                download
+                onClick={() => setShowExportMenu(false)}
+                className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-slate-50 transition-colors text-slate-800 group border-t border-slate-100"
+              >
+                <Download className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-slate-900 group-hover:text-blue-800">
+                    Multi-Tab Workbook
+                  </p>
+                  <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                    Divided into separate tabs for Employees, Candidates, Desks, Assets, and Compliance.
+                  </p>
+                </div>
+              </a>
+            </div>
+          )}
+        </div>
 
         {userRole !== 'DEPT_HEAD_VIEWER' && (
           <div className="flex items-center gap-1.5">

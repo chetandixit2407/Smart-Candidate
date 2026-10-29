@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { Response } from 'express';
-import {
+import type { Response } from 'express';
+import type {
   Employee,
   CompanyAsset,
   DeskSlot,
@@ -10,7 +10,8 @@ import {
   DocumentStatus,
   ImportSummary,
   AlertItem,
-} from '../src/types/index.js';
+  UploadToken,
+} from '../src/types/index.ts';
 import {
   ALL_DESK_CODES,
   getBayFromDesk,
@@ -21,7 +22,7 @@ import {
   INITIAL_AUDIT_LOGS,
   calculateCompletion,
   getDefaultDocumentChecklist,
-} from './seedData.js';
+} from './seedData.ts';
 
 interface DatabaseSchema {
   employees: Employee[];
@@ -328,6 +329,13 @@ class DatabaseService {
     const merged: Employee = {
       ...existing,
       ...updates,
+      bankDetails: updates.bankDetails ? { ...(existing.bankDetails || {}), ...updates.bankDetails } : existing.bankDetails,
+      identityDetails: updates.identityDetails ? { ...(existing.identityDetails || {}), ...updates.identityDetails } : existing.identityDetails,
+      emergencyContact: updates.emergencyContact ? { ...(existing.emergencyContact || {}), ...updates.emergencyContact } : existing.emergencyContact,
+      aspirations: updates.aspirations ? { ...(existing.aspirations || {}), ...updates.aspirations } : existing.aspirations,
+      familyDetails: updates.familyDetails !== undefined ? updates.familyDetails : existing.familyDetails,
+      education: updates.education !== undefined ? updates.education : existing.education,
+      references: updates.references !== undefined ? updates.references : existing.references,
       id: existing.id,
       updatedAt: new Date().toISOString(),
     };
@@ -463,6 +471,8 @@ class DatabaseService {
       verifiedBy?: string;
       fileName?: string;
       fileSize?: string;
+      fileData?: string;
+      mimeType?: string;
     },
     actor: string,
     actorRole: UserRole
@@ -491,6 +501,8 @@ class DatabaseService {
     if (params.reviewNotes !== undefined) doc.reviewNotes = params.reviewNotes;
     if (params.fileName) doc.fileName = params.fileName;
     if (params.fileSize) doc.fileSize = params.fileSize;
+    if (params.fileData) doc.fileData = params.fileData;
+    if (params.mimeType) doc.mimeType = params.mimeType;
 
     if (params.status === 'Verified') {
       doc.verifiedBy = params.verifiedBy || actor;
@@ -515,6 +527,297 @@ class DatabaseService {
 
     this.broadcast('DOCUMENT_STATUS_CHANGED', { employeeId: emp.id, docKey, doc, profileCompletion: emp.profileCompletion });
     return emp;
+  }
+
+  // --- Candidate One-Time Upload Links ---
+  public generateUploadToken(candidateId: string, actor: string, actorRole: UserRole): { success: boolean; token?: UploadToken; message: string } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate) {
+      return { success: false, message: 'Candidate not found.' };
+    }
+
+    const tokenString = 'wcr-upl-' + Math.random().toString(36).substring(2, 10) + '-' + Date.now().toString(36);
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 7);
+
+    const tokenObj: UploadToken = {
+      token: tokenString,
+      employeeId: candidate.id,
+      candidateName: candidate.fullName,
+      candidateEmail: candidate.email,
+      createdAt: new Date().toISOString(),
+      expiresAt: expires.toISOString(),
+      isUsed: false,
+      revoked: false,
+      submissionCount: 0,
+    };
+
+    candidate.uploadToken = tokenObj;
+    candidate.updatedAt = new Date().toISOString();
+    this.persist();
+
+    this.logAudit(
+      actor,
+      actorRole,
+      'One-Time Upload Link Generated',
+      'Candidate',
+      candidate.id,
+      candidate.fullName,
+      `Generated unique document submission link (expires ${expires.toLocaleDateString()}).`
+    );
+
+    this.broadcast('UPLOAD_LINK_GENERATED', { candidateId: candidate.id, token: tokenObj });
+    return { success: true, token: tokenObj, message: 'One-time upload link generated successfully.' };
+  }
+
+  public revokeUploadToken(candidateId: string, actor: string, actorRole: UserRole): { success: boolean; message: string } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate || !candidate.uploadToken) {
+      return { success: false, message: 'Active upload link not found.' };
+    }
+
+    candidate.uploadToken.revoked = true;
+    candidate.uploadToken.revokedAt = new Date().toISOString();
+    candidate.updatedAt = new Date().toISOString();
+    this.persist();
+
+    this.logAudit(
+      actor,
+      actorRole,
+      'One-Time Upload Link Revoked',
+      'Candidate',
+      candidate.id,
+      candidate.fullName,
+      'Revoked active document upload link.'
+    );
+
+    this.broadcast('UPLOAD_LINK_REVOKED', { candidateId: candidate.id });
+    return { success: true, message: 'Upload link successfully revoked.' };
+  }
+
+  public getPublicCandidateByToken(token: string): {
+    valid: boolean;
+    error?: string;
+    candidate?: {
+      id: string;
+      fullName: string;
+      employeeCode: string;
+      email: string;
+      phone: string;
+      department: string;
+      designation: string;
+      market: string;
+      joiningDate: string;
+      documents: Record<string, any>;
+      tokenInfo: UploadToken;
+    };
+  } {
+    const candidate = this.data.employees.find(e => e.uploadToken?.token === token);
+    if (!candidate || !candidate.uploadToken) {
+      return { valid: false, error: 'Invalid or non-existent upload link.' };
+    }
+
+    const t = candidate.uploadToken;
+    if (t.revoked) {
+      return { valid: false, error: 'This upload link was revoked by the White Collar Realty HR team.' };
+    }
+    if (t.isUsed) {
+      return { valid: false, error: 'This one-time upload link has already been used and is now expired.' };
+    }
+    if (new Date() > new Date(t.expiresAt)) {
+      return { valid: false, error: 'This upload link has expired. Please contact HR to generate a new link.' };
+    }
+
+    return {
+      valid: true,
+      candidate: {
+        id: candidate.id,
+        fullName: candidate.fullName,
+        employeeCode: candidate.employeeCode,
+        email: candidate.email,
+        phone: candidate.phone,
+        department: candidate.department,
+        designation: candidate.designation,
+        market: candidate.market,
+        joiningDate: candidate.joiningDate,
+        documents: candidate.documents || {},
+        tokenInfo: t,
+      },
+    };
+  }
+
+  public submitCandidateUpload(
+    token: string,
+    uploadedDocs: Record<string, { fileName: string; fileSize?: string; fileData: string; mimeType: string; reviewNotes?: string }>
+  ): { success: boolean; message: string; candidate?: Employee } {
+    const candidate = this.data.employees.find(e => e.uploadToken?.token === token);
+    if (!candidate || !candidate.uploadToken) {
+      return { success: false, message: 'Invalid upload link.' };
+    }
+
+    const t = candidate.uploadToken;
+    if (t.revoked) {
+      return { success: false, message: 'This upload link has been revoked.' };
+    }
+    if (t.isUsed) {
+      return { success: false, message: 'This one-time link has already been submitted.' };
+    }
+    if (new Date() > new Date(t.expiresAt)) {
+      return { success: false, message: 'This upload link has expired.' };
+    }
+
+    if (!candidate.documents) {
+      candidate.documents = getDefaultDocumentChecklist(candidate.market === 'Dubai' || candidate.market === 'Dual Market');
+    }
+
+    let filesCount = 0;
+    const nowIso = new Date().toISOString();
+
+    for (const [key, item] of Object.entries(uploadedDocs)) {
+      if (!item.fileData) continue;
+      filesCount++;
+      if (!candidate.documents[key]) {
+        candidate.documents[key] = {
+          key,
+          title: key.replace(/_/g, ' ').toUpperCase(),
+          category: 'Identity',
+          status: 'Submitted',
+          required: true,
+        };
+      }
+      candidate.documents[key].status = 'Submitted';
+      candidate.documents[key].fileName = item.fileName;
+      candidate.documents[key].fileSize = item.fileSize || '1.0 MB';
+      candidate.documents[key].fileData = item.fileData;
+      candidate.documents[key].mimeType = item.mimeType;
+      candidate.documents[key].uploadedAt = nowIso;
+      if (item.reviewNotes) {
+        candidate.documents[key].reviewNotes = item.reviewNotes;
+      }
+    }
+
+    t.isUsed = true;
+    t.usedAt = nowIso;
+    t.submissionCount = (t.submissionCount || 0) + 1;
+
+    candidate.updatedAt = nowIso;
+    candidate.profileCompletion = calculateCompletion(candidate);
+    this.persist();
+
+    this.logAudit(
+      'Candidate Portal',
+      'HR_MANAGER',
+      'Candidate Documents Uploaded via One-Time Link',
+      'Candidate',
+      candidate.id,
+      candidate.fullName,
+      `Submitted ${filesCount} documents via secure one-time upload link. Link is now closed.`
+    );
+
+    this.broadcast('CANDIDATE_DOCUMENTS_SUBMITTED', {
+      candidateId: candidate.id,
+      fullName: candidate.fullName,
+      filesCount,
+      profileCompletion: candidate.profileCompletion,
+      documents: candidate.documents,
+      tokenInfo: t,
+    });
+
+    return {
+      success: true,
+      message: 'Documents successfully submitted. Your secure one-time link is now closed.',
+      candidate,
+    };
+  }
+
+  // --- Master Single-Sheet Excel Generator (Requirement 5) ---
+  public generateSingleSheetExportData(role: UserRole): Array<Record<string, unknown>> {
+    const all = this.getEmployees(role);
+    const sorted = [...all].sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+    return sorted.map(p => {
+      const isViewer = role === 'DEPT_HEAD_VIEWER';
+      
+      const assignedAssets = this.data.assets.filter(a => a.assignedEmployeeId === p.id && a.status === 'In Use');
+      const activeAssetList = assignedAssets
+        .map(a => `${a.assetTag}: ${a.name} (S/N: ${a.serialNumber || 'N/A'}, Cond: ${a.condition})`)
+        .join('; ');
+
+      const docs = Object.values(p.documents || {});
+      const totalDocs = docs.length;
+      const verifiedDocs = docs.filter(d => d.status === 'Verified').length;
+      const submittedDocs = docs.filter(d => d.status === 'Submitted').length;
+      const missingDocs = docs.filter(d => d.status === 'Missing' || d.status === 'Not Submitted').length;
+
+      let uploadLinkStatus = 'Not Generated';
+      if (p.uploadToken) {
+        if (p.uploadToken.revoked) uploadLinkStatus = 'Revoked';
+        else if (p.uploadToken.isUsed) uploadLinkStatus = `Submitted & Expired (${new Date(p.uploadToken.usedAt || '').toLocaleDateString()})`;
+        else if (new Date() > new Date(p.uploadToken.expiresAt)) uploadLinkStatus = 'Expired';
+        else uploadLinkStatus = 'Active - Pending Candidate Upload';
+      }
+
+      return {
+        'Full Name': p.fullName,
+        'Person Classification': p.isCandidate ? 'Candidate / Upcoming Joiner' : 'Active Employee',
+        'Employee / Candidate Code': p.employeeCode || '',
+        'Employment Status': p.employmentStatus || '',
+        'Candidate Onboarding Status': p.isCandidate ? (p.candidateStatus || 'Offer Accepted') : '',
+        'Department': p.department || '',
+        'Designation': p.designation || '',
+        'Reporting Manager': p.reportingManager || '',
+        'Designated Desk': p.desk || '',
+        'Spreadsheet Seat Notation': p.sourceSpreadsheetSeat || '',
+        'Official Email': p.email || '',
+        'Contact Phone': p.phone || '',
+        'Alternate Phone': p.alternatePhone || '',
+        'Date of Birth': p.dateOfBirth || '',
+        'Gender': p.gender || '',
+        'Nationality': p.nationality || '',
+        'Current Residential Address': p.currentAddress || '',
+        'Permanent Address': p.permanentAddress || '',
+        'Emergency Contact Name': p.emergencyContact?.name || '',
+        'Emergency Contact Relation': p.emergencyContact?.relation || '',
+        'Emergency Contact Phone': p.emergencyContact?.phone || '',
+        'Joining Date': p.joiningDate || '',
+        'Internship Completion Date': p.internshipCompletionDate || '',
+        'Market Operational Focus': p.market || '',
+        'Previous Company': p.previousCompany || '',
+        'Previous Designation': p.previousDesignation || '',
+        'Previous CTC': isViewer ? '••••••••' : (p.previousCTC || ''),
+        'Current Offered CTC': isViewer ? '••••••••' : (p.offeredCTC || ''),
+        'Total Experience (Years)': p.totalExperienceYears !== undefined ? p.totalExperienceYears : '',
+        'Total Experience (Months)': p.totalExperienceMonths !== undefined ? p.totalExperienceMonths : '',
+        'Gurgaon Market Experience': p.gurgaonMarketExperience || '',
+        'Dubai Market Experience': p.dubaiMarketExperience || '',
+        'Highest Qualification': p.education && p.education[0] ? p.education[0].degree : '',
+        'Education Institution': p.education && p.education[0] ? p.education[0].institution : '',
+        'Aadhaar Number': isViewer ? '••••••••••••' : (p.identityDetails?.aadhaarNo || ''),
+        'PAN Card Number': isViewer ? '••••••••••' : (p.identityDetails?.panNo || ''),
+        'Bank Name': p.bankDetails?.bankName || '',
+        'Bank Account Number': isViewer ? '••••••••••••' : (p.bankDetails?.accountNo || ''),
+        'Bank IFSC Code': p.bankDetails?.ifscCode || '',
+        'Google Drive Archive Link': isViewer ? '' : (p.googleDriveLink || ''),
+        'Active Issued Assets Count': assignedAssets.length,
+        'Active Assets Assigned': activeAssetList || '',
+        'Total Documents Required': docs.filter(d => d.required).length,
+        'Verified Documents Count': verifiedDocs,
+        'Submitted Documents Count': submittedDocs,
+        'Missing / Pending Documents Count': missingDocs,
+        'Aadhaar Card Status': p.documents?.aadhaar_card?.status || '',
+        'PAN Card Status': p.documents?.pan_card?.status || '',
+        '10th Marksheet Status': p.documents?.edu_10th?.status || '',
+        '12th Marksheet Status': p.documents?.edu_12th?.status || '',
+        'Graduation Marksheet Status': p.documents?.edu_graduation?.status || '',
+        'Previous Relieving Letter Status': p.documents?.prev_relieving?.status || '',
+        'Salary Slips Status': p.documents?.salary_slips?.status || '',
+        'Passport Status': p.documents?.passport?.status || '',
+        'One-Time Upload Link Status': uploadLinkStatus,
+        'Profile Completion %': p.profileCompletion || 0,
+        'Record Created At': p.createdAt || '',
+        'Last Updated At': p.updatedAt || '',
+      };
+    });
   }
 
   // --- Desk Management ---

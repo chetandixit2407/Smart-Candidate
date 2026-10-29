@@ -9,8 +9,13 @@ import {
   Armchair,
   FileCheck,
   UserCheck,
+  Share2,
+  ExternalLink,
+  Copy,
+  Check,
+  KeyRound,
 } from 'lucide-react';
-import { Employee, UserRole } from '../types/index.js';
+import { Employee, UserRole, UploadToken } from '../types/index.js';
 
 interface CandidatesViewProps {
   candidates: Employee[];
@@ -18,6 +23,8 @@ interface CandidatesViewProps {
   onOpenAddModal: () => void;
   onConvertCandidate: (id: string, params: { employeeCode?: string; joiningDate?: string; desk?: string }) => Promise<void>;
   userRole: UserRole;
+  onGenerateUploadLink?: (candidateId: string) => Promise<{ success: boolean; token: UploadToken; message: string }>;
+  onOpenCandidatePortal?: (token: string) => void;
 }
 
 export const CandidatesView: React.FC<CandidatesViewProps> = ({
@@ -26,6 +33,8 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
   onOpenAddModal,
   onConvertCandidate,
   userRole,
+  onGenerateUploadLink,
+  onOpenCandidatePortal,
 }) => {
   const [convertingCand, setConvertingCand] = useState<Employee | null>(null);
   const [assignedCode, setAssignedCode] = useState('');
@@ -33,6 +42,8 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
   const [confirmedDoj, setConfirmedDoj] = useState('');
   const [converting, setConverting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const [copiedTokenCandId, setCopiedTokenCandId] = useState<string | null>(null);
 
   const openConvertModal = (e: React.MouseEvent, cand: Employee) => {
     e.stopPropagation();
@@ -178,6 +189,28 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                 </span>
 
                 <div className="flex items-center gap-2">
+                  {cand.uploadToken && !cand.uploadToken.isUsed && !cand.uploadToken.isRevoked ? (
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        const url = `${window.location.origin}/?uploadToken=${cand.uploadToken?.token}`;
+                        navigator.clipboard.writeText(url);
+                        setCopiedTokenCandId(cand.id);
+                        setTimeout(() => setCopiedTokenCandId(null), 2000);
+                      }}
+                      className="px-2.5 py-1 text-xs text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-medium flex items-center gap-1 transition-colors"
+                      title="Copy one-time candidate document upload URL"
+                    >
+                      {copiedTokenCandId === cand.id ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 text-amber-700" />
+                      )}
+                      <span>{copiedTokenCandId === cand.id ? 'Copied' : 'Upload Link'}</span>
+                    </button>
+                  ) : null}
+
                   <button
                     onClick={() => onSelectCandidate(cand)}
                     className="px-3 py-1 text-xs text-slate-700 hover:text-slate-900 border border-slate-200 rounded hover:bg-slate-50 font-medium"

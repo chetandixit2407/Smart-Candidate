@@ -1,16 +1,17 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as XLSX from 'xlsx';
-import { db } from './server/database.js';
-import { UserRole, Employee, CompanyAsset } from './src/types/index.js';
-import { ALL_DESK_CODES, mapSpreadsheetSeatToStandardDesk } from './server/seedData.js';
+import { db } from './server/database.ts';
+import type { UserRole, Employee, CompanyAsset } from './src/types/index.ts';
+import { ALL_DESK_CODES, mapSpreadsheetSeatToStandardDesk } from './server/seedData.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -196,7 +197,7 @@ app.put('/api/employees/:id/documents/:docKey', (req: Request, res: Response) =>
     return;
   }
 
-  const { status, reviewNotes, verifiedBy, fileName, fileSize } = req.body;
+  const { status, reviewNotes, verifiedBy, fileName, fileSize, fileData, mimeType } = req.body;
   if (!status) {
     res.status(400).json({ error: 'Document status is required' });
     return;
@@ -205,7 +206,7 @@ app.put('/api/employees/:id/documents/:docKey', (req: Request, res: Response) =>
   const updated = db.updateDocument(
     req.params.id,
     req.params.docKey,
-    { status, reviewNotes, verifiedBy, fileName, fileSize },
+    { status, reviewNotes, verifiedBy, fileName, fileSize, fileData, mimeType },
     actor,
     role
   );
@@ -215,6 +216,100 @@ app.put('/api/employees/:id/documents/:docKey', (req: Request, res: Response) =>
     return;
   }
   res.json(updated);
+});
+
+// Direct file upload for document
+app.post('/api/employees/:id/documents/:docKey/upload', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot upload documents.' });
+    return;
+  }
+
+  const { fileData, fileName, fileSize, mimeType, status, reviewNotes } = req.body;
+  if (!fileData) {
+    res.status(400).json({ error: 'fileData is required' });
+    return;
+  }
+
+  const updated = db.updateDocument(
+    req.params.id,
+    req.params.docKey,
+    {
+      status: status || 'Submitted',
+      reviewNotes,
+      fileName: fileName || 'Document.pdf',
+      fileSize: fileSize || '1.0 MB',
+      fileData,
+      mimeType: mimeType || 'application/pdf',
+    },
+    actor,
+    role
+  );
+
+  if (!updated) {
+    res.status(404).json({ error: 'Employee not found' });
+    return;
+  }
+  res.json(updated);
+});
+
+// Candidate one-time upload link management
+app.post('/api/candidates/:id/upload-link/generate', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot generate upload links.' });
+    return;
+  }
+
+  const result = db.generateUploadToken(req.params.id, actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.post('/api/candidates/:id/upload-link/revoke', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot revoke upload links.' });
+    return;
+  }
+
+  const result = db.revokeUploadToken(req.params.id, actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+// Public Candidate Document Upload Portal endpoints (no auth required)
+app.get('/api/public/upload-portal/:token', (req: Request, res: Response) => {
+  const token = req.params.token;
+  const result = db.getPublicCandidateByToken(token);
+  if (!result.valid) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json(result);
+});
+
+app.post('/api/public/upload-portal/:token/submit', (req: Request, res: Response) => {
+  const token = req.params.token;
+  const { documents } = req.body;
+  if (!documents || typeof documents !== 'object') {
+    res.status(400).json({ error: 'No documents provided for submission.' });
+    return;
+  }
+
+  const result = db.submitCandidateUpload(token, documents);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
 });
 
 // --------------------------------------------------------------------------
@@ -653,8 +748,32 @@ app.get('/api/export/backup', (req: Request, res: Response) => {
   res.send(JSON.stringify(rawData, null, 2));
 });
 
+// Requirement 5: Single-sheet Excel export (1 row per person, sorted alphabetically)
+app.get('/api/export/excel/single-sheet', (req: Request, res: Response) => {
+  const { role } = getAuthContext(req);
+  const data = db.generateSingleSheetExportData(role);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb, ws, 'Master Personnel Directory');
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename=WhiteCollarRealty_Master_Directory_SingleSheet_${Date.now()}.xlsx`);
+  res.send(buf);
+});
+
 app.get('/api/export/excel', (req: Request, res: Response) => {
   const { role } = getAuthContext(req);
+  if (req.query.format === 'single' || req.query.format === 'single-sheet') {
+    const data = db.generateSingleSheetExportData(role);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, 'Master Personnel Directory');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=WhiteCollarRealty_Master_Directory_SingleSheet_${Date.now()}.xlsx`);
+    res.send(buf);
+    return;
+  }
   const employees = db.getEmployees(role);
   const activeEmployees = employees.filter(e => !e.isCandidate);
   const candidates = employees.filter(e => e.isCandidate);
@@ -778,8 +897,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, () => {
-    console.log(`[SERVER] White Collar Realty HR System running at http://localhost:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[SERVER] White Collar Realty HR System running at http://0.0.0.0:${PORT}`);
   });
 }
 

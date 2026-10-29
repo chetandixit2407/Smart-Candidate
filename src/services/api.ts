@@ -8,6 +8,7 @@ import {
   ImportPreviewRow,
   ImportSummary,
   AlertItem,
+  UploadToken,
 } from '../types/index.js';
 
 class ApiService {
@@ -370,6 +371,70 @@ class ApiService {
       throw new Error(err.error || 'Failed to reset dismissed alerts');
     }
     return res.json();
+  }
+
+  // --- One-Time Upload Link ---
+  public async generateUploadLink(candidateId: string): Promise<{ success: boolean; token: UploadToken; message: string }> {
+    const res = await fetch(`/api/candidates/${candidateId}/upload-link/generate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to generate upload link');
+    return data;
+  }
+
+  public async revokeUploadLink(candidateId: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`/api/candidates/${candidateId}/upload-link/revoke`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to revoke upload link');
+    return data;
+  }
+
+  public async getPublicCandidateByToken(token: string): Promise<{ valid: boolean; error?: string; candidate?: any }> {
+    const res = await fetch(`/api/public/upload-portal/${token}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load candidate portal');
+    return data;
+  }
+
+  public async submitCandidateUpload(
+    token: string,
+    documents: Record<string, { fileName: string; fileSize?: string; fileData: string; mimeType: string; reviewNotes?: string }>
+  ): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`/api/public/upload-portal/${token}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documents }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to submit candidate documents');
+    return data;
+  }
+
+  public async uploadDocumentFile(
+    employeeId: string,
+    docKey: string,
+    payload: {
+      fileData: string;
+      fileName: string;
+      fileSize?: string;
+      mimeType?: string;
+      status?: DocumentStatus;
+      reviewNotes?: string;
+    }
+  ): Promise<Employee> {
+    const res = await fetch(`/api/employees/${employeeId}/documents/${docKey}/upload`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to upload document file');
+    return data;
   }
 
   // --- Reset Database ---

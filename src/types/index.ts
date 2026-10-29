@@ -48,6 +48,23 @@ export interface DocumentRecord {
   reviewNotes?: string;
   required: boolean;
   driveLink?: string;
+  fileData?: string; // base64 or public url for immediate preview
+  mimeType?: string; // e.g. application/pdf, image/png, etc.
+}
+
+export interface UploadToken {
+  token: string;
+  employeeId: string;
+  candidateName: string;
+  candidateEmail: string;
+  createdAt: string;
+  expiresAt: string;
+  isUsed: boolean;
+  usedAt?: string;
+  revoked: boolean;
+  isRevoked?: boolean;
+  revokedAt?: string;
+  submissionCount?: number;
 }
 
 export interface FamilyMember {
@@ -158,6 +175,7 @@ export interface Employee {
   
   profileCompletion: number; // 0-100%
   notes?: string;
+  uploadToken?: UploadToken | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -273,3 +291,14 @@ export interface AlertItem {
   dismissedAt?: string;
   profileCompletion?: number;
 }
+
+export const ALL_DESK_CODES: string[] = [
+  'A1', 'A2', 'A3', 'A4', 'A5',
+  'B1', 'B2', 'B3', 'B4', 'B5',
+  'C1', 'C2', 'C3',
+  'D1', 'D2', 'D3', 'D4',
+  'E1', 'E2', 'E3', 'E4', 'E5',
+  'F1', 'F2', 'F3', 'F4', 'F5',
+  'G1', 'G2', 'G3', 'G4', 'G5',
+  'H1', 'H2', 'H3', 'H4', 'H5',
+];

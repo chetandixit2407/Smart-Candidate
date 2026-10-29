@@ -11,8 +11,8 @@ import {
   Building2,
   X,
 } from 'lucide-react';
-import { DeskSlot, Employee, UserRole } from '../types/index.js';
-import { ALL_DESK_CODES } from '../../server/seedData.js';
+import { DeskSlot, Employee, UserRole, ALL_DESK_CODES } from '../types/index.js';
+import { ConfirmDialog } from './ConfirmDialog.js';
 
 interface DeskAllocationViewProps {
   desks: DeskSlot[];
@@ -37,6 +37,8 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
   const [selectedPersonId, setSelectedPersonId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [releaseTarget, setReleaseTarget] = useState<string | null>(null);
+  const [releaseLoading, setReleaseLoading] = useState(false);
 
   const isViewer = userRole === 'DEPT_HEAD_VIEWER';
 
@@ -80,17 +82,9 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
     }
   };
 
-  const handleRelease = async (deskCode: string) => {
+  const handleRelease = (deskCode: string) => {
     if (isViewer) return;
-    if (confirm(`Are you sure you want to release Desk ${deskCode}?`)) {
-      try {
-        await onReleaseDesk(deskCode);
-        setActionMsg({ type: 'success', text: `Desk ${deskCode} is now available.` });
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Failed to release desk';
-        setActionMsg({ type: 'error', text: msg });
-      }
-    }
+    setReleaseTarget(deskCode);
   };
 
   return (
@@ -409,6 +403,31 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Confirm Desk Release Modal */}
+      <ConfirmDialog
+        isOpen={!!releaseTarget}
+        title="Release Desk Allocation"
+        message={`Are you sure you want to release Desk ${releaseTarget}? The current occupant will be set to unassigned desk status.`}
+        confirmLabel="Release Desk"
+        isDestructive={true}
+        loading={releaseLoading}
+        onCancel={() => setReleaseTarget(null)}
+        onConfirm={async () => {
+          if (!releaseTarget) return;
+          try {
+            setReleaseLoading(true);
+            await onReleaseDesk(releaseTarget);
+            setActionMsg({ type: 'success', text: `Desk ${releaseTarget} is now available.` });
+            setReleaseTarget(null);
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Failed to release desk';
+            setActionMsg({ type: 'error', text: msg });
+          } finally {
+            setReleaseLoading(false);
+          }
+        }}
+      />
     </div>
   );
 };

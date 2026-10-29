@@ -14,6 +14,7 @@ import {
   Armchair,
 } from 'lucide-react';
 import { Employee, UserRole } from '../types/index.js';
+import { ConfirmDialog } from './ConfirmDialog.js';
 
 interface EmployeesViewProps {
   employees: Employee[];
@@ -96,11 +97,12 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent, emp: Employee) => {
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDelete = (e: React.MouseEvent, emp: Employee) => {
     e.stopPropagation();
-    if (confirm(`Are you sure you want to delete employee record for ${emp.fullName} (${emp.employeeCode})?`)) {
-      await onDeleteEmployee(emp.id);
-    }
+    setDeleteTarget(emp);
   };
 
   return (
@@ -440,6 +442,26 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title="Delete Employee Record"
+        message={`Are you sure you want to permanently delete the employee record for ${deleteTarget?.fullName} (${deleteTarget?.employeeCode})? This action will release any assigned desk and log an audit trail.`}
+        confirmLabel="Delete Record"
+        isDestructive={true}
+        loading={deleteLoading}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          try {
+            setDeleteLoading(true);
+            await onDeleteEmployee(deleteTarget.id);
+            setDeleteTarget(null);
+          } finally {
+            setDeleteLoading(false);
+          }
+        }}
+      />
     </div>
   );
 };

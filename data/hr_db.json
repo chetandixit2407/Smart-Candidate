@@ -2360,8 +2360,13 @@
           "key": "aadhaar_card",
           "title": "Aadhaar Card / National ID",
           "category": "Identity",
-          "status": "Missing",
-          "required": true
+          "status": "Submitted",
+          "required": true,
+          "fileName": "Vikram_Aadhaar.pdf",
+          "fileSize": "1.4 MB",
+          "fileData": "data:application/pdf;base64,JVBERi0xLjQK",
+          "mimeType": "application/pdf",
+          "uploadedAt": "2026-10-29T08:35:46.588Z"
         },
         "pan_card": {
           "key": "pan_card",
@@ -2441,10 +2446,22 @@
           "required": false
         }
       },
-      "profileCompletion": 76,
+      "profileCompletion": 87,
       "notes": "Offer letter signed. Relieving letter expected by Nov 10.",
       "createdAt": "2026-10-20T10:00:00Z",
-      "updatedAt": "2026-10-27T09:30:00Z"
+      "updatedAt": "2026-10-29T08:35:46.588Z",
+      "uploadToken": {
+        "token": "wcr-upl-n9niq89s-mvtag59o",
+        "employeeId": "cand-vikram-malhotra",
+        "candidateName": "Vikram Malhotra",
+        "candidateEmail": "vikram.m.candidate@gmail.com",
+        "createdAt": "2026-10-29T08:35:31.116Z",
+        "expiresAt": "2026-11-05T08:35:31.116Z",
+        "isUsed": true,
+        "revoked": false,
+        "submissionCount": 1,
+        "usedAt": "2026-10-29T08:35:46.588Z"
+      }
     },
     {
       "id": "cand-aanya-kapoor",
@@ -3246,6 +3263,28 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1793262946589-fikiq",
+      "timestamp": "2026-10-29T08:35:46.589Z",
+      "actor": "Candidate Portal",
+      "actorRole": "HR_MANAGER",
+      "action": "Candidate Documents Uploaded via One-Time Link",
+      "entityType": "Candidate",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Submitted 1 documents via secure one-time upload link. Link is now closed."
+    },
+    {
+      "id": "log-1793262931123-jigvu",
+      "timestamp": "2026-10-29T08:35:31.123Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "One-Time Upload Link Generated",
+      "entityType": "Candidate",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated unique document submission link (expires 11/5/2026)."
+    },
+    {
       "id": "log-001",
       "timestamp": "2026-10-28T16:00:00Z",
       "actor": "Nisha (HR)",
@@ -3292,5 +3331,5 @@
   ],
   "acknowledgedAlerts": {},
   "version": 3,
-  "lastUpdated": "2026-10-29T07:43:37.984Z"
+  "lastUpdated": "2026-10-29T08:35:46.589Z"
 }

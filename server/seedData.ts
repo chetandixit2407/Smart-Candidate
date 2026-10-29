@@ -1,4 +1,4 @@
-import { Employee, CompanyAsset, DeskSlot, AuditLog, DocumentRecord } from '../src/types/index.js';
+import type { Employee, CompanyAsset, DeskSlot, AuditLog, DocumentRecord } from '../src/types/index.ts';
 
 export const ALL_DESK_CODES = [
   'A1', 'A2', 'A3', 'A4', 'A5',

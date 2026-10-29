@@ -31,6 +31,9 @@ import {
   Wifi,
   Laptop,
   Check,
+  Copy,
+  Share2,
+  Trash2,
 } from 'lucide-react';
 import {
   Employee,
@@ -40,7 +43,10 @@ import {
   DocumentRecord,
   AssetCategory,
   AssetCondition,
+  ALL_DESK_CODES,
+  UploadToken,
 } from '../types/index.js';
+import { LiveDocumentViewerModal } from './LiveDocumentViewerModal.js';
 
 interface ProfileModalProps {
   employee: Employee;
@@ -55,6 +61,10 @@ interface ProfileModalProps {
   onCreateAndIssueAsset?: (assetData: Partial<CompanyAsset>) => Promise<void>;
   onReturnAsset?: (assetId: string, returnDate: string, condition: AssetCondition, notes: string) => Promise<void>;
   onUpdateAsset?: (assetId: string, updates: Partial<CompanyAsset>) => Promise<void>;
+  onUploadDocumentFile?: (employeeId: string, docKey: string, fileData: string, fileName: string, fileSize: string, mimeType: string) => Promise<void>;
+  onGenerateUploadLink?: (candidateId: string) => Promise<{ success: boolean; token: UploadToken; message: string }>;
+  onRevokeUploadLink?: (candidateId: string) => Promise<{ success: boolean; message: string }>;
+  onOpenCandidatePortal?: (token: string) => void;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -70,6 +80,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onCreateAndIssueAsset,
   onReturnAsset,
   onUpdateAsset,
+  onUploadDocumentFile,
+  onGenerateUploadLink,
+  onRevokeUploadLink,
+  onOpenCandidatePortal,
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'family' | 'experience' | 'education' | 'references' | 'documents' | 'assets'>('profile');
   const [isEditing, setIsEditing] = useState(false);
@@ -77,8 +91,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [tokenLoading, setTokenLoading] = useState(false);
 
-  // Selected document for reviewer notes update
+  React.useEffect(() => {
+    setFormData({ ...employee });
+  }, [employee]);
+
+  // Selected document for reviewer notes update or live viewer
   const [selectedDocKey, setSelectedDocKey] = useState<string | null>(null);
   const [docNotesInput, setDocNotesInput] = useState('');
   const [previewDoc, setPreviewDoc] = useState<DocumentRecord | null>(null);
@@ -325,7 +345,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           {/* TAB 1: BASIC INFO */}
           {activeTab === 'profile' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label className="text-xs font-medium text-slate-500">Full Name</label>
                   {isEditing ? (
@@ -337,6 +357,22 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     />
                   ) : (
                     <p className="text-xs font-semibold text-slate-900 mt-1">{employee.fullName}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Employee / Candidate Code</label>
+                  {isEditing && !isViewer ? (
+                    <input
+                      type="text"
+                      value={formData.employeeCode || ''}
+                      onChange={e => setFormData({ ...formData, employeeCode: e.target.value })}
+                      className="mt-1 w-full px-3 py-1.5 text-xs font-mono font-bold border border-slate-300 rounded focus:ring-1 focus:ring-slate-900"
+                    />
+                  ) : (
+                    <p className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 mt-1 inline-block">
+                      {employee.employeeCode}
+                    </p>
                   )}
                 </div>
 
@@ -370,6 +406,23 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     <p className="text-xs font-mono text-slate-800 mt-1 flex items-center gap-1.5">
                       <Phone className="w-3.5 h-3.5 text-slate-400" />
                       {employee.phone || '—'}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Alternate Contact Phone</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      placeholder="Optional alternate"
+                      value={formData.alternatePhone || ''}
+                      onChange={e => setFormData({ ...formData, alternatePhone: e.target.value })}
+                      className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
+                    />
+                  ) : (
+                    <p className="text-xs font-mono text-slate-800 mt-1">
+                      {employee.alternatePhone || '—'}
                     </p>
                   )}
                 </div>
@@ -498,9 +551,24 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
                   <div>
                     <label className="text-xs font-medium text-slate-500">Assigned Desk</label>
-                    <p className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 mt-1 inline-block">
-                      {employee.desk || 'Not Assigned (Visit Desk View)'}
-                    </p>
+                    {isEditing && !isViewer ? (
+                      <select
+                        value={formData.desk || ''}
+                        onChange={e => setFormData({ ...formData, desk: e.target.value })}
+                        className="mt-1 w-full px-3 py-1.5 text-xs font-mono font-bold border border-slate-300 rounded bg-white text-slate-900"
+                      >
+                        <option value="">— Unassigned (No Desk) —</option>
+                        {ALL_DESK_CODES.map(code => (
+                          <option key={code} value={code}>
+                            Desk {code}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 mt-1 inline-block">
+                        {employee.desk || 'Not Assigned'}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -619,60 +687,132 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <span className="text-[11px] text-slate-500 block">Aadhaar Number</span>
-                    <p className="text-xs font-mono font-semibold text-slate-900 mt-1">
-                      {isViewer ? '•••• •••• ••••' : employee.identityDetails?.aadhaarNo || '—'}
-                    </p>
+                    {isEditing && !isViewer ? (
+                      <input
+                        type="text"
+                        placeholder="12-digit Aadhaar"
+                        value={formData.identityDetails?.aadhaarNo || ''}
+                        onChange={e => setFormData({
+                          ...formData,
+                          identityDetails: { ...(formData.identityDetails || {}), aadhaarNo: e.target.value }
+                        })}
+                        className="mt-1 w-full px-2 py-1 text-xs font-mono border border-slate-300 rounded"
+                      />
+                    ) : (
+                      <p className="text-xs font-mono font-semibold text-slate-900 mt-1">
+                        {isViewer ? '•••• •••• ••••' : employee.identityDetails?.aadhaarNo || '—'}
+                      </p>
+                    )}
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <span className="text-[11px] text-slate-500 block">PAN Card Number</span>
-                    <p className="text-xs font-mono font-semibold text-slate-900 mt-1">
-                      {isViewer ? '••••••••••' : employee.identityDetails?.panNo || '—'}
-                    </p>
+                    {isEditing && !isViewer ? (
+                      <input
+                        type="text"
+                        placeholder="10-char PAN"
+                        value={formData.identityDetails?.panNo || ''}
+                        onChange={e => setFormData({
+                          ...formData,
+                          identityDetails: { ...(formData.identityDetails || {}), panNo: e.target.value.toUpperCase() }
+                        })}
+                        className="mt-1 w-full px-2 py-1 text-xs font-mono border border-slate-300 rounded uppercase"
+                      />
+                    ) : (
+                      <p className="text-xs font-mono font-semibold text-slate-900 mt-1">
+                        {isViewer ? '••••••••••' : employee.identityDetails?.panNo || '—'}
+                      </p>
+                    )}
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <span className="text-[11px] text-slate-500 block">Bank Account Number</span>
-                    <p className="text-xs font-mono font-semibold text-slate-900 mt-1">
-                      {isViewer ? '••••••••••••' : employee.bankDetails?.accountNo || '—'}
-                    </p>
+                    {isEditing && !isViewer ? (
+                      <input
+                        type="text"
+                        placeholder="Account No"
+                        value={formData.bankDetails?.accountNo || ''}
+                        onChange={e => setFormData({
+                          ...formData,
+                          bankDetails: { ...(formData.bankDetails || {}), accountNo: e.target.value }
+                        })}
+                        className="mt-1 w-full px-2 py-1 text-xs font-mono border border-slate-300 rounded"
+                      />
+                    ) : (
+                      <p className="text-xs font-mono font-semibold text-slate-900 mt-1">
+                        {isViewer ? '••••••••••••' : employee.bankDetails?.accountNo || '—'}
+                      </p>
+                    )}
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <span className="text-[11px] text-slate-500 block">Bank & IFSC Code</span>
-                    <p className="text-xs font-mono font-medium text-slate-900 mt-1 truncate">
-                      {employee.bankDetails?.bankName || '—'} {employee.bankDetails?.ifscCode ? `(${employee.bankDetails.ifscCode})` : ''}
-                    </p>
+                    {isEditing && !isViewer ? (
+                      <div className="flex gap-1.5 mt-1">
+                        <input
+                          type="text"
+                          placeholder="Bank Name"
+                          value={formData.bankDetails?.bankName || ''}
+                          onChange={e => setFormData({
+                            ...formData,
+                            bankDetails: { ...(formData.bankDetails || {}), bankName: e.target.value }
+                          })}
+                          className="w-1/2 px-2 py-1 text-xs border border-slate-300 rounded"
+                        />
+                        <input
+                          type="text"
+                          placeholder="IFSC"
+                          value={formData.bankDetails?.ifscCode || ''}
+                          onChange={e => setFormData({
+                            ...formData,
+                            bankDetails: { ...(formData.bankDetails || {}), ifscCode: e.target.value.toUpperCase() }
+                          })}
+                          className="w-1/2 px-2 py-1 text-xs font-mono border border-slate-300 rounded uppercase"
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-xs font-mono font-medium text-slate-900 mt-1 truncate">
+                        {employee.bankDetails?.bankName || '—'} {employee.bankDetails?.ifscCode ? `(${employee.bankDetails.ifscCode})` : ''}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* Google Drive Archive Link */}
-                {employee.googleDriveLink && (
-                  <div className="mt-3 p-3 bg-blue-50/60 rounded-lg border border-blue-200 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">📁</span>
-                      <div>
-                        <p className="text-xs font-semibold text-blue-900">Google Drive Document Archive Folder</p>
-                        <p className="text-[11px] text-blue-700 truncate max-w-lg">
-                          Shared folder containing all submitted marksheets, ID scans, and photographs.
-                        </p>
-                      </div>
+                <div className="mt-3 p-3 bg-blue-50/60 rounded-lg border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📁</span>
+                    <div>
+                      <p className="text-xs font-semibold text-blue-900">Google Drive Document Archive Folder</p>
+                      <p className="text-[11px] text-blue-700 truncate max-w-lg">
+                        Shared folder containing submitted marksheets, ID scans, and photographs.
+                      </p>
                     </div>
-                    {isViewer ? (
-                      <span className="text-xs text-slate-400 font-mono">Restricted</span>
-                    ) : (
-                      <a
-                        href={employee.googleDriveLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-1 shrink-0"
-                      >
-                        Open Drive Folder
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
                   </div>
-                )}
+                  {isEditing && !isViewer ? (
+                    <input
+                      type="url"
+                      placeholder="https://drive.google.com/drive/folders/..."
+                      value={formData.googleDriveLink || ''}
+                      onChange={e => setFormData({ ...formData, googleDriveLink: e.target.value })}
+                      className="px-3 py-1 bg-white text-xs border border-blue-300 rounded w-full sm:w-72"
+                    />
+                  ) : isViewer ? (
+                    <span className="text-xs text-slate-400 font-mono">Restricted</span>
+                  ) : employee.googleDriveLink ? (
+                    <a
+                      href={employee.googleDriveLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-1 shrink-0"
+                    >
+                      Open Drive Folder
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">No Drive folder linked</span>
+                  )}
+                </div>
               </div>
 
               {/* Onboarding Aspirations (From Chetan Information Sheet) */}
@@ -730,32 +870,89 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-xs text-slate-500">Contact Person Name</label>
-                    <p className="text-xs font-semibold text-slate-900 mt-0.5">
-                      {employee.emergencyContact?.name || '—'}
-                    </p>
+                    <label className="text-xs font-medium text-slate-500">Contact Person Name</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={formData.emergencyContact?.name || ''}
+                        onChange={e => setFormData({
+                          ...formData,
+                          emergencyContact: { ...(formData.emergencyContact || { relation: '', phone: '' }), name: e.target.value }
+                        })}
+                        className="mt-1 w-full px-2 py-1 text-xs border border-slate-300 rounded"
+                      />
+                    ) : (
+                      <p className="text-xs font-semibold text-slate-900 mt-0.5">
+                        {employee.emergencyContact?.name || '—'}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className="text-xs text-slate-500">Relationship</label>
-                    <p className="text-xs font-medium text-slate-800 mt-0.5">
-                      {employee.emergencyContact?.relation || '—'}
-                    </p>
+                    <label className="text-xs font-medium text-slate-500">Relationship</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        placeholder="Father / Spouse / Sibling"
+                        value={formData.emergencyContact?.relation || ''}
+                        onChange={e => setFormData({
+                          ...formData,
+                          emergencyContact: { ...(formData.emergencyContact || { name: '', phone: '' }), relation: e.target.value }
+                        })}
+                        className="mt-1 w-full px-2 py-1 text-xs border border-slate-300 rounded"
+                      />
+                    ) : (
+                      <p className="text-xs font-medium text-slate-800 mt-0.5">
+                        {employee.emergencyContact?.relation || '—'}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className="text-xs text-slate-500">Emergency Phone</label>
-                    <p className="text-xs font-mono font-medium text-slate-800 mt-0.5">
-                      {employee.emergencyContact?.phone || '—'}
-                    </p>
+                    <label className="text-xs font-medium text-slate-500">Emergency Phone</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        placeholder="Phone Number"
+                        value={formData.emergencyContact?.phone || ''}
+                        onChange={e => setFormData({
+                          ...formData,
+                          emergencyContact: { ...(formData.emergencyContact || { name: '', relation: '' }), phone: e.target.value }
+                        })}
+                        className="mt-1 w-full px-2 py-1 text-xs font-mono border border-slate-300 rounded"
+                      />
+                    ) : (
+                      <p className="text-xs font-mono font-medium text-slate-800 mt-0.5">
+                        {isViewer ? '••••••••••' : employee.emergencyContact?.phone || '—'}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Family Members Table */}
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
-                  Family Members & Next of Kin
-                </h3>
-                {employee.familyDetails && employee.familyDetails.length > 0 ? (
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Family Members & Next of Kin
+                  </h3>
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const current = formData.familyDetails || [];
+                        setFormData({
+                          ...formData,
+                          familyDetails: [...current, { relation: 'Parent', name: '', phone: '', occupation: '' }],
+                        });
+                      }}
+                      className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1 shadow-xs"
+                    >
+                      <Plus className="w-3 h-3 text-amber-600" />
+                      Add Family Member
+                    </button>
+                  )}
+                </div>
+
+                {formData.familyDetails && formData.familyDetails.length > 0 ? (
                   <div className="border border-slate-200 rounded-lg overflow-hidden">
                     <table className="w-full text-left text-xs">
                       <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-medium">
@@ -764,17 +961,92 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                           <th className="px-4 py-2.5">Full Name</th>
                           <th className="px-4 py-2.5">Occupation</th>
                           <th className="px-4 py-2.5">Contact Number</th>
+                          {isEditing && <th className="px-4 py-2.5 text-right">Actions</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {employee.familyDetails.map((f, i) => (
+                        {formData.familyDetails.map((f, i) => (
                           <tr key={i} className="hover:bg-slate-50/60">
-                            <td className="px-4 py-2.5 font-medium text-slate-700">{f.relation}</td>
-                            <td className="px-4 py-2.5 font-semibold text-slate-900">{f.name}</td>
-                            <td className="px-4 py-2.5 text-slate-600">{f.occupation || '—'}</td>
-                            <td className="px-4 py-2.5 font-mono text-slate-800">
-                              {isViewer ? '••••••••••' : f.phone}
+                            <td className="px-4 py-2">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={f.relation}
+                                  onChange={e => {
+                                    const next = [...(formData.familyDetails || [])];
+                                    next[i] = { ...next[i], relation: e.target.value };
+                                    setFormData({ ...formData, familyDetails: next });
+                                  }}
+                                  className="w-full px-2 py-1 text-xs border border-slate-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-medium text-slate-700">{f.relation}</span>
+                              )}
                             </td>
+                            <td className="px-4 py-2">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={f.name}
+                                  onChange={e => {
+                                    const next = [...(formData.familyDetails || [])];
+                                    next[i] = { ...next[i], name: e.target.value };
+                                    setFormData({ ...formData, familyDetails: next });
+                                  }}
+                                  className="w-full px-2 py-1 text-xs font-semibold border border-slate-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-semibold text-slate-900">{f.name}</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={f.occupation || ''}
+                                  onChange={e => {
+                                    const next = [...(formData.familyDetails || [])];
+                                    next[i] = { ...next[i], occupation: e.target.value };
+                                    setFormData({ ...formData, familyDetails: next });
+                                  }}
+                                  className="w-full px-2 py-1 text-xs border border-slate-300 rounded"
+                                />
+                              ) : (
+                                <span className="text-slate-600">{f.occupation || '—'}</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={f.phone || ''}
+                                  onChange={e => {
+                                    const next = [...(formData.familyDetails || [])];
+                                    next[i] = { ...next[i], phone: e.target.value };
+                                    setFormData({ ...formData, familyDetails: next });
+                                  }}
+                                  className="w-full px-2 py-1 text-xs font-mono border border-slate-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-mono text-slate-800">
+                                  {isViewer ? '••••••••••' : f.phone}
+                                </span>
+                              )}
+                            </td>
+                            {isEditing && (
+                              <td className="px-4 py-2 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = (formData.familyDetails || []).filter((_, idx) => idx !== i);
+                                    setFormData({ ...formData, familyDetails: next });
+                                  }}
+                                  className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
@@ -782,7 +1054,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   </div>
                 ) : (
                   <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-center text-xs text-slate-500">
-                    No family details recorded yet.
+                    No family details recorded yet. Click &quot;Add Family Member&quot; above to add next of kin.
                   </div>
                 )}
               </div>
@@ -813,9 +1085,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="p-3 bg-slate-800/80 rounded-lg border border-slate-700">
                     <span className="text-[11px] text-slate-400 block">Previous Company Verified CTC</span>
-                    <p className="text-base font-semibold text-slate-100 font-mono mt-1 tabular-nums">
-                      {isViewer ? '🔒 [RESTRICTED]' : employee.previousCTC || '— (Fresh / Not Disclosed)'}
-                    </p>
+                    {isEditing && !isViewer ? (
+                      <input
+                        type="text"
+                        placeholder="e.g. 8.5 LPA"
+                        value={formData.previousCTC || ''}
+                        onChange={e => setFormData({ ...formData, previousCTC: e.target.value })}
+                        className="mt-1 w-full px-3 py-1.5 text-xs font-mono font-semibold bg-slate-900 border border-slate-600 rounded text-slate-100"
+                      />
+                    ) : (
+                      <p className="text-base font-semibold text-slate-100 font-mono mt-1 tabular-nums">
+                        {isViewer ? '🔒 [RESTRICTED]' : employee.previousCTC || '— (Fresh / Not Disclosed)'}
+                      </p>
+                    )}
                     <span className="text-[10px] text-slate-400 mt-1 block">
                       Based on verified salary slips and relieving documentation.
                     </span>
@@ -823,9 +1105,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
                   <div className="p-3 bg-slate-800/80 rounded-lg border border-amber-500/40">
                     <span className="text-[11px] text-amber-300 block">Current Offered CTC (White Collar Realty)</span>
-                    <p className="text-base font-semibold text-amber-300 font-mono mt-1 tabular-nums">
-                      {isViewer ? '🔒 [RESTRICTED]' : employee.offeredCTC || '— (Under Review)'}
-                    </p>
+                    {isEditing && !isViewer ? (
+                      <input
+                        type="text"
+                        placeholder="e.g. 12 LPA"
+                        value={formData.offeredCTC || ''}
+                        onChange={e => setFormData({ ...formData, offeredCTC: e.target.value })}
+                        className="mt-1 w-full px-3 py-1.5 text-xs font-mono font-bold bg-slate-900 border border-amber-400/50 rounded text-amber-300"
+                      />
+                    ) : (
+                      <p className="text-base font-semibold text-amber-300 font-mono mt-1 tabular-nums">
+                        {isViewer ? '🔒 [RESTRICTED]' : employee.offeredCTC || '— (Under Review)'}
+                      </p>
+                    )}
                     <span className="text-[10px] text-slate-400 mt-1 block">
                       Includes fixed remuneration + quarterly brokerage performance incentive.
                     </span>
@@ -841,21 +1133,65 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <span className="text-[11px] text-slate-500 block">Previous Employer / Organization</span>
-                    <p className="text-xs font-semibold text-slate-900 mt-1">
-                      {employee.previousCompany || 'None (First Company)'}
-                    </p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={formData.previousCompany || ''}
+                        onChange={e => setFormData({ ...formData, previousCompany: e.target.value })}
+                        className="mt-1 w-full px-2 py-1 text-xs border border-slate-300 rounded font-semibold text-slate-900"
+                      />
+                    ) : (
+                      <p className="text-xs font-semibold text-slate-900 mt-1">
+                        {employee.previousCompany || 'None (First Company)'}
+                      </p>
+                    )}
                   </div>
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <span className="text-[11px] text-slate-500 block">Previous Designation</span>
-                    <p className="text-xs font-medium text-slate-900 mt-1">
-                      {employee.previousDesignation || '—'}
-                    </p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={formData.previousDesignation || ''}
+                        onChange={e => setFormData({ ...formData, previousDesignation: e.target.value })}
+                        className="mt-1 w-full px-2 py-1 text-xs border border-slate-300 rounded font-medium text-slate-900"
+                      />
+                    ) : (
+                      <p className="text-xs font-medium text-slate-900 mt-1">
+                        {employee.previousDesignation || '—'}
+                      </p>
+                    )}
                   </div>
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <span className="text-[11px] text-slate-500 block">Total Real Estate / Industry Experience</span>
-                    <p className="text-xs font-bold text-slate-900 mt-1 font-mono">
-                      {employee.totalExperienceYears !== undefined ? `${employee.totalExperienceYears} Years ${employee.totalExperienceMonths || 0} Months` : '—'}
-                    </p>
+                    {isEditing ? (
+                      <div className="flex gap-2 mt-1">
+                        <div className="flex items-center gap-1 w-1/2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.totalExperienceYears ?? 0}
+                            onChange={e => setFormData({ ...formData, totalExperienceYears: parseInt(e.target.value, 10) || 0 })}
+                            className="w-full px-2 py-1 text-xs border border-slate-300 rounded font-mono"
+                          />
+                          <span className="text-[11px] text-slate-500">Yrs</span>
+                        </div>
+                        <div className="flex items-center gap-1 w-1/2">
+                          <input
+                            type="number"
+                            min="0"
+                            max="11"
+                            value={formData.totalExperienceMonths ?? 0}
+                            onChange={e => setFormData({ ...formData, totalExperienceMonths: parseInt(e.target.value, 10) || 0 })}
+                            className="w-full px-2 py-1 text-xs border border-slate-300 rounded font-mono"
+                          />
+                          <span className="text-[11px] text-slate-500">Mos</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs font-bold text-slate-900 mt-1 font-mono">
+                        {employee.totalExperienceYears !== undefined ? `${employee.totalExperienceYears} Years ${employee.totalExperienceMonths || 0} Months` : '—'}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -871,9 +1207,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       Gurgaon (NCR) Market Experience
                     </span>
-                    <p className="text-xs text-slate-700 mt-2 leading-relaxed">
-                      {employee.gurgaonMarketExperience || 'No direct Gurgaon brokerage tenure recorded'}
-                    </p>
+                    {isEditing ? (
+                      <textarea
+                        rows={2}
+                        value={formData.gurgaonMarketExperience || ''}
+                        onChange={e => setFormData({ ...formData, gurgaonMarketExperience: e.target.value })}
+                        className="mt-2 w-full p-2 text-xs border border-slate-300 rounded"
+                      />
+                    ) : (
+                      <p className="text-xs text-slate-700 mt-2 leading-relaxed">
+                        {employee.gurgaonMarketExperience || 'No direct Gurgaon brokerage tenure recorded'}
+                      </p>
+                    )}
                   </div>
 
                   <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
@@ -881,9 +1226,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       <span className="w-2 h-2 rounded-full bg-amber-500" />
                       Dubai (UAE) Market Experience
                     </span>
-                    <p className="text-xs text-slate-700 mt-2 leading-relaxed">
-                      {employee.dubaiMarketExperience || 'No international Dubai market exposure recorded'}
-                    </p>
+                    {isEditing ? (
+                      <textarea
+                        rows={2}
+                        value={formData.dubaiMarketExperience || ''}
+                        onChange={e => setFormData({ ...formData, dubaiMarketExperience: e.target.value })}
+                        className="mt-2 w-full p-2 text-xs border border-slate-300 rounded"
+                      />
+                    ) : (
+                      <p className="text-xs text-slate-700 mt-2 leading-relaxed">
+                        {employee.dubaiMarketExperience || 'No international Dubai market exposure recorded'}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -893,10 +1247,41 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           {/* TAB 4: EDUCATION */}
           {activeTab === 'education' && (
             <div className="space-y-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                Educational Qualifications & Academics
-              </h3>
-              {employee.education && employee.education.length > 0 ? (
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Educational Qualifications & Academics
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Degrees, institutions, and percentage records</p>
+                </div>
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = formData.education || [];
+                      setFormData({
+                        ...formData,
+                        education: [
+                          ...current,
+                          {
+                            degree: '',
+                            institution: '',
+                            boardOrUniversity: '',
+                            yearOfPassing: String(new Date().getFullYear()),
+                            gradeOrPercentage: '',
+                          },
+                        ],
+                      });
+                    }}
+                    className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1 shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-amber-600" />
+                    Add Qualification
+                  </button>
+                )}
+              </div>
+
+              {((isEditing ? formData.education : employee.education) || []).length > 0 ? (
                 <div className="border border-slate-200 rounded-lg overflow-hidden">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-medium">
@@ -906,16 +1291,111 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         <th className="px-4 py-2.5">Board / University</th>
                         <th className="px-4 py-2.5">Passing Year</th>
                         <th className="px-4 py-2.5">Grade / Score</th>
+                        {isEditing && <th className="px-4 py-2.5 text-right">Action</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {employee.education.map((edu, idx) => (
+                      {((isEditing ? formData.education : employee.education) || []).map((edu, idx) => (
                         <tr key={idx} className="hover:bg-slate-50/60">
-                          <td className="px-4 py-2.5 font-semibold text-slate-900">{edu.degree}</td>
-                          <td className="px-4 py-2.5 text-slate-700">{edu.institution}</td>
-                          <td className="px-4 py-2.5 text-slate-600">{edu.boardOrUniversity}</td>
-                          <td className="px-4 py-2.5 font-mono text-slate-800">{edu.yearOfPassing}</td>
-                          <td className="px-4 py-2.5 font-mono font-medium text-emerald-700">{edu.gradeOrPercentage}</td>
+                          <td className="px-4 py-2.5">
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                placeholder="e.g. BBA / MBA / B.Tech"
+                                value={edu.degree}
+                                onChange={e => {
+                                  const next = [...(formData.education || [])];
+                                  next[idx] = { ...next[idx], degree: e.target.value };
+                                  setFormData({ ...formData, education: next });
+                                }}
+                                className="w-full px-2 py-1 text-xs font-semibold border border-slate-300 rounded"
+                              />
+                            ) : (
+                              <span className="font-semibold text-slate-900">{edu.degree}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                placeholder="College / School Name"
+                                value={edu.institution}
+                                onChange={e => {
+                                  const next = [...(formData.education || [])];
+                                  next[idx] = { ...next[idx], institution: e.target.value };
+                                  setFormData({ ...formData, education: next });
+                                }}
+                                className="w-full px-2 py-1 text-xs border border-slate-300 rounded"
+                              />
+                            ) : (
+                              <span className="text-slate-700">{edu.institution}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                placeholder="Board or University"
+                                value={edu.boardOrUniversity}
+                                onChange={e => {
+                                  const next = [...(formData.education || [])];
+                                  next[idx] = { ...next[idx], boardOrUniversity: e.target.value };
+                                  setFormData({ ...formData, education: next });
+                                }}
+                                className="w-full px-2 py-1 text-xs border border-slate-300 rounded"
+                              />
+                            ) : (
+                              <span className="text-slate-600">{edu.boardOrUniversity}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                placeholder="YYYY"
+                                value={edu.yearOfPassing}
+                                onChange={e => {
+                                  const next = [...(formData.education || [])];
+                                  next[idx] = { ...next[idx], yearOfPassing: e.target.value };
+                                  setFormData({ ...formData, education: next });
+                                }}
+                                className="w-20 px-2 py-1 text-xs font-mono border border-slate-300 rounded"
+                              />
+                            ) : (
+                              <span className="font-mono text-slate-800">{edu.yearOfPassing}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                placeholder="e.g. 78% or 8.2 CGPA"
+                                value={edu.gradeOrPercentage}
+                                onChange={e => {
+                                  const next = [...(formData.education || [])];
+                                  next[idx] = { ...next[idx], gradeOrPercentage: e.target.value };
+                                  setFormData({ ...formData, education: next });
+                                }}
+                                className="w-24 px-2 py-1 text-xs font-mono font-medium text-emerald-700 border border-slate-300 rounded"
+                              />
+                            ) : (
+                              <span className="font-mono font-medium text-emerald-700">{edu.gradeOrPercentage}</span>
+                            )}
+                          </td>
+                          {isEditing && (
+                            <td className="px-4 py-2.5 text-right">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = (formData.education || []).filter((_, i) => i !== idx);
+                                  setFormData({ ...formData, education: next });
+                                }}
+                                className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -923,7 +1403,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 </div>
               ) : (
                 <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-center text-xs text-slate-500">
-                  No education records registered.
+                  No education records registered. Click &quot;Add Qualification&quot; to insert academics.
                 </div>
               )}
             </div>
@@ -932,34 +1412,169 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           {/* TAB 5: REFERENCES */}
           {activeTab === 'references' && (
             <div className="space-y-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                Personal & Professional References
-              </h3>
-              {employee.references && employee.references.length > 0 ? (
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Personal & Professional References
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Verification contacts for candidate background review</p>
+                </div>
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = formData.references || [];
+                      setFormData({
+                        ...formData,
+                        references: [
+                          ...current,
+                          {
+                            type: 'Professional',
+                            name: '',
+                            relationshipOrTitle: '',
+                            company: '',
+                            phone: '',
+                            email: '',
+                          },
+                        ],
+                      });
+                    }}
+                    className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 flex items-center gap-1 shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-amber-600" />
+                    Add Reference
+                  </button>
+                )}
+              </div>
+
+              {((isEditing ? formData.references : employee.references) || []).length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {employee.references.map((ref, idx) => (
-                    <div key={idx} className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-xs text-slate-900">{ref.name}</span>
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${
-                          ref.type === 'Professional' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {ref.type} Reference
-                        </span>
+                  {((isEditing ? formData.references : employee.references) || []).map((ref, idx) => (
+                    <div key={idx} className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2 relative">
+                      {isEditing && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = (formData.references || []).filter((_, i) => i !== idx);
+                            setFormData({ ...formData, references: next });
+                          }}
+                          className="absolute top-3 right-3 p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      <div className="flex items-center justify-between pr-6">
+                        {isEditing ? (
+                          <div className="flex items-center gap-2 w-full">
+                            <input
+                              type="text"
+                              placeholder="Contact Name"
+                              value={ref.name}
+                              onChange={e => {
+                                const next = [...(formData.references || [])];
+                                next[idx] = { ...next[idx], name: e.target.value };
+                                setFormData({ ...formData, references: next });
+                              }}
+                              className="font-semibold text-xs text-slate-900 px-2 py-1 border border-slate-300 rounded w-1/2"
+                            />
+                            <select
+                              value={ref.type}
+                              onChange={e => {
+                                const next = [...(formData.references || [])];
+                                next[idx] = { ...next[idx], type: e.target.value as 'Professional' | 'Personal' };
+                                setFormData({ ...formData, references: next });
+                              }}
+                              className="text-xs px-2 py-1 border border-slate-300 rounded w-1/2"
+                            >
+                              <option value="Professional">Professional</option>
+                              <option value="Personal">Personal</option>
+                            </select>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="font-semibold text-xs text-slate-900">{ref.name}</span>
+                            <span
+                              className={`text-[10px] font-medium px-2 py-0.5 rounded ${
+                                ref.type === 'Professional' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                              }`}
+                            >
+                              {ref.type} Reference
+                            </span>
+                          </>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-600">
-                        {ref.relationshipOrTitle} {ref.company ? `at ${ref.company}` : ''}
-                      </p>
+
+                      {isEditing ? (
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <input
+                            type="text"
+                            placeholder="Designation / Relation"
+                            value={ref.relationshipOrTitle}
+                            onChange={e => {
+                              const next = [...(formData.references || [])];
+                              next[idx] = { ...next[idx], relationshipOrTitle: e.target.value };
+                              setFormData({ ...formData, references: next });
+                            }}
+                            className="text-xs px-2 py-1 border border-slate-300 rounded"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Company Name"
+                            value={ref.company || ''}
+                            onChange={e => {
+                              const next = [...(formData.references || [])];
+                              next[idx] = { ...next[idx], company: e.target.value };
+                              setFormData({ ...formData, references: next });
+                            }}
+                            className="text-xs px-2 py-1 border border-slate-300 rounded"
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-600">
+                          {ref.relationshipOrTitle} {ref.company ? `at ${ref.company}` : ''}
+                        </p>
+                      )}
+
                       <div className="text-xs font-mono text-slate-800 flex items-center gap-3 pt-1 border-t border-slate-200/60">
-                        <span>📞 {isViewer ? '••••••••••' : ref.phone}</span>
-                        {ref.email && <span>✉️ {ref.email}</span>}
+                        {isEditing ? (
+                          <div className="grid grid-cols-2 gap-2 w-full">
+                            <input
+                              type="text"
+                              placeholder="Phone Number"
+                              value={ref.phone}
+                              onChange={e => {
+                                const next = [...(formData.references || [])];
+                                next[idx] = { ...next[idx], phone: e.target.value };
+                                setFormData({ ...formData, references: next });
+                              }}
+                              className="text-xs px-2 py-1 font-mono border border-slate-300 rounded"
+                            />
+                            <input
+                              type="email"
+                              placeholder="Email Address"
+                              value={ref.email || ''}
+                              onChange={e => {
+                                const next = [...(formData.references || [])];
+                                next[idx] = { ...next[idx], email: e.target.value };
+                                setFormData({ ...formData, references: next });
+                              }}
+                              className="text-xs px-2 py-1 border border-slate-300 rounded"
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <span>📞 {isViewer ? '••••••••••' : ref.phone}</span>
+                            {ref.email && <span>✉️ {ref.email}</span>}
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-center text-xs text-slate-500">
-                  No reference entries provided.
+                  No reference entries provided. Click &quot;Add Reference&quot; to add professional contacts.
                 </div>
               )}
             </div>
@@ -968,13 +1583,151 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           {/* TAB 6: DOCUMENTS & VERIFICATION */}
           {activeTab === 'documents' && (
             <div className="space-y-6">
+              {/* One-Time Candidate Upload Link Section */}
+              {employee.isCandidate && (
+                <div className="p-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl border border-slate-700 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-700">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Share2 className="w-4 h-4 text-amber-400" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                          Candidate One-Time Secure Upload Portal Link
+                        </h4>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1">
+                        Send a secure, single-use tokenized link for candidate self-service document submission. The link expires immediately upon submission.
+                      </p>
+                    </div>
+
+                    {!isViewer && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          disabled={tokenLoading}
+                          onClick={async () => {
+                            if (!onGenerateUploadLink) return;
+                            try {
+                              setTokenLoading(true);
+                              const res = await onGenerateUploadLink(employee.id);
+                              setSuccessMsg(res.message || 'One-time upload link generated.');
+                              setTimeout(() => setSuccessMsg(''), 3000);
+                            } catch (err: unknown) {
+                              const msg = err instanceof Error ? err.message : 'Failed to generate link';
+                              setErrorMsg(msg);
+                            } finally {
+                              setTokenLoading(false);
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors disabled:opacity-50"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                          {employee.uploadToken ? 'Regenerate Link' : 'Generate Secure Link'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {employee.uploadToken ? (
+                    <div className="mt-3.5 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-800/80 p-3 rounded-lg border border-slate-700">
+                        <div className="space-y-1.5 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-slate-400 font-mono">Status:</span>
+                            {employee.uploadToken.isUsed ? (
+                              <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-400/30 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Submitted & Expired (Used)
+                              </span>
+                            ) : employee.uploadToken.isRevoked ? (
+                              <span className="text-[11px] font-semibold text-rose-400 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-400/30 flex items-center gap-1">
+                                <Ban className="w-3 h-3" /> Revoked by HR
+                              </span>
+                            ) : new Date(employee.uploadToken.expiresAt).getTime() < Date.now() ? (
+                              <span className="text-[11px] font-semibold text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-400/30 flex items-center gap-1">
+                                <Clock className="w-3 h-3" /> Expired
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-semibold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-400/30 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Active & Waiting for Candidate
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-xs text-slate-300 font-mono truncate">
+                            <span className="text-slate-400">Token:</span>
+                            <span className="truncate bg-slate-900 px-2 py-0.5 rounded text-amber-300 font-bold">
+                              {employee.uploadToken.token}
+                            </span>
+                            <span className="text-slate-400">· Expires:</span>
+                            <span>{new Date(employee.uploadToken.expiresAt).toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const url = `${window.location.origin}/?uploadToken=${employee.uploadToken?.token}`;
+                              navigator.clipboard.writeText(url);
+                              setCopiedLink(true);
+                              setTimeout(() => setCopiedLink(false), 2500);
+                            }}
+                            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors"
+                          >
+                            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            {copiedLink ? 'Copied!' : 'Copy Portal URL'}
+                          </button>
+
+                          {onOpenCandidatePortal && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenCandidatePortal(employee.uploadToken?.token || '')}
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors"
+                              title="Open upload interface as candidate"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              Open Portal
+                            </button>
+                          )}
+
+                          {!isViewer && !employee.uploadToken.isRevoked && !employee.uploadToken.isUsed && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!onRevokeUploadLink) return;
+                                try {
+                                  await onRevokeUploadLink(employee.id);
+                                  setSuccessMsg('Upload link revoked.');
+                                  setTimeout(() => setSuccessMsg(''), 3000);
+                                } catch (err: unknown) {
+                                  const msg = err instanceof Error ? err.message : 'Failed to revoke link';
+                                  setErrorMsg(msg);
+                                }
+                              }}
+                              className="px-2.5 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/30 rounded-md text-xs font-medium flex items-center gap-1"
+                              title="Immediately revoke this token"
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                              Revoke
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 p-3 bg-slate-800/60 rounded-lg text-xs text-slate-300 flex items-center justify-between">
+                      <span>No active upload link generated for this candidate. Click &quot;Generate Secure Link&quot; above to create one.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Onboarding Verification Checklist
+                    Onboarding Verification Checklist & Documents
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Required document categories matching White Collar Realty HR standards.
+                    Click &quot;Preview Document&quot; to view live PDFs/images, verify items, or upload files directly.
                   </p>
                 </div>
 
@@ -1028,10 +1781,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                               </a>
                             ) : doc.fileName ? (
                               <button
+                                type="button"
                                 onClick={() => setPreviewDoc(doc)}
-                                className="text-blue-600 hover:underline flex items-center gap-1 font-mono"
+                                className="text-blue-600 hover:underline flex items-center gap-1 font-mono font-medium"
                               >
-                                📄 {doc.fileName} ({doc.fileSize || '1.2 MB'})
+                                📄 {doc.fileName} ({doc.fileSize || 'Attached'})
                               </button>
                             ) : (
                               <span className="text-slate-400 italic">No document file attached</span>
@@ -1054,8 +1808,58 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                           )}
                         </div>
 
-                        {/* Status Button Strip & Quick Selector */}
+                        {/* Actions Strip */}
                         <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                          {/* Live Preview Button */}
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDoc(doc)}
+                            className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 flex items-center gap-1 transition-colors"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-blue-600" />
+                            Live Preview
+                          </button>
+
+                          {/* Direct File Upload button for HR */}
+                          {!isViewer && onUploadDocumentFile && (
+                            <label className="px-2.5 py-1 text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 rounded border border-amber-300 flex items-center gap-1 cursor-pointer transition-colors">
+                              <UploadCloud className="w-3.5 h-3.5 text-amber-600" />
+                              Upload
+                              <input
+                                type="file"
+                                accept=".pdf,image/*"
+                                className="hidden"
+                                onChange={e => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const reader = new FileReader();
+                                  reader.onload = async () => {
+                                    try {
+                                      const base64 = reader.result as string;
+                                      const sizeKB = Math.round(file.size / 1024);
+                                      const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
+                                      await onUploadDocumentFile(
+                                        employee.id,
+                                        doc.key,
+                                        base64,
+                                        file.name,
+                                        sizeStr,
+                                        file.type || 'application/pdf'
+                                      );
+                                      setSuccessMsg(`Document ${file.name} uploaded.`);
+                                      setTimeout(() => setSuccessMsg(''), 3000);
+                                    } catch (err: unknown) {
+                                      const msg = err instanceof Error ? err.message : 'Upload failed';
+                                      setErrorMsg(msg);
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                }}
+                              />
+                            </label>
+                          )}
+
+                          {/* Status Selector */}
                           {!isViewer ? (
                             <select
                               value={doc.status}
@@ -1781,6 +2585,31 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Live Interactive Document Viewer Modal */}
+      {previewDoc && (
+        <LiveDocumentViewerModal
+          document={previewDoc}
+          employeeId={employee.id}
+          employeeName={employee.fullName}
+          isOpen={!!previewDoc}
+          onClose={() => setPreviewDoc(null)}
+          onUpdateStatus={async (docKey: string, status: DocumentStatus, notes: string) => {
+            await handleDocStatusChange(docKey, status);
+            setPreviewDoc(prev => (prev ? { ...prev, status, reviewNotes: notes } : null));
+          }}
+          onUploadFile={
+            onUploadDocumentFile
+              ? async (docKey: string, fileData: string, fileName: string, fileSize: string, mimeType: string) => {
+                  await onUploadDocumentFile(employee.id, docKey, fileData, fileName, fileSize, mimeType);
+                  setPreviewDoc(prev => (prev ? { ...prev, fileData, fileName, fileSize, mimeType, status: 'Submitted' } : null));
+                }
+              : undefined
+          }
+          userRole={userRole}
+          currentUserName={currentUserName}
+        />
       )}
     </div>
   );

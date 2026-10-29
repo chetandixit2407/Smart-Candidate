@@ -12,6 +12,8 @@ import { AuditTrailView } from './components/AuditTrailView.js';
 import { ProfileModal } from './components/ProfileModal.js';
 import { AddPersonModal } from './components/AddPersonModal.js';
 import { UpcomingAlertsModal } from './components/UpcomingAlertsModal.js';
+import { CandidateUploadPortal } from './components/CandidateUploadPortal.js';
+import { ConfirmDialog } from './components/ConfirmDialog.js';
 import {
   Employee,
   CompanyAsset,
@@ -21,6 +23,7 @@ import {
   DocumentStatus,
   AssetCondition,
   AlertItem,
+  UploadToken,
 } from './types/index.js';
 
 export default function App() {
@@ -36,6 +39,13 @@ export default function App() {
   const [assets, setAssets] = useState<CompanyAsset[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Candidate Self-Service Upload Portal Mode
+  const [candidatePortalToken, setCandidatePortalToken] = useState<string | null>(null);
+
+  // Reset database confirmation modal
+  const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
+  const [resetLoading, setResetLoading] = useState<boolean>(false);
 
   // 2-Day Advance Alerts State
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -112,6 +122,15 @@ export default function App() {
   }, [referenceDate]);
 
   useEffect(() => {
+    // Check URL query parameters for direct one-time candidate portal access
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('uploadToken');
+    if (token) {
+      setCandidatePortalToken(token);
+    }
+  }, []);
+
+  useEffect(() => {
     refreshAllData();
     refreshAlerts('2026-10-29').then(initialAlerts => {
       // Automatically trigger on-screen popup notification if there are upcoming 2-day alerts
@@ -146,6 +165,13 @@ export default function App() {
         case 'EMPLOYEE_UPDATED':
           setAllEmployees(prev => prev.map(e => (e.id === data.id ? data : e)));
           setSelectedPerson(prev => (prev?.id === data.id ? data : prev));
+          api.getStats().then(setStats);
+          break;
+
+        case 'UPLOAD_SUBMITTED':
+          setAllEmployees(prev => prev.map(e => (e.id === data.candidateId ? data.employee : e)));
+          setSelectedPerson(prev => (prev?.id === data.candidateId ? data.employee : prev));
+          showToast('Candidate completed document submission (link has expired).');
           api.getStats().then(setStats);
           break;
 
@@ -300,11 +326,87 @@ export default function App() {
     showToast('Asset transferred');
   };
 
-  const handleResetDatabase = async () => {
-    if (confirm('Reset entire system database to default White Collar Realty seed records?')) {
+  const handleUploadDocumentFile = async (
+    employeeId: string,
+    docKey: string,
+    fileData: string,
+    fileName: string,
+    fileSize: string,
+    mimeType: string
+  ) => {
+    const updated = await api.uploadDocumentFile(employeeId, docKey, {
+      fileData,
+      fileName,
+      fileSize,
+      mimeType,
+    });
+    setSelectedPerson(updated);
+    setAllEmployees(prev => prev.map(e => (e.id === updated.id ? updated : e)));
+    showToast(`Document ${fileName} uploaded and saved.`);
+  };
+
+  const handleGenerateUploadLink = async (candidateId: string) => {
+    const res = await api.generateUploadLink(candidateId);
+    if (res.token) {
+      setAllEmployees(prev =>
+        prev.map(e => (e.id === candidateId ? { ...e, uploadToken: res.token } : e))
+      );
+      setSelectedPerson(prev => (prev?.id === candidateId ? { ...prev, uploadToken: res.token } : prev));
+    }
+    showToast('Secure one-time link generated.');
+    return res;
+  };
+
+  const handleRevokeUploadLink = async (candidateId: string) => {
+    const res = await api.revokeUploadLink(candidateId);
+    setAllEmployees(prev =>
+      prev.map(e =>
+        e.id === candidateId && e.uploadToken
+          ? { ...e, uploadToken: { ...e.uploadToken, isRevoked: true } }
+          : e
+      )
+    );
+    setSelectedPerson(prev =>
+      prev?.id === candidateId && prev.uploadToken
+        ? { ...prev, uploadToken: { ...prev.uploadToken, isRevoked: true } }
+        : prev
+    );
+    showToast('Upload link revoked.');
+    return res;
+  };
+
+  const handleResetDatabase = () => {
+    setShowResetConfirm(true);
+  };
+
+  const handleConfirmResetDatabase = async () => {
+    try {
+      setResetLoading(true);
       await api.resetDatabase();
+      setShowResetConfirm(false);
+      await refreshAllData();
+      await refreshAlerts();
+      showToast('Database reset to pristine seed data.');
+    } catch {
+      showToast('Failed to reset database.');
+    } finally {
+      setResetLoading(false);
     }
   };
+
+  // If candidate accessed with ?uploadToken=..., render dedicated Candidate Upload Portal
+  if (candidatePortalToken) {
+    return (
+      <CandidateUploadPortal
+        token={candidatePortalToken}
+        onExitPortal={() => {
+          setCandidatePortalToken(null);
+          window.history.replaceState({}, '', window.location.pathname);
+          refreshAllData();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="flex h-screen bg-slate-100 text-slate-900 font-sans antialiased overflow-hidden">
@@ -374,6 +476,8 @@ export default function App() {
                 }}
                 onConvertCandidate={handleConvertCandidate}
                 userRole={userRole}
+                onGenerateUploadLink={handleGenerateUploadLink}
+                onOpenCandidatePortal={token => setCandidatePortalToken(token)}
               />
             )}
 
@@ -447,6 +551,10 @@ export default function App() {
             setAssets(updatedAssets);
             showToast('Asset updated');
           }}
+          onUploadDocumentFile={handleUploadDocumentFile}
+          onGenerateUploadLink={handleGenerateUploadLink}
+          onRevokeUploadLink={handleRevokeUploadLink}
+          onOpenCandidatePortal={token => setCandidatePortalToken(token)}
         />
       )}
 
@@ -491,6 +599,18 @@ export default function App() {
           userRole={userRole}
         />
       )}
+
+      {/* Confirm Database Reset Modal */}
+      <ConfirmDialog
+        isOpen={showResetConfirm}
+        title="Reset Entire Database to Seed Records"
+        message="Are you sure you want to restore the pristine White Collar Realty roster, desk allocations, assets, and Chetan Sharma's complete dossier? All manual changes will be reverted."
+        confirmLabel="Reset Database"
+        isDestructive={true}
+        loading={resetLoading}
+        onCancel={() => setShowResetConfirm(false)}
+        onConfirm={handleConfirmResetDatabase}
+      />
 
       {/* Real-Time Live Event Notification Toast */}
       {liveToast && (
