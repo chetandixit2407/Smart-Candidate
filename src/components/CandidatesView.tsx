@@ -158,15 +158,27 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
           </p>
         </div>
 
-        {!isViewer && (
-          <button
-            onClick={onOpenAddModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap shadow-xs"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            Register New Candidate
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {candidates.length > 0 && onOpenOfferLetter && (
+            <button
+              type="button"
+              onClick={() => onOpenOfferLetter(candidates[0])}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-blue-900 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors whitespace-nowrap shadow-xs"
+            >
+              <FileText className="w-3.5 h-3.5 text-blue-700" />
+              Generate Offer Letter
+            </button>
+          )}
+          {!isViewer && (
+            <button
+              onClick={onOpenAddModal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap shadow-xs"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Register New Candidate
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Candidates Cards Grid */}

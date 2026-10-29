@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, Plus, Shield, RefreshCw, Bell, ChevronDown, FileSpreadsheet, Menu } from 'lucide-react';
+import { Download, Plus, Shield, RefreshCw, Bell, ChevronDown, FileSpreadsheet, Menu, FileText } from 'lucide-react';
 import { UserRole } from '../types/index.js';
 
 interface TopNavProps {
   currentTab: string;
   userRole: UserRole;
   onOpenAddModal: (isCandidate: boolean) => void;
+  onOpenOfferGenerator?: () => void;
   onResetDatabase?: () => void;
   alertsCount?: number;
   onOpenAlertsModal?: () => void;
@@ -16,6 +17,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   currentTab,
   userRole,
   onOpenAddModal,
+  onOpenOfferGenerator,
   onResetDatabase,
   alertsCount = 0,
   onOpenAlertsModal,
@@ -206,6 +208,19 @@ export const TopNav: React.FC<TopNavProps> = ({
             </div>
           )}
         </div>
+
+        {onOpenOfferGenerator && (
+          <button
+            type="button"
+            onClick={onOpenOfferGenerator}
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-blue-900 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors whitespace-nowrap shadow-xs"
+            title="Generate Offer Letter (.docx)"
+          >
+            <FileText className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+            <span className="hidden xl:inline">Generate </span>
+            <span>Offer Letter</span>
+          </button>
+        )}
 
         {userRole !== 'DEPT_HEAD_VIEWER' && (
           <div className="flex items-center gap-1 sm:gap-1.5">

@@ -631,6 +631,42 @@ class ApiService {
     return res.json();
   }
 
+  public async getSalaryStructures(): Promise<{ structures: any[] }> {
+    const res = await fetch('/api/salary-structures', {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to load salary structures' }));
+      throw new Error(err.message || err.error || 'Failed to load salary structures');
+    }
+    return res.json();
+  }
+
+  public async saveSalaryStructure(structure: any): Promise<any> {
+    const res = await fetch('/api/salary-structures', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(structure),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to save salary structure' }));
+      throw new Error(err.message || err.error || 'Failed to save salary structure');
+    }
+    return res.json();
+  }
+
+  public async deleteSalaryStructure(id: string): Promise<any> {
+    const res = await fetch(`/api/salary-structures/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to delete salary structure' }));
+      throw new Error(err.message || err.error || 'Failed to delete salary structure');
+    }
+    return res.json();
+  }
+
   public async getMissingDocuments(candidateId: string): Promise<any> {
     const res = await fetch(`/api/candidates/${candidateId}/missing-documents`, {
       headers: this.getHeaders(),

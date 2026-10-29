@@ -3869,6 +3869,325 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1793278295580-ef81x",
+      "timestamp": "2026-10-29T12:51:35.580Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Deleted Role Salary Structure",
+      "entityType": "SalaryStructure",
+      "entityId": "struct-test-avp",
+      "entityName": "Associate Vice President - Sales",
+      "details": "Removed role salary structure for Associate Vice President - Sales."
+    },
+    {
+      "id": "log-1793278295570-6ujul",
+      "timestamp": "2026-10-29T12:51:35.570Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Record Deleted",
+      "entityType": "Candidate",
+      "entityId": "cand-1793278295422-vnu3",
+      "entityName": "Rohan Malhotra",
+      "details": "Deleted record for Rohan Malhotra (WCR-026 (Pending))."
+    },
+    {
+      "id": "log-1793278295441-mvn68",
+      "timestamp": "2026-10-29T12:51:35.441Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-1793278295422-vnu3",
+      "entityName": "Rohan Malhotra",
+      "details": "Saved offer letter for Associate Vice President - Sales (Sales & Investments) with Annual CTC of INR 2,580,000. Status: Draft."
+    },
+    {
+      "id": "log-1793278295429-66e49",
+      "timestamp": "2026-10-29T12:51:35.429Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-1793278295422-vnu3",
+      "entityName": "Rohan Malhotra",
+      "details": "Saved offer letter for Associate Vice President - Sales (Sales & Investments) with Annual CTC of INR 2,400,000. Status: Draft."
+    },
+    {
+      "id": "log-1793278295424-89kcw",
+      "timestamp": "2026-10-29T12:51:35.424Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793278295422-vnu3",
+      "entityName": "Rohan Malhotra",
+      "details": "Created candidate profile (WCR-026 (Pending)). Seat: None."
+    },
+    {
+      "id": "log-1793278295216-h0qv9",
+      "timestamp": "2026-10-29T12:51:35.216Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Created Role Salary Structure",
+      "entityType": "SalaryStructure",
+      "entityId": "struct-test-avp",
+      "entityName": "Associate Vice President - Sales",
+      "details": "Configured default CTC INR 2,400,000 with 4 active components."
+    },
+    {
+      "id": "log-1793278098808-6yq6q",
+      "timestamp": "2026-10-29T12:48:18.808Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Deleted Role Salary Structure",
+      "entityType": "SalaryStructure",
+      "entityId": "struct-test-avp",
+      "entityName": "Associate Vice President - Sales",
+      "details": "Removed role salary structure for Associate Vice President - Sales."
+    },
+    {
+      "id": "log-1793278098804-73lal",
+      "timestamp": "2026-10-29T12:48:18.804Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Record Deleted",
+      "entityType": "Candidate",
+      "entityId": "cand-1793278098651-2tuq",
+      "entityName": "Rohan Malhotra",
+      "details": "Deleted record for Rohan Malhotra (WCR-026 (Pending))."
+    },
+    {
+      "id": "log-1793278098670-z2pfh",
+      "timestamp": "2026-10-29T12:48:18.670Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-1793278098651-2tuq",
+      "entityName": "Rohan Malhotra",
+      "details": "Saved offer letter for Associate Vice President - Sales (Sales & Investments) with Annual CTC of INR 2,580,000. Status: Draft."
+    },
+    {
+      "id": "log-1793278098658-rrq39",
+      "timestamp": "2026-10-29T12:48:18.658Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-1793278098651-2tuq",
+      "entityName": "Rohan Malhotra",
+      "details": "Saved offer letter for Associate Vice President - Sales (Sales & Investments) with Annual CTC of INR 2,400,000. Status: Draft."
+    },
+    {
+      "id": "log-1793278098653-vrpxi",
+      "timestamp": "2026-10-29T12:48:18.653Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793278098651-2tuq",
+      "entityName": "Rohan Malhotra",
+      "details": "Created candidate profile (WCR-026 (Pending)). Seat: None."
+    },
+    {
+      "id": "log-1793278098389-4xu9l",
+      "timestamp": "2026-10-29T12:48:18.389Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Created Role Salary Structure",
+      "entityType": "SalaryStructure",
+      "entityId": "struct-test-avp",
+      "entityName": "Associate Vice President - Sales",
+      "details": "Configured default CTC INR 2,400,000 with 4 active components."
+    },
+    {
+      "id": "log-1793278031935-g4g5e",
+      "timestamp": "2026-10-29T12:47:11.935Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Deleted Role Salary Structure",
+      "entityType": "SalaryStructure",
+      "entityId": "struct-test-avp",
+      "entityName": "Associate Vice President - Sales",
+      "details": "Removed role salary structure for Associate Vice President - Sales."
+    },
+    {
+      "id": "log-1793278031931-oxzdv",
+      "timestamp": "2026-10-29T12:47:11.931Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Record Deleted",
+      "entityType": "Candidate",
+      "entityId": "cand-1793278031880-d3lq",
+      "entityName": "Rohan Malhotra",
+      "details": "Deleted record for Rohan Malhotra (WCR-026 (Pending))."
+    },
+    {
+      "id": "log-1793278031914-gq401",
+      "timestamp": "2026-10-29T12:47:11.914Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-1793278031880-d3lq",
+      "entityName": "Rohan Malhotra",
+      "details": "Saved offer letter for Associate Vice President - Sales (Sales & Investments) with Annual CTC of INR 2,580,000. Status: Draft."
+    },
+    {
+      "id": "log-1793278031890-f802c",
+      "timestamp": "2026-10-29T12:47:11.890Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-1793278031880-d3lq",
+      "entityName": "Rohan Malhotra",
+      "details": "Saved offer letter for Associate Vice President - Sales (Sales & Investments) with Annual CTC of INR 2,400,000. Status: Draft."
+    },
+    {
+      "id": "log-1793278031883-7y5gg",
+      "timestamp": "2026-10-29T12:47:11.883Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793278031880-d3lq",
+      "entityName": "Rohan Malhotra",
+      "details": "Created candidate profile (WCR-026 (Pending)). Seat: None."
+    },
+    {
+      "id": "log-1793278031759-lxy8j",
+      "timestamp": "2026-10-29T12:47:11.759Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Created Role Salary Structure",
+      "entityType": "SalaryStructure",
+      "entityId": "struct-test-avp",
+      "entityName": "Associate Vice President - Sales",
+      "details": "Configured default CTC INR 2,400,000 with 4 active components."
+    },
+    {
+      "id": "log-1793277990690-d1i7q",
+      "timestamp": "2026-10-29T12:46:30.690Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Deleted Role Salary Structure",
+      "entityType": "SalaryStructure",
+      "entityId": "struct-test-avp",
+      "entityName": "Associate Vice President - Sales",
+      "details": "Removed role salary structure for Associate Vice President - Sales."
+    },
+    {
+      "id": "log-1793277990686-ztfca",
+      "timestamp": "2026-10-29T12:46:30.687Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Record Deleted",
+      "entityType": "Candidate",
+      "entityId": "cand-1793277990650-pvt8",
+      "entityName": "Rohan Malhotra",
+      "details": "Deleted record for Rohan Malhotra (WCR-026 (Pending))."
+    },
+    {
+      "id": "log-1793277990666-ke5re",
+      "timestamp": "2026-10-29T12:46:30.666Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-1793277990650-pvt8",
+      "entityName": "Rohan Malhotra",
+      "details": "Saved offer letter for Associate Vice President - Sales (Sales & Investments) with Annual CTC of INR 2,580,000. Status: Draft."
+    },
+    {
+      "id": "log-1793277990656-ipidb",
+      "timestamp": "2026-10-29T12:46:30.656Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-1793277990650-pvt8",
+      "entityName": "Rohan Malhotra",
+      "details": "Saved offer letter for Associate Vice President - Sales (Sales & Investments) with Annual CTC of INR 2,400,000. Status: Draft."
+    },
+    {
+      "id": "log-1793277990652-r2pbw",
+      "timestamp": "2026-10-29T12:46:30.652Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793277990650-pvt8",
+      "entityName": "Rohan Malhotra",
+      "details": "Created candidate profile (WCR-026 (Pending)). Seat: None."
+    },
+    {
+      "id": "log-1793277990534-5clhv",
+      "timestamp": "2026-10-29T12:46:30.534Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Created Role Salary Structure",
+      "entityType": "SalaryStructure",
+      "entityId": "struct-test-avp",
+      "entityName": "Associate Vice President - Sales",
+      "details": "Configured default CTC INR 2,400,000 with 4 active components."
+    },
+    {
+      "id": "log-1793277945596-z7hvd",
+      "timestamp": "2026-10-29T12:45:45.596Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Deleted Role Salary Structure",
+      "entityType": "SalaryStructure",
+      "entityId": "struct-test-avp",
+      "entityName": "Associate Vice President - Sales",
+      "details": "Removed role salary structure for Associate Vice President - Sales."
+    },
+    {
+      "id": "log-1793277945591-djwuv",
+      "timestamp": "2026-10-29T12:45:45.591Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Record Deleted",
+      "entityType": "Candidate",
+      "entityId": "cand-1793277945569-qs0h",
+      "entityName": "Rohan Malhotra",
+      "details": "Deleted record for Rohan Malhotra (WCR-026 (Pending))."
+    },
+    {
+      "id": "log-1793277945577-oface",
+      "timestamp": "2026-10-29T12:45:45.577Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-1793277945569-qs0h",
+      "entityName": "Rohan Malhotra",
+      "details": "Saved offer letter for Associate Vice President - Sales (Sales & Investments) with Annual CTC of INR 2,400,000. Status: Draft."
+    },
+    {
+      "id": "log-1793277945572-xm3rn",
+      "timestamp": "2026-10-29T12:45:45.572Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793277945569-qs0h",
+      "entityName": "Rohan Malhotra",
+      "details": "Created candidate profile (WCR-026 (Pending)). Seat: None."
+    },
+    {
+      "id": "log-1793277945310-196vb",
+      "timestamp": "2026-10-29T12:45:45.310Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Created Role Salary Structure",
+      "entityType": "SalaryStructure",
+      "entityId": "struct-test-avp",
+      "entityName": "Associate Vice President - Sales",
+      "details": "Configured default CTC INR 2,400,000 with 4 active components."
+    },
+    {
       "id": "log-1793272305447-3dn04",
       "timestamp": "2026-10-29T11:11:45.447Z",
       "actor": "Simran Kaur (HR Head)",
@@ -4377,5 +4696,733 @@
   ],
   "acknowledgedAlerts": {},
   "version": 3,
-  "lastUpdated": "2026-10-29T11:11:45.450Z"
+  "lastUpdated": "2026-10-29T12:51:35.602Z",
+  "salaryStructures": [
+    {
+      "id": "role-bde",
+      "designation": "Business Development Executive",
+      "department": "Sales & Investments",
+      "employmentType": "Full-Time",
+      "market": "Gurgaon",
+      "defaultAnnualCtc": 480000,
+      "rules": [
+        {
+          "code": "basic",
+          "label": "Basic",
+          "category": "BASIC",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 75,
+          "enabled": true
+        },
+        {
+          "code": "hra",
+          "label": "House Rent Allowance (HRA)",
+          "category": "ALLOWANCE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 15,
+          "enabled": false
+        },
+        {
+          "code": "special_allowance",
+          "label": "Special Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "conveyance",
+          "label": "Conveyance Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1600,
+          "enabled": false
+        },
+        {
+          "code": "pbvp",
+          "label": "PBVP",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 12.5,
+          "enabled": true
+        },
+        {
+          "code": "retention_bonus",
+          "label": "Retention Bonus",
+          "category": "VARIABLE",
+          "calcType": "REMAINDER_OF_CTC",
+          "value": 12.5,
+          "enabled": true
+        },
+        {
+          "code": "pf_employee",
+          "label": "Employee PF Contribution",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1800,
+          "enabled": false
+        },
+        {
+          "code": "prof_tax",
+          "label": "Professional Tax (PT)",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 200,
+          "enabled": false
+        },
+        {
+          "code": "tds",
+          "label": "TDS (Income Tax)",
+          "category": "DEDUCTION",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 5,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "role-assoc-director",
+      "designation": "Associate Director - Luxury Brokerage",
+      "department": "Sales & Investments",
+      "employmentType": "Full-Time",
+      "market": "Gurgaon",
+      "defaultAnnualCtc": 2400000,
+      "rules": [
+        {
+          "code": "basic",
+          "label": "Basic",
+          "category": "BASIC",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 60,
+          "enabled": true
+        },
+        {
+          "code": "hra",
+          "label": "House Rent Allowance (HRA)",
+          "category": "ALLOWANCE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 20,
+          "enabled": true
+        },
+        {
+          "code": "special_allowance",
+          "label": "Special Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "conveyance",
+          "label": "Conveyance Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1600,
+          "enabled": false
+        },
+        {
+          "code": "pbvp",
+          "label": "PBVP",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 10,
+          "enabled": true
+        },
+        {
+          "code": "retention_bonus",
+          "label": "Retention Bonus",
+          "category": "VARIABLE",
+          "calcType": "REMAINDER_OF_CTC",
+          "value": 10,
+          "enabled": true
+        },
+        {
+          "code": "pf_employee",
+          "label": "Employee PF Contribution",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1800,
+          "enabled": false
+        },
+        {
+          "code": "prof_tax",
+          "label": "Professional Tax (PT)",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 200,
+          "enabled": false
+        },
+        {
+          "code": "tds",
+          "label": "TDS (Income Tax)",
+          "category": "DEDUCTION",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 5,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "role-sr-prop-consultant",
+      "designation": "Senior Property Consultant - Golf Course Road",
+      "department": "Sales & Investments",
+      "employmentType": "Full-Time",
+      "market": "Gurgaon",
+      "defaultAnnualCtc": 1200000,
+      "rules": [
+        {
+          "code": "basic",
+          "label": "Basic",
+          "category": "BASIC",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 70,
+          "enabled": true
+        },
+        {
+          "code": "hra",
+          "label": "House Rent Allowance (HRA)",
+          "category": "ALLOWANCE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 15,
+          "enabled": false
+        },
+        {
+          "code": "special_allowance",
+          "label": "Special Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "conveyance",
+          "label": "Conveyance Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1600,
+          "enabled": false
+        },
+        {
+          "code": "pbvp",
+          "label": "PBVP",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 15,
+          "enabled": true
+        },
+        {
+          "code": "retention_bonus",
+          "label": "Retention Bonus",
+          "category": "VARIABLE",
+          "calcType": "REMAINDER_OF_CTC",
+          "value": 15,
+          "enabled": true
+        },
+        {
+          "code": "pf_employee",
+          "label": "Employee PF Contribution",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1800,
+          "enabled": false
+        },
+        {
+          "code": "prof_tax",
+          "label": "Professional Tax (PT)",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 200,
+          "enabled": false
+        },
+        {
+          "code": "tds",
+          "label": "TDS (Income Tax)",
+          "category": "DEDUCTION",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 5,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "role-dubai-luxury-advisor",
+      "designation": "Luxury Portfolio Advisor - Dubai International Desk",
+      "department": "Luxury Residential & Investments",
+      "employmentType": "Full-Time",
+      "market": "Dubai",
+      "defaultAnnualCtc": 180000,
+      "rules": [
+        {
+          "code": "basic",
+          "label": "Basic",
+          "category": "BASIC",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 60,
+          "enabled": true
+        },
+        {
+          "code": "hra",
+          "label": "Housing & Transport Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 25,
+          "enabled": true
+        },
+        {
+          "code": "special_allowance",
+          "label": "Special Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "conveyance",
+          "label": "Conveyance Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "pbvp",
+          "label": "PBVP",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 10,
+          "enabled": true
+        },
+        {
+          "code": "retention_bonus",
+          "label": "Retention Bonus",
+          "category": "VARIABLE",
+          "calcType": "REMAINDER_OF_CTC",
+          "value": 5,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "role-gurgaon-consultant",
+      "designation": "Gurgoan Team Consultant",
+      "department": "Sales & Investments",
+      "employmentType": "Full-Time",
+      "market": "Gurgaon",
+      "defaultAnnualCtc": 720000,
+      "rules": [
+        {
+          "code": "basic",
+          "label": "Basic",
+          "category": "BASIC",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 75,
+          "enabled": true
+        },
+        {
+          "code": "hra",
+          "label": "House Rent Allowance (HRA)",
+          "category": "ALLOWANCE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 15,
+          "enabled": false
+        },
+        {
+          "code": "special_allowance",
+          "label": "Special Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "conveyance",
+          "label": "Conveyance Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1600,
+          "enabled": false
+        },
+        {
+          "code": "pbvp",
+          "label": "PBVP",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 12.5,
+          "enabled": true
+        },
+        {
+          "code": "retention_bonus",
+          "label": "Retention Bonus",
+          "category": "VARIABLE",
+          "calcType": "REMAINDER_OF_CTC",
+          "value": 12.5,
+          "enabled": true
+        },
+        {
+          "code": "pf_employee",
+          "label": "Employee PF Contribution",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1800,
+          "enabled": false
+        },
+        {
+          "code": "prof_tax",
+          "label": "Professional Tax (PT)",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 200,
+          "enabled": false
+        },
+        {
+          "code": "tds",
+          "label": "TDS (Income Tax)",
+          "category": "DEDUCTION",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 5,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "role-dubai-consultant",
+      "designation": "Dubai Team Consultant",
+      "department": "Sales & Investments",
+      "employmentType": "Full-Time",
+      "market": "Dubai",
+      "defaultAnnualCtc": 144000,
+      "rules": [
+        {
+          "code": "basic",
+          "label": "Basic",
+          "category": "BASIC",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 65,
+          "enabled": true
+        },
+        {
+          "code": "hra",
+          "label": "Housing & Transport Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 20,
+          "enabled": true
+        },
+        {
+          "code": "special_allowance",
+          "label": "Special Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "conveyance",
+          "label": "Conveyance Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "pbvp",
+          "label": "PBVP",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 10,
+          "enabled": true
+        },
+        {
+          "code": "retention_bonus",
+          "label": "Retention Bonus",
+          "category": "VARIABLE",
+          "calcType": "REMAINDER_OF_CTC",
+          "value": 5,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "role-prop-trainee",
+      "designation": "Property Advisor Trainee",
+      "department": "Sales & Investments",
+      "employmentType": "Probation",
+      "market": "Gurgaon",
+      "defaultAnnualCtc": 360000,
+      "rules": [
+        {
+          "code": "basic",
+          "label": "Basic",
+          "category": "BASIC",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 75,
+          "enabled": true
+        },
+        {
+          "code": "hra",
+          "label": "House Rent Allowance (HRA)",
+          "category": "ALLOWANCE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 15,
+          "enabled": false
+        },
+        {
+          "code": "special_allowance",
+          "label": "Special Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "conveyance",
+          "label": "Conveyance Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1600,
+          "enabled": false
+        },
+        {
+          "code": "pbvp",
+          "label": "PBVP",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 12.5,
+          "enabled": true
+        },
+        {
+          "code": "retention_bonus",
+          "label": "Retention Bonus",
+          "category": "VARIABLE",
+          "calcType": "REMAINDER_OF_CTC",
+          "value": 12.5,
+          "enabled": true
+        },
+        {
+          "code": "pf_employee",
+          "label": "Employee PF Contribution",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1800,
+          "enabled": false
+        },
+        {
+          "code": "prof_tax",
+          "label": "Professional Tax (PT)",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 200,
+          "enabled": false
+        },
+        {
+          "code": "tds",
+          "label": "TDS (Income Tax)",
+          "category": "DEDUCTION",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 5,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "role-hr-lead",
+      "designation": "HR Lead & Onboarding Specialist",
+      "department": "Human Resources",
+      "employmentType": "Full-Time",
+      "market": "Gurgaon",
+      "defaultAnnualCtc": 900000,
+      "rules": [
+        {
+          "code": "basic",
+          "label": "Basic",
+          "category": "BASIC",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 60,
+          "enabled": true
+        },
+        {
+          "code": "hra",
+          "label": "House Rent Allowance (HRA)",
+          "category": "ALLOWANCE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 25,
+          "enabled": true
+        },
+        {
+          "code": "special_allowance",
+          "label": "Special Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "REMAINDER_OF_CTC",
+          "value": 15,
+          "enabled": true
+        },
+        {
+          "code": "pbvp",
+          "label": "PBVP",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "retention_bonus",
+          "label": "Retention Bonus",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "pf_employee",
+          "label": "Employee PF Contribution",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1800,
+          "enabled": false
+        },
+        {
+          "code": "prof_tax",
+          "label": "Professional Tax (PT)",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 200,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "role-dm-lead",
+      "designation": "DM (Digital Marketing Lead)",
+      "department": "Marketing & Digital Media",
+      "employmentType": "Full-Time",
+      "market": "Gurgaon",
+      "defaultAnnualCtc": 840000,
+      "rules": [
+        {
+          "code": "basic",
+          "label": "Basic",
+          "category": "BASIC",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 65,
+          "enabled": true
+        },
+        {
+          "code": "hra",
+          "label": "House Rent Allowance (HRA)",
+          "category": "ALLOWANCE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 20,
+          "enabled": true
+        },
+        {
+          "code": "retention_bonus",
+          "label": "Retention Bonus",
+          "category": "VARIABLE",
+          "calcType": "REMAINDER_OF_CTC",
+          "value": 15,
+          "enabled": true
+        },
+        {
+          "code": "pbvp",
+          "label": "PBVP",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "pf_employee",
+          "label": "Employee PF Contribution",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1800,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "role-admin-mgr",
+      "designation": "Admin Manager",
+      "department": "Administration & Facilities",
+      "employmentType": "Full-Time",
+      "market": "Gurgaon",
+      "defaultAnnualCtc": 600000,
+      "rules": [
+        {
+          "code": "basic",
+          "label": "Basic",
+          "category": "BASIC",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 65,
+          "enabled": true
+        },
+        {
+          "code": "hra",
+          "label": "House Rent Allowance (HRA)",
+          "category": "ALLOWANCE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 20,
+          "enabled": true
+        },
+        {
+          "code": "special_allowance",
+          "label": "Special Allowance",
+          "category": "ALLOWANCE",
+          "calcType": "REMAINDER_OF_CTC",
+          "value": 15,
+          "enabled": true
+        },
+        {
+          "code": "pf_employee",
+          "label": "Employee PF Contribution",
+          "category": "DEDUCTION",
+          "calcType": "FIXED_MONTHLY",
+          "value": 1800,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "role-intern",
+      "designation": "AI Data Research Intern",
+      "department": "Research & Data",
+      "employmentType": "Intern",
+      "market": "Gurgaon",
+      "defaultAnnualCtc": 240000,
+      "rules": [
+        {
+          "code": "basic",
+          "label": "Basic / Monthly Stipend",
+          "category": "BASIC",
+          "calcType": "REMAINDER_OF_CTC",
+          "value": 100,
+          "enabled": true
+        },
+        {
+          "code": "pbvp",
+          "label": "PBVP",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "retention_bonus",
+          "label": "Retention Bonus",
+          "category": "VARIABLE",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 0,
+          "enabled": false
+        },
+        {
+          "code": "tds",
+          "label": "TDS Deduction",
+          "category": "DEDUCTION",
+          "calcType": "PERCENT_OF_CTC",
+          "value": 0,
+          "enabled": false
+        }
+      ]
+    }
+  ]
 }

@@ -208,7 +208,17 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {candidates.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onOpenOfferModal(candidates[0])}
+              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl text-xs sm:text-sm flex items-center gap-2 border border-slate-700 transition-colors"
+            >
+              <FileText className="w-4 h-4 text-amber-400" />
+              Generate Offer Letter
+            </button>
+          )}
           {userRole !== 'DEPT_HEAD_VIEWER' && (
             <button
               type="button"

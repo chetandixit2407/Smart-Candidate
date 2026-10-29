@@ -534,52 +534,61 @@ export default function App() {
   // Offer Letter Handlers
   const handleUpdateOffer = async (candidateId: string, offerData: Partial<OfferLetterData>) => {
     const res = await api.updateOfferLetter(candidateId, offerData);
-    if (res.employee) {
-      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
-      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
-      setOfferModalCandidate(res.employee);
+    const updated = res.employee || res.candidate;
+    if (updated) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? updated : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? updated : prev));
+      setOfferModalCandidate(updated);
     }
-    showToast('Offer letter drafted/updated.');
+    showToast('Offer letter saved against candidate record.');
+    api.getAuditLogs().then(setAuditLogs);
   };
 
   const handleApproveOffer = async (candidateId: string) => {
     const res = await api.approveOfferLetter(candidateId);
-    if (res.employee) {
-      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
-      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
-      setOfferModalCandidate(res.employee);
+    const updated = res.employee || res.candidate;
+    if (updated) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? updated : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? updated : prev));
+      setOfferModalCandidate(updated);
     }
     showToast('Offer letter approved by HR leadership.');
+    api.getAuditLogs().then(setAuditLogs);
   };
 
   const handleIssueOffer = async (candidateId: string) => {
     const res = await api.issueOfferLetter(candidateId);
-    if (res.employee) {
-      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
-      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
-      setOfferModalCandidate(res.employee);
+    const updated = res.employee || res.candidate;
+    if (updated) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? updated : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? updated : prev));
+      setOfferModalCandidate(updated);
     }
     showToast('Offer letter formally issued to candidate.');
+    api.getAuditLogs().then(setAuditLogs);
   };
 
   const handleAcceptOffer = async (candidateId: string, signatureName: string) => {
     const res = await api.acceptOfferLetter(candidateId, signatureName || 'Accepted');
-    if (res.employee) {
-      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
-      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
-      setOfferModalCandidate(res.employee);
+    const updated = res.employee || res.candidate;
+    if (updated) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? updated : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? updated : prev));
+      setOfferModalCandidate(updated);
     }
     showToast('Candidate offer accepted!');
+    api.getAuditLogs().then(setAuditLogs);
   };
 
   const handleEmailOffer = async (candidateId: string) => {
     const res = await api.emailOfferLetter(candidateId);
-    if (res.employee) {
-      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
-      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
-      setOfferModalCandidate(res.employee);
+    const updated = res.employee || res.candidate;
+    if (updated) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? updated : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? updated : prev));
+      setOfferModalCandidate(updated);
     }
-    showToast(`Official 10-page offer letter emailed to ${res.employee?.fullName || 'candidate'}.`);
+    showToast(`Official 10-page offer letter emailed to ${updated?.fullName || 'candidate'}.`);
     api.getAuditLogs().then(setAuditLogs);
   };
 
@@ -664,6 +673,11 @@ export default function App() {
             setAddModalIsCandidate(isCand);
             setShowAddModal(true);
           }}
+          onOpenOfferGenerator={
+            candidates.length > 0 || allEmployees.length > 0
+              ? () => setOfferModalCandidate(candidates[0] || allEmployees[0])
+              : undefined
+          }
           onResetDatabase={handleResetDatabase}
           alertsCount={alerts.length}
           onOpenAlertsModal={() => setShowAlertsPopup(true)}
@@ -824,6 +838,10 @@ export default function App() {
           onGenerateUploadLink={handleGenerateUploadLink}
           onRevokeUploadLink={handleRevokeUploadLink}
           onOpenCandidatePortal={token => setCandidatePortalToken(token)}
+          onOpenOfferLetter={emp => {
+            setSelectedPerson(null);
+            setOfferModalCandidate(emp);
+          }}
         />
       )}
 
@@ -831,6 +849,8 @@ export default function App() {
       {offerModalCandidate && (
         <OfferLetterModal
           candidate={offerModalCandidate}
+          allCandidates={allEmployees}
+          onSelectCandidate={cand => setOfferModalCandidate(cand)}
           isOpen={!!offerModalCandidate}
           onClose={() => setOfferModalCandidate(null)}
           userRole={userRole}

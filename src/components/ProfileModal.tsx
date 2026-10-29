@@ -70,6 +70,7 @@ interface ProfileModalProps {
   onGenerateUploadLink?: (candidateId: string, options?: { expiryDays?: number; isOneTime?: boolean }) => Promise<{ success: boolean; token: UploadToken; message: string }>;
   onRevokeUploadLink?: (candidateId: string) => Promise<{ success: boolean; message: string }>;
   onOpenCandidatePortal?: (token: string) => void;
+  onOpenOfferLetter?: (employee: Employee) => void;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -90,6 +91,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onGenerateUploadLink,
   onRevokeUploadLink,
   onOpenCandidatePortal,
+  onOpenOfferLetter,
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'family' | 'experience' | 'education' | 'references' | 'documents' | 'assets' | 'audit' | 'timeline'>('profile');
   const [isEditing, setIsEditing] = useState(false);
@@ -264,6 +266,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 />
               </div>
             </div>
+
+            {employee.isCandidate && onOpenOfferLetter && (
+              <button
+                type="button"
+                onClick={() => onOpenOfferLetter(employee)}
+                className="px-2.5 sm:px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-400/40 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
+                title="Open Offer Letter Generator & Word (.docx) Export"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Offer Letter</span>
+              </button>
+            )}
 
             {/* Direct Edit & Save Controls for Authorized Users */}
             {!isViewer && (

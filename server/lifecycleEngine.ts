@@ -8,6 +8,9 @@ import type {
   InterviewRound,
   ProbationRecord,
   ExitClearanceRecord,
+  CompensationLineItem,
+  RoleSalaryStructure,
+  RoleSalaryStructureRule,
 } from '../src/types/index.ts';
 
 /**
@@ -180,6 +183,482 @@ export function calculateSalaryBreakup(
 }
 
 /**
+ * Standard WCR Master Template Rule Set (Basic 75%, PBVP 12.5%, Retention Bonus 12.5%, plus optional Allowances & Deductions)
+ */
+function createWcrSalesRules(
+  basicPct = 75,
+  pbvpPct = 12.5,
+  retentionPct = 12.5,
+  hraPctOfCtc = 0,
+  enableHra = false,
+  isDubai = false
+): RoleSalaryStructureRule[] {
+  const rules: RoleSalaryStructureRule[] = [
+    { code: 'basic', label: 'Basic', category: 'BASIC', calcType: 'PERCENT_OF_CTC', value: basicPct, enabled: true },
+  ];
+  if (hraPctOfCtc > 0 || !enableHra) {
+    rules.push({
+      code: 'hra',
+      label: isDubai ? 'Housing & Transport Allowance' : 'House Rent Allowance (HRA)',
+      category: 'ALLOWANCE',
+      calcType: 'PERCENT_OF_CTC',
+      value: hraPctOfCtc || 15,
+      enabled: enableHra,
+    });
+  }
+  rules.push(
+    {
+      code: 'special_allowance',
+      label: 'Special Allowance',
+      category: 'ALLOWANCE',
+      calcType: 'FIXED_MONTHLY',
+      value: 0,
+      enabled: false,
+    },
+    {
+      code: 'conveyance',
+      label: 'Conveyance Allowance',
+      category: 'ALLOWANCE',
+      calcType: 'FIXED_MONTHLY',
+      value: isDubai ? 0 : 1600,
+      enabled: false,
+    },
+    { code: 'pbvp', label: 'PBVP', category: 'VARIABLE', calcType: 'PERCENT_OF_CTC', value: pbvpPct, enabled: true },
+    {
+      code: 'retention_bonus',
+      label: 'Retention Bonus',
+      category: 'VARIABLE',
+      calcType: 'REMAINDER_OF_CTC',
+      value: retentionPct,
+      enabled: true,
+    }
+  );
+  if (!isDubai) {
+    rules.push(
+      { code: 'pf_employee', label: 'Employee PF Contribution', category: 'DEDUCTION', calcType: 'FIXED_MONTHLY', value: 1800, enabled: false },
+      { code: 'prof_tax', label: 'Professional Tax (PT)', category: 'DEDUCTION', calcType: 'FIXED_MONTHLY', value: 200, enabled: false },
+      { code: 'tds', label: 'TDS (Income Tax)', category: 'DEDUCTION', calcType: 'PERCENT_OF_CTC', value: 5, enabled: false }
+    );
+  }
+  return rules;
+}
+
+/**
+ * Configurable Role-Based Salary Structures for White Collar Realty.
+ * Stored in the database and editable by HR Admin / HR Manager via UI & API.
+ */
+export const DEFAULT_ROLE_SALARY_STRUCTURES: RoleSalaryStructure[] = [
+  {
+    id: 'role-bde',
+    designation: 'Business Development Executive',
+    department: 'Sales & Investments',
+    employmentType: 'Full-Time',
+    market: 'Gurgaon',
+    defaultAnnualCtc: 480000,
+    rules: createWcrSalesRules(75, 12.5, 12.5, 0, false, false),
+  },
+  {
+    id: 'role-assoc-director',
+    designation: 'Associate Director - Luxury Brokerage',
+    department: 'Sales & Investments',
+    employmentType: 'Full-Time',
+    market: 'Gurgaon',
+    defaultAnnualCtc: 2400000,
+    rules: createWcrSalesRules(60, 10, 10, 20, true, false),
+  },
+  {
+    id: 'role-sr-prop-consultant',
+    designation: 'Senior Property Consultant - Golf Course Road',
+    department: 'Sales & Investments',
+    employmentType: 'Full-Time',
+    market: 'Gurgaon',
+    defaultAnnualCtc: 1200000,
+    rules: createWcrSalesRules(70, 15, 15, 0, false, false),
+  },
+  {
+    id: 'role-dubai-luxury-advisor',
+    designation: 'Luxury Portfolio Advisor - Dubai International Desk',
+    department: 'Luxury Residential & Investments',
+    employmentType: 'Full-Time',
+    market: 'Dubai',
+    defaultAnnualCtc: 180000,
+    rules: createWcrSalesRules(60, 10, 5, 25, true, true),
+  },
+  {
+    id: 'role-gurgaon-consultant',
+    designation: 'Gurgoan Team Consultant',
+    department: 'Sales & Investments',
+    employmentType: 'Full-Time',
+    market: 'Gurgaon',
+    defaultAnnualCtc: 720000,
+    rules: createWcrSalesRules(75, 12.5, 12.5, 0, false, false),
+  },
+  {
+    id: 'role-dubai-consultant',
+    designation: 'Dubai Team Consultant',
+    department: 'Sales & Investments',
+    employmentType: 'Full-Time',
+    market: 'Dubai',
+    defaultAnnualCtc: 144000,
+    rules: createWcrSalesRules(65, 10, 5, 20, true, true),
+  },
+  {
+    id: 'role-prop-trainee',
+    designation: 'Property Advisor Trainee',
+    department: 'Sales & Investments',
+    employmentType: 'Probation',
+    market: 'Gurgaon',
+    defaultAnnualCtc: 360000,
+    rules: createWcrSalesRules(75, 12.5, 12.5, 0, false, false),
+  },
+  {
+    id: 'role-hr-lead',
+    designation: 'HR Lead & Onboarding Specialist',
+    department: 'Human Resources',
+    employmentType: 'Full-Time',
+    market: 'Gurgaon',
+    defaultAnnualCtc: 900000,
+    rules: [
+      { code: 'basic', label: 'Basic', category: 'BASIC', calcType: 'PERCENT_OF_CTC', value: 60, enabled: true },
+      { code: 'hra', label: 'House Rent Allowance (HRA)', category: 'ALLOWANCE', calcType: 'PERCENT_OF_CTC', value: 25, enabled: true },
+      { code: 'special_allowance', label: 'Special Allowance', category: 'ALLOWANCE', calcType: 'REMAINDER_OF_CTC', value: 15, enabled: true },
+      { code: 'pbvp', label: 'PBVP', category: 'VARIABLE', calcType: 'PERCENT_OF_CTC', value: 0, enabled: false },
+      { code: 'retention_bonus', label: 'Retention Bonus', category: 'VARIABLE', calcType: 'PERCENT_OF_CTC', value: 0, enabled: false },
+      { code: 'pf_employee', label: 'Employee PF Contribution', category: 'DEDUCTION', calcType: 'FIXED_MONTHLY', value: 1800, enabled: false },
+      { code: 'prof_tax', label: 'Professional Tax (PT)', category: 'DEDUCTION', calcType: 'FIXED_MONTHLY', value: 200, enabled: false },
+    ],
+  },
+  {
+    id: 'role-dm-lead',
+    designation: 'DM (Digital Marketing Lead)',
+    department: 'Marketing & Digital Media',
+    employmentType: 'Full-Time',
+    market: 'Gurgaon',
+    defaultAnnualCtc: 840000,
+    rules: [
+      { code: 'basic', label: 'Basic', category: 'BASIC', calcType: 'PERCENT_OF_CTC', value: 65, enabled: true },
+      { code: 'hra', label: 'House Rent Allowance (HRA)', category: 'ALLOWANCE', calcType: 'PERCENT_OF_CTC', value: 20, enabled: true },
+      { code: 'retention_bonus', label: 'Retention Bonus', category: 'VARIABLE', calcType: 'REMAINDER_OF_CTC', value: 15, enabled: true },
+      { code: 'pbvp', label: 'PBVP', category: 'VARIABLE', calcType: 'PERCENT_OF_CTC', value: 0, enabled: false },
+      { code: 'pf_employee', label: 'Employee PF Contribution', category: 'DEDUCTION', calcType: 'FIXED_MONTHLY', value: 1800, enabled: false },
+    ],
+  },
+  {
+    id: 'role-admin-mgr',
+    designation: 'Admin Manager',
+    department: 'Administration & Facilities',
+    employmentType: 'Full-Time',
+    market: 'Gurgaon',
+    defaultAnnualCtc: 600000,
+    rules: [
+      { code: 'basic', label: 'Basic', category: 'BASIC', calcType: 'PERCENT_OF_CTC', value: 65, enabled: true },
+      { code: 'hra', label: 'House Rent Allowance (HRA)', category: 'ALLOWANCE', calcType: 'PERCENT_OF_CTC', value: 20, enabled: true },
+      { code: 'special_allowance', label: 'Special Allowance', category: 'ALLOWANCE', calcType: 'REMAINDER_OF_CTC', value: 15, enabled: true },
+      { code: 'pf_employee', label: 'Employee PF Contribution', category: 'DEDUCTION', calcType: 'FIXED_MONTHLY', value: 1800, enabled: false },
+    ],
+  },
+  {
+    id: 'role-intern',
+    designation: 'AI Data Research Intern',
+    department: 'Research & Data',
+    employmentType: 'Intern',
+    market: 'Gurgaon',
+    defaultAnnualCtc: 240000,
+    rules: [
+      { code: 'basic', label: 'Basic / Monthly Stipend', category: 'BASIC', calcType: 'REMAINDER_OF_CTC', value: 100, enabled: true },
+      { code: 'pbvp', label: 'PBVP', category: 'VARIABLE', calcType: 'PERCENT_OF_CTC', value: 0, enabled: false },
+      { code: 'retention_bonus', label: 'Retention Bonus', category: 'VARIABLE', calcType: 'PERCENT_OF_CTC', value: 0, enabled: false },
+      { code: 'tds', label: 'TDS Deduction', category: 'DEDUCTION', calcType: 'PERCENT_OF_CTC', value: 0, enabled: false },
+    ],
+  },
+];
+
+/**
+ * Matches a candidate's designation/role to the best-fitting configurable salary structure.
+ */
+export function findMatchingRoleStructure(
+  designation: string | undefined,
+  structures: RoleSalaryStructure[] = DEFAULT_ROLE_SALARY_STRUCTURES,
+  market: MarketType = 'Gurgaon',
+  employmentType?: string
+): RoleSalaryStructure {
+  const list = structures.length > 0 ? structures : DEFAULT_ROLE_SALARY_STRUCTURES;
+  const cleanDesig = (designation || '').trim().toLowerCase();
+
+  if (cleanDesig) {
+    const exact = list.find(s => s.designation.trim().toLowerCase() === cleanDesig);
+    if (exact) return exact;
+
+    if (cleanDesig.includes('intern') || employmentType === 'Intern') {
+      const internMatch = list.find(s => s.employmentType === 'Intern' || s.designation.toLowerCase().includes('intern'));
+      if (internMatch) return internMatch;
+    }
+    if (cleanDesig.includes('dubai') || market === 'Dubai') {
+      const dubaiExact = list.find(
+        s => s.market === 'Dubai' && cleanDesig.split(/\s+/).some(w => w.length > 3 && s.designation.toLowerCase().includes(w))
+      );
+      if (dubaiExact) return dubaiExact;
+      const dubaiFallback = list.find(s => s.market === 'Dubai');
+      if (dubaiFallback) return dubaiFallback;
+    }
+    if (cleanDesig.includes('director') || cleanDesig.includes('vp') || cleanDesig.includes('head')) {
+      const dir = list.find(s => s.designation.toLowerCase().includes('director'));
+      if (dir) return dir;
+    }
+    if (cleanDesig.includes('senior')) {
+      const sr = list.find(s => s.designation.toLowerCase().includes('senior'));
+      if (sr) return sr;
+    }
+    if (cleanDesig.includes('trainee')) {
+      const tr = list.find(s => s.designation.toLowerCase().includes('trainee'));
+      if (tr) return tr;
+    }
+    if (cleanDesig.includes('hr') || cleanDesig.includes('human resource') || cleanDesig.includes('recruiter')) {
+      const hr = list.find(s => s.department.toLowerCase().includes('human resources'));
+      if (hr) return hr;
+    }
+    if (cleanDesig.includes('marketing') || cleanDesig.includes('dm')) {
+      const dm = list.find(s => s.department.toLowerCase().includes('marketing'));
+      if (dm) return dm;
+    }
+    if (cleanDesig.includes('admin')) {
+      const adm = list.find(s => s.department.toLowerCase().includes('admin'));
+      if (adm) return adm;
+    }
+    if (cleanDesig.includes('consultant') || cleanDesig.includes('advisor')) {
+      const cons = list.find(s => s.designation.toLowerCase().includes('consultant') && s.market !== 'Dubai');
+      if (cons) return cons;
+    }
+  }
+
+  return list.find(s => s.market === market) || list[0];
+}
+
+/**
+ * Generates editable CompensationLineItem rows from an Annual CTC and a RoleSalaryStructure.
+ */
+export function buildComponentsFromStructure(
+  annualCtc: number,
+  structure: RoleSalaryStructure
+): CompensationLineItem[] {
+  const safeAnnual = Math.max(0, Math.round(annualCtc));
+  const monthlyCtc = Math.round(safeAnnual / 12);
+
+  // Pass 1: find basic monthly/yearly
+  let basicMonthly = Math.round(monthlyCtc * 0.75);
+  const basicRule = structure.rules.find(r => r.category === 'BASIC' && r.calcType !== 'REMAINDER_OF_CTC');
+  if (basicRule) {
+    if (basicRule.calcType === 'PERCENT_OF_CTC') {
+      basicMonthly = Math.round((monthlyCtc * basicRule.value) / 100);
+    } else if (basicRule.calcType === 'FIXED_MONTHLY') {
+      basicMonthly = Math.round(basicRule.value);
+    }
+  }
+
+  const items: CompensationLineItem[] = structure.rules.map((rule, idx) => {
+    let monthly = 0;
+    if (rule.calcType === 'PERCENT_OF_CTC') {
+      monthly = Math.round((monthlyCtc * rule.value) / 100);
+    } else if (rule.calcType === 'PERCENT_OF_BASIC') {
+      monthly = Math.round((basicMonthly * rule.value) / 100);
+    } else if (rule.calcType === 'FIXED_MONTHLY') {
+      monthly = Math.round(rule.value);
+    }
+    return {
+      id: `comp-${rule.code}-${idx}`,
+      code: rule.code,
+      label: rule.label,
+      category: rule.category,
+      monthlyAmount: monthly,
+      yearlyAmount: monthly * 12,
+      enabled: rule.enabled,
+      isCustom: false,
+    };
+  });
+
+  // Pass 2: assign remainder to REMAINDER_OF_CTC rule (or reconcile last enabled earning row)
+  const remainderIdx = items.findIndex(
+    (item, idx) => item.enabled && item.category !== 'DEDUCTION' && structure.rules[idx]?.calcType === 'REMAINDER_OF_CTC'
+  );
+
+  if (remainderIdx >= 0) {
+    const otherMonthly = items.reduce(
+      (sum, it, i) => (i !== remainderIdx && it.enabled && it.category !== 'DEDUCTION' ? sum + it.monthlyAmount : sum),
+      0
+    );
+    const otherYearly = items.reduce(
+      (sum, it, i) => (i !== remainderIdx && it.enabled && it.category !== 'DEDUCTION' ? sum + it.yearlyAmount : sum),
+      0
+    );
+    items[remainderIdx].monthlyAmount = Math.max(0, monthlyCtc - otherMonthly);
+    items[remainderIdx].yearlyAmount = Math.max(0, safeAnnual - otherYearly);
+  } else {
+    const enabledEarningIndices = items
+      .map((it, i) => (it.enabled && it.category !== 'DEDUCTION' ? i : -1))
+      .filter(i => i >= 0);
+    if (enabledEarningIndices.length > 0) {
+      const lastIdx = enabledEarningIndices[enabledEarningIndices.length - 1];
+      const otherMonthly = enabledEarningIndices
+        .slice(0, -1)
+        .reduce((sum, idx) => sum + items[idx].monthlyAmount, 0);
+      const otherYearly = enabledEarningIndices
+        .slice(0, -1)
+        .reduce((sum, idx) => sum + items[idx].yearlyAmount, 0);
+      items[lastIdx].monthlyAmount = Math.max(0, monthlyCtc - otherMonthly);
+      items[lastIdx].yearlyAmount = Math.max(0, safeAnnual - otherYearly);
+    }
+  }
+
+  return items;
+}
+
+/**
+ * Proportionally scales enabled earnings when HR changes Total Annual CTC while preserving custom rows and deductions.
+ */
+export function recalculateComponentsForNewCtc(
+  newAnnualCtc: number,
+  currentComponents: CompensationLineItem[],
+  structure?: RoleSalaryStructure
+): CompensationLineItem[] {
+  const safeAnnual = Math.max(0, Math.round(newAnnualCtc));
+  const newMonthlyCtc = Math.round(safeAnnual / 12);
+  if (!currentComponents || currentComponents.length === 0) {
+    return buildComponentsFromStructure(safeAnnual, structure || DEFAULT_ROLE_SALARY_STRUCTURES[0]);
+  }
+
+  const currentEarningsAnnual = currentComponents
+    .filter(c => c.enabled && c.category !== 'DEDUCTION')
+    .reduce((s, c) => s + c.yearlyAmount, 0);
+
+  if (currentEarningsAnnual <= 0) {
+    return buildComponentsFromStructure(safeAnnual, structure || DEFAULT_ROLE_SALARY_STRUCTURES[0]);
+  }
+
+  const ratio = safeAnnual / currentEarningsAnnual;
+  const updated = currentComponents.map(comp => {
+    if (!comp.enabled || comp.category === 'DEDUCTION') {
+      return { ...comp };
+    }
+    const monthly = Math.round((comp.monthlyAmount * ratio));
+    return {
+      ...comp,
+      monthlyAmount: monthly,
+      yearlyAmount: monthly * 12,
+    };
+  });
+
+  // Reconcile rounding on last enabled earning component
+  const enabledEarningIndices = updated
+    .map((it, i) => (it.enabled && it.category !== 'DEDUCTION' ? i : -1))
+    .filter(i => i >= 0);
+  if (enabledEarningIndices.length > 0) {
+    const lastIdx = enabledEarningIndices[enabledEarningIndices.length - 1];
+    const otherMonthly = enabledEarningIndices.slice(0, -1).reduce((s, i) => s + updated[i].monthlyAmount, 0);
+    const otherYearly = enabledEarningIndices.slice(0, -1).reduce((s, i) => s + updated[i].yearlyAmount, 0);
+    updated[lastIdx] = {
+      ...updated[lastIdx],
+      monthlyAmount: Math.max(0, newMonthlyCtc - otherMonthly),
+      yearlyAmount: Math.max(0, safeAnnual - otherYearly),
+    };
+  }
+
+  return updated;
+}
+
+/**
+ * Summarizes CompensationLineItem[] into CTC, Basic, PBVP, Retention Bonus, Deductions, and Net Pay.
+ */
+export function summarizeCompensationComponents(
+  components: CompensationLineItem[],
+  market: MarketType = 'Gurgaon'
+) {
+  const enabledEarnings = components.filter(c => c.enabled && c.category !== 'DEDUCTION');
+  const enabledDeductions = components.filter(c => c.enabled && c.category === 'DEDUCTION');
+
+  const monthlyCtc = enabledEarnings.reduce((sum, c) => sum + (Number(c.monthlyAmount) || 0), 0);
+  const annualCtc = enabledEarnings.reduce((sum, c) => sum + (Number(c.yearlyAmount) || 0), 0);
+
+  const basicItem = enabledEarnings.find(c => c.code === 'basic' || c.category === 'BASIC');
+  const pbvpItem = enabledEarnings.find(c => c.code === 'pbvp');
+  const retentionItem = enabledEarnings.find(c => c.code === 'retention_bonus');
+
+  const totalDeductionsMonthly = enabledDeductions.reduce((sum, c) => sum + (Number(c.monthlyAmount) || 0), 0);
+  const totalDeductionsYearly = enabledDeductions.reduce((sum, c) => sum + (Number(c.yearlyAmount) || 0), 0);
+
+  const netPayMonthly = Math.max(0, monthlyCtc - totalDeductionsMonthly);
+  const netPayYearly = Math.max(0, annualCtc - totalDeductionsYearly);
+
+  return {
+    annualCtc,
+    monthlyCtc,
+    basicMonthly: basicItem ? basicItem.monthlyAmount : 0,
+    basicYearly: basicItem ? basicItem.yearlyAmount : 0,
+    pbvpMonthly: pbvpItem ? pbvpItem.monthlyAmount : 0,
+    pbvpYearly: pbvpItem ? pbvpItem.yearlyAmount : 0,
+    retentionBonusMonthly: retentionItem ? retentionItem.monthlyAmount : 0,
+    retentionBonusYearly: retentionItem ? retentionItem.yearlyAmount : 0,
+    totalDeductionsMonthly,
+    totalDeductionsYearly,
+    netPayMonthly,
+    netPayYearly,
+    currency: market === 'Dubai' ? ('AED' as const) : ('INR' as const),
+    ctcLpaFormatted: formatSalaryLpa(annualCtc, market),
+  };
+}
+
+/**
+ * Formats an ISO date (YYYY-MM-DD) into official offer letter format (e.g. "1st September 2026")
+ * while keeping human-formatted strings intact and never inventing a missing date.
+ */
+export function formatOfferJoiningDate(dateStr?: string): string {
+  if (!dateStr || !dateStr.trim()) return '';
+  const trimmed = dateStr.trim();
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!isoMatch) return trimmed;
+
+  const year = parseInt(isoMatch[1], 10);
+  const monthIdx = parseInt(isoMatch[2], 10) - 1;
+  const day = parseInt(isoMatch[3], 10);
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+  if (monthIdx < 0 || monthIdx > 11 || day < 1 || day > 31) return trimmed;
+
+  const mod10 = day % 10;
+  const mod100 = day % 100;
+  let suffix = 'th';
+  if (mod10 === 1 && mod100 !== 11) suffix = 'st';
+  else if (mod10 === 2 && mod100 !== 12) suffix = 'nd';
+  else if (mod10 === 3 && mod100 !== 13) suffix = 'rd';
+
+  return `${day}${suffix} ${months[monthIdx]} ${year}`;
+}
+
+export function inferCandidateSalutation(candidate?: Partial<Employee>, explicitSalutation?: string): string {
+  if (explicitSalutation !== undefined) return explicitSalutation;
+  const rawName = (candidate?.fullName || '').trim();
+  if (/^(Mr\.|Ms\.|Mrs\.|Dr\.)\s+/i.test(rawName)) return '';
+  if (candidate?.gender === 'Female') return 'Ms.';
+  if (candidate?.gender === 'Male') return 'Mr.';
+  return '';
+}
+
+export function formatSalutationName(name: string, salutation?: string): string {
+  const cleanName = (name || '').trim();
+  if (!cleanName) return '';
+  if (/^(Mr\.|Ms\.|Mrs\.|Dr\.)\s+/i.test(cleanName)) {
+    if (salutation !== undefined && salutation !== '') {
+      const stripped = cleanName.replace(/^(Mr\.|Ms\.|Mrs\.|Dr\.)\s+/i, '');
+      return `${salutation.trim()} ${stripped}`.trim();
+    }
+    return cleanName;
+  }
+  const cleanSal = (salutation ?? '').trim();
+  return cleanSal ? `${cleanSal} ${cleanName}` : cleanName;
+}
+
+/**
  * Checks for missing required candidate profile fields for generating the offer letter.
  * Returns array of human-readable labels so HR never invents missing information.
  */
@@ -189,33 +668,34 @@ export function checkOfferMissingFields(
 ): string[] {
   const missing: string[] = [];
 
-  const name = custom?.candidateName || candidate.fullName;
+  const name = custom?.candidateName ?? candidate.fullName;
   if (!name || name.trim() === '') missing.push('Candidate Full Name');
 
-  const designation = custom?.designation || candidate.designation;
+  const designation = custom?.designation ?? candidate.designation;
   if (!designation || designation.trim() === '') missing.push('Designation / Role Title');
 
-  const department = custom?.department || candidate.department;
+  const department = custom?.department ?? candidate.department;
   if (!department || department.trim() === '') missing.push('Department');
 
-  const joiningDate = custom?.joiningDate || candidate.joiningDate;
+  const joiningDate = custom?.joiningDate ?? candidate.joiningDate;
   if (!joiningDate || joiningDate.trim() === '') missing.push('Proposed Joining Date');
 
-  const manager = custom?.reportingManager || candidate.reportingManager;
-  if (!manager || manager.trim() === '' || manager.toLowerCase().includes('unassigned')) {
-    missing.push('Reporting Manager');
-  }
+  const workLoc = custom?.workLocation;
+  if (workLoc !== undefined && workLoc.trim() === '') missing.push('Work Location');
 
-  const address = custom?.candidateAddress || candidate.currentAddress || candidate.permanentAddress;
-  if (!address || address.trim() === '') missing.push('Current / Permanent Residential Address');
+  const empType = custom?.employmentType ?? candidate.employmentStatus;
+  if (!empType || empType.trim() === '') missing.push('Employment Type');
 
-  const email = custom?.candidateEmail || candidate.email;
+  const email = custom?.candidateEmail ?? candidate.email;
   if (!email || email.trim() === '') missing.push('Email Address');
 
-  const phone = custom?.candidatePhone || candidate.phone;
+  const phone = custom?.candidatePhone ?? candidate.phone;
   if (!phone || phone.trim() === '') missing.push('Phone Number');
 
-  const ctc = custom?.salaryBreakup?.annualCtc || candidate.offeredCTC;
+  const compSummaryCtc = custom?.compensationComponents
+    ? custom.compensationComponents.filter(c => c.enabled && c.category !== 'DEDUCTION').reduce((s, c) => s + c.yearlyAmount, 0)
+    : 0;
+  const ctc = compSummaryCtc || custom?.salaryBreakup?.annualCtc || candidate.offeredCTC;
   if (!ctc) missing.push('Offered Annual CTC');
 
   return missing;
@@ -234,12 +714,6 @@ export function calculateAnnexureCompensation(
   const annualCtc = parseAnnualCtc(ctcInput, defaultAmount);
   const monthlyCtc = Math.round(annualCtc / 12);
 
-  // Exact sample PDF breakdown:
-  // For 4.8 LPA (4,80,000 / yr, 40,000 / mo):
-  // Basic: 30,000 / mo (3,60,000 / yr) -> 75%
-  // PBVP: 5,000 / mo (60,000 / yr) -> 12.5%
-  // Retention Bonus: 5,000 / mo (60,000 / yr) -> 12.5%
-  // Total CTC: 40,000 / mo (4,80,000 / yr) -> 100%
   const basicMonthly = Math.round(monthlyCtc * 0.75);
   const basicYearly = basicMonthly * 12;
 
@@ -268,11 +742,10 @@ export function calculateAnnexureCompensation(
  */
 export function formatSalaryLpa(annualCtc: number, market: MarketType = 'Gurgaon'): string {
   if (market === 'Dubai') {
-    const lakhEquiv = (annualCtc / 100000).toFixed(1).replace(/\.0$/, '');
-    return `AED ${annualCtc.toLocaleString()} (${lakhEquiv} Lakhs/yr)`;
+    return `AED ${Math.round(annualCtc).toLocaleString('en-IN')} per annum`;
   }
-  const lpa = (annualCtc / 100000).toFixed(1).replace(/\.0$/, '');
-  return `Rs. ${lpa} LPA`;
+  const lpaNum = Number((annualCtc / 100000).toFixed(2));
+  return `Rs. ${lpaNum} LPA`;
 }
 
 /**
@@ -474,95 +947,194 @@ export const DEFAULT_OFFER_CLAUSES = Object.values(WCR_ORIGINAL_OFFER_SECTIONS).
 );
 
 /**
- * Creates or updates an OfferLetterData object for a candidate.
+ * Creates or updates an OfferLetterData object for a candidate using configurable role-based salary structures.
+ * Never invents missing candidate details.
  */
 export function buildOfferLetterData(
   candidate: Employee,
-  customOverrides?: Partial<OfferLetterData>
+  customOverrides?: Partial<OfferLetterData>,
+  salaryStructures: RoleSalaryStructure[] = DEFAULT_ROLE_SALARY_STRUCTURES
 ): OfferLetterData {
+  const existing = candidate.offerLetter;
+  const mergedInput: Partial<OfferLetterData> = {
+    ...(existing || {}),
+    ...(customOverrides || {}),
+  };
+
   const currentYear = new Date().getFullYear();
   const sequenceNum = Math.floor(100 + Math.random() * 900);
-  const refNo = customOverrides?.refNo || `WCR/HR/OL/${currentYear}/${candidate.employeeCode || sequenceNum}`;
+  const refNo = mergedInput.refNo || `WCR/HR/OL/${currentYear}/${candidate.employeeCode || sequenceNum}`;
 
-  const issueDate = customOverrides?.issueDate || new Date().toISOString().split('T')[0];
-  const market = customOverrides?.market || candidate.market || 'Gurgaon';
+  const issueDate = mergedInput.issueDate || new Date().toISOString().split('T')[0];
+  const market = mergedInput.market || candidate.market || 'Gurgaon';
   const isDubai = market === 'Dubai';
 
+  const designation = mergedInput.designation !== undefined ? mergedInput.designation : (candidate.designation || '');
+  const department = mergedInput.department !== undefined ? mergedInput.department : (candidate.department || '');
+  const employmentType =
+    mergedInput.employmentType ||
+    (candidate.employmentStatus === 'Upcoming Joiner' ? 'Full-Time' : candidate.employmentStatus) ||
+    'Full-Time';
+
   const workLocation =
-    customOverrides?.workLocation ||
-    (isDubai
-      ? 'White Collar Realty DIFC Branch, Gate Precinct 4, Dubai, UAE'
-      : '6th floor, TOWER-A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101');
+    mergedInput.workLocation !== undefined
+      ? mergedInput.workLocation
+      : isDubai
+        ? 'White Collar Realty DIFC Branch, Gate Precinct 4, Dubai, UAE'
+        : '6th floor, TOWER-A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101';
 
-  const annexComp = calculateAnnexureCompensation(customOverrides?.salaryBreakup?.annualCtc || candidate.offeredCTC, market);
-  const salaryBreakup =
-    customOverrides?.salaryBreakup ||
-    calculateSalaryBreakup(annexComp.annualCtc, market);
+  const place =
+    mergedInput.place !== undefined
+      ? mergedInput.place
+      : isDubai
+        ? 'Dubai, UAE'
+        : 'Gurugram, Haryana';
 
-  const missingFields = checkOfferMissingFields(candidate, customOverrides);
+  const matchedStructure =
+    (mergedInput.roleStructureId && salaryStructures.find(s => s.id === mergedInput.roleStructureId)) ||
+    findMatchingRoleStructure(designation, salaryStructures, market, employmentType);
 
-  // Valid till 14 days from issue date
+  let compensationComponents: CompensationLineItem[];
+  if (customOverrides?.compensationComponents && customOverrides.compensationComponents.length > 0) {
+    compensationComponents = customOverrides.compensationComponents.map(c => ({
+      ...c,
+      monthlyAmount: Math.round(Number(c.monthlyAmount) || 0),
+      yearlyAmount: Math.round(Number(c.yearlyAmount) || 0),
+    }));
+  } else if (existing?.compensationComponents && existing.compensationComponents.length > 0 && !customOverrides?.salaryBreakup?.annualCtc) {
+    compensationComponents = existing.compensationComponents;
+  } else {
+    const rawCandidateCtc =
+      customOverrides?.salaryBreakup?.annualCtc ||
+      (candidate.offeredCTC && !candidate.offeredCTC.includes('RESTRICTED')
+        ? parseAnnualCtc(candidate.offeredCTC, matchedStructure.defaultAnnualCtc)
+        : matchedStructure.defaultAnnualCtc);
+    compensationComponents = buildComponentsFromStructure(rawCandidateCtc, matchedStructure);
+    // Preserve legacy 3-component custom edits if present without compensationComponents
+    if (!customOverrides?.compensationComponents && (customOverrides?.basicMonthly !== undefined || customOverrides?.pbvpMonthly !== undefined || customOverrides?.retentionBonusMonthly !== undefined)) {
+      compensationComponents = compensationComponents.map(item => {
+        if (item.code === 'basic' && customOverrides.basicMonthly !== undefined) {
+          return { ...item, monthlyAmount: customOverrides.basicMonthly, yearlyAmount: customOverrides.basicYearly ?? customOverrides.basicMonthly * 12, enabled: true };
+        }
+        if (item.code === 'pbvp' && customOverrides.pbvpMonthly !== undefined) {
+          return { ...item, monthlyAmount: customOverrides.pbvpMonthly, yearlyAmount: customOverrides.pbvpYearly ?? customOverrides.pbvpMonthly * 12, enabled: true };
+        }
+        if (item.code === 'retention_bonus' && customOverrides.retentionBonusMonthly !== undefined) {
+          return { ...item, monthlyAmount: customOverrides.retentionBonusMonthly, yearlyAmount: customOverrides.retentionBonusYearly ?? customOverrides.retentionBonusMonthly * 12, enabled: true };
+        }
+        return item;
+      });
+    }
+  }
+
+  const compSummary = summarizeCompensationComponents(compensationComponents, market);
+  const salaryBreakup: SalaryBreakup = {
+    ...(calculateSalaryBreakup(compSummary.annualCtc, market)),
+    ...(mergedInput.salaryBreakup || {}),
+    annualCtc: compSummary.annualCtc,
+    monthlyCtc: compSummary.monthlyCtc,
+    basicMonthly: compSummary.basicMonthly,
+    basicAnnual: compSummary.basicYearly,
+    grossMonthly: compSummary.monthlyCtc,
+    grossAnnual: compSummary.annualCtc,
+    approxNetInHandMonthly: compSummary.netPayMonthly,
+    currency: compSummary.currency,
+  };
+
+  //Valid till 14 days from issue date
   const issueDateObj = new Date(issueDate);
-  issueDateObj.setDate(issueDateObj.getDate() + 14);
-  const validTillDate = customOverrides?.validTillDate || issueDateObj.toISOString().split('T')[0];
+  if (!isNaN(issueDateObj.getTime())) {
+    issueDateObj.setDate(issueDateObj.getDate() + 14);
+  }
+  const validTillDate =
+    mergedInput.validTillDate ||
+    (!isNaN(issueDateObj.getTime()) ? issueDateObj.toISOString().split('T')[0] : issueDate);
 
   const sectionsContent: Record<string, string> = {};
   Object.entries(WCR_ORIGINAL_OFFER_SECTIONS).forEach(([k, v]) => {
-    sectionsContent[k] = customOverrides?.annexureSections?.[k] || v.content;
+    sectionsContent[k] = mergedInput.annexureSections?.[k] || v.content;
+  });
+
+  const rawJoiningDate =
+    customOverrides?.joiningDate !== undefined
+      ? customOverrides.joiningDate
+      : existing?.joiningDate || candidate.joiningDate || '';
+  const joiningDate = formatOfferJoiningDate(rawJoiningDate);
+
+  const salutation = inferCandidateSalutation(candidate, mergedInput.salutation);
+
+  const missingFields = checkOfferMissingFields(candidate, {
+    ...mergedInput,
+    candidateName: mergedInput.candidateName !== undefined ? mergedInput.candidateName : candidate.fullName,
+    designation,
+    department,
+    employmentType,
+    joiningDate,
+    workLocation,
+    compensationComponents,
+    salaryBreakup,
   });
 
   return {
     refNo,
     issueDate,
-    candidateName: customOverrides?.candidateName || candidate.fullName,
-    candidateAddress: customOverrides?.candidateAddress || candidate.currentAddress || candidate.permanentAddress || '',
-    candidateEmail: customOverrides?.candidateEmail || candidate.email,
-    candidatePhone: customOverrides?.candidatePhone || candidate.phone,
-    designation: customOverrides?.designation || candidate.designation,
-    department: customOverrides?.department || candidate.department,
-    reportingManager: customOverrides?.reportingManager || candidate.reportingManager || '',
-    joiningDate: customOverrides?.joiningDate || candidate.joiningDate || '1st September 2026',
+    salutation,
+    candidateName: mergedInput.candidateName !== undefined ? mergedInput.candidateName : candidate.fullName,
+    candidateAddress: mergedInput.candidateAddress !== undefined ? mergedInput.candidateAddress : (candidate.currentAddress || candidate.permanentAddress || ''),
+    candidateEmail: mergedInput.candidateEmail !== undefined ? mergedInput.candidateEmail : candidate.email,
+    candidatePhone: mergedInput.candidatePhone !== undefined ? mergedInput.candidatePhone : candidate.phone,
+    designation,
+    department,
+    employmentType,
+    reportingManager: mergedInput.reportingManager !== undefined ? mergedInput.reportingManager : (candidate.reportingManager || ''),
+    joiningDate,
     workLocation,
+    place,
     market,
-    probationMonths: customOverrides?.probationMonths || 6,
-    noticePeriodDays: customOverrides?.noticePeriodDays || 45,
+    probationMonths: mergedInput.probationMonths || 6,
+    noticePeriodDays: mergedInput.noticePeriodDays || 45,
     validTillDate,
-    status: customOverrides?.status || 'Draft',
+    status: mergedInput.status || 'Draft',
     salaryBreakup,
-    clauses: customOverrides?.clauses && customOverrides.clauses.length > 0 ? customOverrides.clauses : DEFAULT_OFFER_CLAUSES,
+    roleStructureId: matchedStructure.id,
+    compensationComponents,
+    totalDeductionsMonthly: compSummary.totalDeductionsMonthly,
+    totalDeductionsYearly: compSummary.totalDeductionsYearly,
+    netPayMonthly: compSummary.netPayMonthly,
+    netPayYearly: compSummary.netPayYearly,
+    clauses: mergedInput.clauses && mergedInput.clauses.length > 0 ? mergedInput.clauses : DEFAULT_OFFER_CLAUSES,
     missingFields,
-    approvedBy: customOverrides?.approvedBy,
-    approvedAt: customOverrides?.approvedAt,
-    issuedAt: customOverrides?.issuedAt,
-    acceptedAt: customOverrides?.acceptedAt,
-    candidateSignatureName: customOverrides?.candidateSignatureName,
-    signedAt: customOverrides?.signedAt,
-    pdfPath: customOverrides?.pdfPath,
-    templateVersion: customOverrides?.templateVersion || 'v1.0-official-10page',
-    customNotes: customOverrides?.customNotes || '',
-    // White Collar Realty 10-Page Exact Template Fields
-    recruiterName: customOverrides?.recruiterName || 'Nisha',
-    recruiterTitle: customOverrides?.recruiterTitle || 'Human Resources Recruiter',
-    recruiterPhone: customOverrides?.recruiterPhone || '+91 124-4349007',
-    recruiterEmail: customOverrides?.recruiterEmail || 'hr@whitecollarrealty.com',
-    ctcLpaFormatted: customOverrides?.ctcLpaFormatted || annexComp.lpaFormatted,
-    basicMonthly: customOverrides?.basicMonthly || annexComp.basicMonthly,
-    basicYearly: customOverrides?.basicYearly || annexComp.basicYearly,
-    pbvpMonthly: customOverrides?.pbvpMonthly || annexComp.pbvpMonthly,
-    pbvpYearly: customOverrides?.pbvpYearly || annexComp.pbvpYearly,
-    retentionBonusMonthly: customOverrides?.retentionBonusMonthly || annexComp.retentionBonusMonthly,
-    retentionBonusYearly: customOverrides?.retentionBonusYearly || annexComp.retentionBonusYearly,
+    approvedBy: mergedInput.approvedBy,
+    approvedAt: mergedInput.approvedAt,
+    issuedAt: mergedInput.issuedAt,
+    acceptedAt: mergedInput.acceptedAt,
+    candidateSignatureName: mergedInput.candidateSignatureName,
+    signedAt: mergedInput.signedAt,
+    pdfPath: mergedInput.pdfPath,
+    templateVersion: mergedInput.templateVersion || 'v1.0-official-10page',
+    customNotes: mergedInput.customNotes || '',
+    recruiterName: mergedInput.recruiterName || 'Nisha',
+    recruiterTitle: mergedInput.recruiterTitle || 'Human Resources Recruiter',
+    recruiterPhone: mergedInput.recruiterPhone || '+91 124-4349007',
+    recruiterEmail: mergedInput.recruiterEmail || 'hr@whitecollarrealty.com',
+    ctcLpaFormatted: customOverrides?.ctcLpaFormatted || compSummary.ctcLpaFormatted,
+    basicMonthly: compSummary.basicMonthly,
+    basicYearly: compSummary.basicYearly,
+    pbvpMonthly: compSummary.pbvpMonthly,
+    pbvpYearly: compSummary.pbvpYearly,
+    retentionBonusMonthly: compSummary.retentionBonusMonthly,
+    retentionBonusYearly: compSummary.retentionBonusYearly,
     annexureSections: sectionsContent,
-    templateHistory: customOverrides?.templateHistory || [
+    templateHistory: mergedInput.templateHistory || [
       {
         version: 'v1.0-official-10page',
         updatedAt: '2026-10-29T00:00:00.000Z',
         updatedBy: 'Corporate HR (System Master)',
-        changeSummary: 'Exact 10-page master template digitized from corporate Sample Offer Letter PDF.',
+        changeSummary: 'Exact 10-page master template digitized from corporate Sample Offer Letter.',
       },
     ],
-    emailSentAt: customOverrides?.emailSentAt,
-    emailSentBy: customOverrides?.emailSentBy,
+    emailSentAt: mergedInput.emailSentAt,
+    emailSentBy: mergedInput.emailSentBy,
   };
 }
 

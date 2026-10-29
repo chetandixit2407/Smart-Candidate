@@ -22,6 +22,7 @@ import type {
   FullAndFinalSettlement,
   LifecycleStage,
   LifecycleHistoryEntry,
+  RoleSalaryStructure,
 } from '../src/types/index.ts';
 import {
   ALL_DESK_CODES,
@@ -39,12 +40,14 @@ import {
   calculateSalaryBreakup,
   calculateFullAndFinalSettlement,
   checkOfferMissingFields,
+  DEFAULT_ROLE_SALARY_STRUCTURES,
 } from './lifecycleEngine.ts';
 
 interface DatabaseSchema {
   employees: Employee[];
   assets: CompanyAsset[];
   auditLogs: AuditLog[];
+  salaryStructures?: RoleSalaryStructure[];
   acknowledgedAlerts: Record<string, { dismissedAt: string; dismissedBy: string }>;
   version: number;
   lastUpdated: string;
@@ -81,6 +84,9 @@ class DatabaseService {
         // If version 3, load existing database
         if (parsed.version === 3 && parsed.employees && parsed.assets) {
           if (!parsed.acknowledgedAlerts) parsed.acknowledgedAlerts = {};
+          if (!parsed.salaryStructures || !Array.isArray(parsed.salaryStructures) || parsed.salaryStructures.length === 0) {
+            parsed.salaryStructures = JSON.parse(JSON.stringify(DEFAULT_ROLE_SALARY_STRUCTURES));
+          }
           console.log(`[DB] Successfully loaded ${parsed.employees.length} employees and ${parsed.assets.length} assets from disk (v3).`);
           return parsed;
         }
@@ -95,6 +101,7 @@ class DatabaseService {
       employees: initialEmployees,
       assets: SEED_ASSETS,
       auditLogs: INITIAL_AUDIT_LOGS,
+      salaryStructures: JSON.parse(JSON.stringify(DEFAULT_ROLE_SALARY_STRUCTURES)),
       acknowledgedAlerts: {},
       version: 3,
       lastUpdated: new Date().toISOString(),
@@ -237,7 +244,107 @@ class DatabaseService {
         visaStatus: emp.identityDetails.visaStatus,
       } : undefined,
       googleDriveLink: emp.googleDriveLink ? '🔒 [RESTRICTED TO HR ADMIN]' : undefined,
+      offerLetter: emp.offerLetter
+        ? {
+            ...emp.offerLetter,
+            ctcLpaFormatted: '🔒 [RESTRICTED]',
+            basicMonthly: 0,
+            basicYearly: 0,
+            pbvpMonthly: 0,
+            pbvpYearly: 0,
+            retentionBonusMonthly: 0,
+            retentionBonusYearly: 0,
+            totalDeductionsMonthly: 0,
+            totalDeductionsYearly: 0,
+            netPayMonthly: 0,
+            netPayYearly: 0,
+            compensationComponents: [],
+            salaryBreakup: {
+              ...emp.offerLetter.salaryBreakup,
+              annualCtc: 0,
+              monthlyCtc: 0,
+              basicMonthly: 0,
+              basicAnnual: 0,
+              hraMonthly: 0,
+              hraAnnual: 0,
+              specialAllowanceMonthly: 0,
+              specialAllowanceAnnual: 0,
+              grossMonthly: 0,
+              grossAnnual: 0,
+              approxNetInHandMonthly: 0,
+            },
+          }
+        : undefined,
     };
+  }
+
+  // --- Configurable Role Salary Structures ---
+  public getSalaryStructures(): RoleSalaryStructure[] {
+    if (!this.data.salaryStructures || this.data.salaryStructures.length === 0) {
+      this.data.salaryStructures = JSON.parse(JSON.stringify(DEFAULT_ROLE_SALARY_STRUCTURES));
+    }
+    return this.data.salaryStructures!;
+  }
+
+  public saveSalaryStructure(
+    structureInput: Partial<RoleSalaryStructure> & { designation: string },
+    actor: string,
+    actorRole: UserRole
+  ): RoleSalaryStructure {
+    const list = this.getSalaryStructures();
+    const now = new Date().toISOString();
+    const id = structureInput.id || `role-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const existingIdx = list.findIndex(s => s.id === id);
+
+    const saved: RoleSalaryStructure = {
+      id,
+      designation: structureInput.designation.trim(),
+      department: structureInput.department || 'Sales & Investments',
+      employmentType: structureInput.employmentType || 'Full-Time',
+      market: structureInput.market || 'Gurgaon',
+      defaultAnnualCtc: Math.max(0, Math.round(Number(structureInput.defaultAnnualCtc) || 480000)),
+      rules:
+        structureInput.rules && structureInput.rules.length > 0
+          ? structureInput.rules
+          : DEFAULT_ROLE_SALARY_STRUCTURES[0].rules,
+      updatedAt: now,
+    };
+
+    if (existingIdx >= 0) {
+      list[existingIdx] = saved;
+    } else {
+      list.push(saved);
+    }
+
+    this.logAudit(
+      actor,
+      actorRole,
+      existingIdx >= 0 ? 'Updated Role Salary Structure' : 'Created Role Salary Structure',
+      'SalaryStructure',
+      saved.id,
+      saved.designation,
+      `Configured default CTC ${saved.market === 'Dubai' ? 'AED' : 'INR'} ${saved.defaultAnnualCtc.toLocaleString()} with ${saved.rules.filter(r => r.enabled).length} active components.`
+    );
+    this.persist();
+    return saved;
+  }
+
+  public deleteSalaryStructure(id: string, actor: string, actorRole: UserRole): boolean {
+    const list = this.getSalaryStructures();
+    const target = list.find(s => s.id === id);
+    if (!target || list.length <= 1) return false;
+    this.data.salaryStructures = list.filter(s => s.id !== id);
+    this.logAudit(
+      actor,
+      actorRole,
+      'Deleted Role Salary Structure',
+      'SalaryStructure',
+      id,
+      target.designation,
+      `Removed role salary structure for ${target.designation}.`
+    );
+    this.persist();
+    return true;
   }
 
   public createEmployee(empData: Partial<Employee>, actor: string, actorRole: UserRole): Employee {
@@ -1051,42 +1158,74 @@ class DatabaseService {
     actor: string,
     actorRole: UserRole,
     customOverrides?: Partial<OfferLetterData>
-  ): { success: boolean; candidate?: Employee; offerLetter?: OfferLetterData; message: string } {
+  ): { success: boolean; candidate?: Employee; employee?: Employee; offerLetter?: OfferLetterData; message: string } {
     const candidate = this.data.employees.find(e => e.id === candidateId);
     if (!candidate) return { success: false, message: 'Candidate not found.' };
 
-    const offerLetter = buildOfferLetterData(candidate, customOverrides);
+    const offerLetter = buildOfferLetterData(candidate, customOverrides, this.getSalaryStructures());
     candidate.offerLetter = offerLetter;
-    if (customOverrides?.salaryBreakup?.annualCtc) {
-      candidate.offeredCTC = `${(customOverrides.salaryBreakup.annualCtc / 100000).toFixed(1)} LPA`;
+
+    // Keep HR candidate record synchronized with dynamic offer details
+    if (offerLetter.candidateName && offerLetter.candidateName.trim()) {
+      candidate.fullName = offerLetter.candidateName.trim();
     }
+    if (offerLetter.designation && offerLetter.designation.trim()) {
+      candidate.designation = offerLetter.designation.trim();
+    }
+    if (offerLetter.department && offerLetter.department.trim()) {
+      candidate.department = offerLetter.department.trim();
+    }
+    if (offerLetter.reportingManager !== undefined && offerLetter.reportingManager.trim()) {
+      candidate.reportingManager = offerLetter.reportingManager.trim();
+    }
+    if (offerLetter.candidateEmail && offerLetter.candidateEmail.trim()) {
+      candidate.email = offerLetter.candidateEmail.trim();
+    }
+    if (offerLetter.candidatePhone && offerLetter.candidatePhone.trim()) {
+      candidate.phone = offerLetter.candidatePhone.trim();
+    }
+    if (offerLetter.candidateAddress && offerLetter.candidateAddress.trim()) {
+      candidate.currentAddress = offerLetter.candidateAddress.trim();
+    }
+    if (offerLetter.market) {
+      candidate.market = offerLetter.market;
+    }
+    if (customOverrides?.joiningDate && customOverrides.joiningDate.trim()) {
+      candidate.joiningDate = customOverrides.joiningDate.trim();
+    }
+    if (offerLetter.salaryBreakup?.annualCtc) {
+      candidate.offeredCTC = offerLetter.ctcLpaFormatted || `${Number((offerLetter.salaryBreakup.annualCtc / 100000).toFixed(2))} LPA`;
+    }
+    candidate.profileCompletion = calculateCompletion(candidate);
+    candidate.updatedAt = new Date().toISOString();
 
     this.addLifecycleEvent(
       candidate,
       'Offer Extended',
-      `Executive Offer Letter Prepared: Ref ${offerLetter.refNo}`,
-      `Prepared offer letter for ${offerLetter.designation} (${offerLetter.department}) with Annual CTC of ${offerLetter.salaryBreakup.currency} ${offerLetter.salaryBreakup.annualCtc.toLocaleString()}. Status: ${offerLetter.status}.`,
+      `Executive Offer Letter Saved: Ref ${offerLetter.refNo}`,
+      `Saved offer letter for ${offerLetter.designation} (${offerLetter.department}) with Annual CTC of ${offerLetter.salaryBreakup.currency} ${offerLetter.salaryBreakup.annualCtc.toLocaleString()}. Status: ${offerLetter.status}.`,
       actor,
       actorRole
     );
 
     this.persist();
-    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter });
+    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter, employee: candidate });
     this.broadcast('EMPLOYEE_UPDATED', candidate);
-    return { success: true, candidate, offerLetter, message: 'Offer letter generated successfully.' };
+    return { success: true, candidate, employee: candidate, offerLetter, message: 'Offer letter saved to candidate record.' };
   }
 
   public approveOfferLetter(
     candidateId: string,
     actor: string,
     actorRole: UserRole
-  ): { success: boolean; candidate?: Employee; offerLetter?: OfferLetterData; message: string } {
+  ): { success: boolean; candidate?: Employee; employee?: Employee; offerLetter?: OfferLetterData; message: string } {
     const candidate = this.data.employees.find(e => e.id === candidateId);
     if (!candidate || !candidate.offerLetter) return { success: false, message: 'Candidate or offer letter not found.' };
 
     candidate.offerLetter.status = 'Approved';
     candidate.offerLetter.approvedBy = actor;
     candidate.offerLetter.approvedAt = new Date().toISOString();
+    candidate.updatedAt = new Date().toISOString();
 
     this.addLifecycleEvent(
       candidate,
@@ -1098,22 +1237,23 @@ class DatabaseService {
     );
 
     this.persist();
-    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter });
+    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter, employee: candidate });
     this.broadcast('EMPLOYEE_UPDATED', candidate);
-    return { success: true, candidate, offerLetter: candidate.offerLetter, message: 'Offer letter approved successfully.' };
+    return { success: true, candidate, employee: candidate, offerLetter: candidate.offerLetter, message: 'Offer letter approved successfully.' };
   }
 
   public issueOfferLetter(
     candidateId: string,
     actor: string,
     actorRole: UserRole
-  ): { success: boolean; candidate?: Employee; offerLetter?: OfferLetterData; message: string } {
+  ): { success: boolean; candidate?: Employee; employee?: Employee; offerLetter?: OfferLetterData; message: string } {
     const candidate = this.data.employees.find(e => e.id === candidateId);
     if (!candidate || !candidate.offerLetter) return { success: false, message: 'Candidate or offer letter not found.' };
 
     candidate.offerLetter.status = 'Issued';
     candidate.offerLetter.issuedAt = new Date().toISOString();
     candidate.candidateStatus = 'Offer Extended';
+    candidate.updatedAt = new Date().toISOString();
 
     this.addLifecycleEvent(
       candidate,
@@ -1125,9 +1265,9 @@ class DatabaseService {
     );
 
     this.persist();
-    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter });
+    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter, employee: candidate });
     this.broadcast('EMPLOYEE_UPDATED', candidate);
-    return { success: true, candidate, offerLetter: candidate.offerLetter, message: 'Offer letter issued to candidate.' };
+    return { success: true, candidate, employee: candidate, offerLetter: candidate.offerLetter, message: 'Offer letter issued to candidate.' };
   }
 
   public acceptOfferLetter(
@@ -1135,7 +1275,7 @@ class DatabaseService {
     signatureName: string,
     actor = 'Candidate Portal',
     actorRole: UserRole = 'HR_MANAGER'
-  ): { success: boolean; candidate?: Employee; offerLetter?: OfferLetterData; message: string } {
+  ): { success: boolean; candidate?: Employee; employee?: Employee; offerLetter?: OfferLetterData; message: string } {
     const candidate = this.data.employees.find(e => e.id === candidateId);
     if (!candidate || !candidate.offerLetter) return { success: false, message: 'Candidate or offer letter not found.' };
 
@@ -1144,6 +1284,7 @@ class DatabaseService {
     candidate.offerLetter.candidateSignatureName = signatureName || candidate.fullName;
     candidate.offerLetter.signedAt = new Date().toISOString();
     candidate.candidateStatus = 'Offer Accepted';
+    candidate.updatedAt = new Date().toISOString();
 
     this.addLifecycleEvent(
       candidate,
@@ -1155,16 +1296,16 @@ class DatabaseService {
     );
 
     this.persist();
-    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter });
+    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter, employee: candidate });
     this.broadcast('EMPLOYEE_UPDATED', candidate);
-    return { success: true, candidate, offerLetter: candidate.offerLetter, message: 'Offer accepted successfully.' };
+    return { success: true, candidate, employee: candidate, offerLetter: candidate.offerLetter, message: 'Offer accepted successfully.' };
   }
 
   public emailOfferLetter(
     candidateId: string,
     actor: string,
     actorRole: UserRole
-  ): { success: boolean; candidate?: Employee; message: string; error?: string } {
+  ): { success: boolean; candidate?: Employee; employee?: Employee; message: string; error?: string } {
     const candidate = this.data.employees.find(e => e.id === candidateId);
     if (!candidate || !candidate.offerLetter) {
       return { success: false, message: 'Candidate or offer letter not found.', error: 'Candidate or offer letter not found.' };
@@ -1197,11 +1338,12 @@ class DatabaseService {
     );
 
     this.persist();
-    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter });
+    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter, employee: candidate });
     this.broadcast('EMPLOYEE_UPDATED', candidate);
     return {
       success: true,
       candidate,
+      employee: candidate,
       message: `Official 10-page offer letter successfully emailed to ${candidate.fullName} at ${candidate.email}.`,
     };
   }

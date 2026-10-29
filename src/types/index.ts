@@ -213,24 +213,66 @@ export interface OfferTemplateRevision {
   customClauses?: Record<string, string>;
 }
 
+export type SalaryComponentCategory = 'BASIC' | 'ALLOWANCE' | 'VARIABLE' | 'DEDUCTION';
+
+export interface CompensationLineItem {
+  id: string;
+  code: string;
+  label: string;
+  category: SalaryComponentCategory;
+  monthlyAmount: number;
+  yearlyAmount: number;
+  enabled: boolean;
+  isCustom?: boolean;
+}
+
+export interface RoleSalaryStructureRule {
+  code: string;
+  label: string;
+  category: SalaryComponentCategory;
+  calcType: 'PERCENT_OF_CTC' | 'PERCENT_OF_BASIC' | 'FIXED_MONTHLY' | 'REMAINDER_OF_CTC';
+  value: number;
+  enabled: boolean;
+}
+
+export interface RoleSalaryStructure {
+  id: string;
+  designation: string;
+  department: string;
+  employmentType: string;
+  market: MarketType;
+  defaultAnnualCtc: number;
+  rules: RoleSalaryStructureRule[];
+  updatedAt?: string;
+}
+
 export interface OfferLetterData {
   refNo: string;
   issueDate: string;
+  salutation?: string;
   candidateName: string;
   candidateAddress: string;
   candidateEmail: string;
   candidatePhone: string;
   designation: string;
   department: string;
+  employmentType?: string;
   reportingManager: string;
   joiningDate: string;
   workLocation: string;
+  place?: string;
   market: MarketType;
   probationMonths: number;
   noticePeriodDays: number;
   validTillDate: string;
   status: 'Draft' | 'Under Review' | 'Approved' | 'Issued' | 'Accepted' | 'Declined';
   salaryBreakup: SalaryBreakup;
+  roleStructureId?: string;
+  compensationComponents?: CompensationLineItem[];
+  totalDeductionsMonthly?: number;
+  totalDeductionsYearly?: number;
+  netPayMonthly?: number;
+  netPayYearly?: number;
   clauses: string[];
   missingFields: string[];
   approvedBy?: string;
@@ -540,6 +582,7 @@ export interface AuditLog {
     | 'Import'
     | 'Lifecycle'
     | 'OfferLetter'
+    | 'SalaryStructure'
     | 'ExitClearance'
     | 'Settlement';
   entityName: string;
