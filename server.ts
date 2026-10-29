@@ -257,27 +257,36 @@ app.post('/api/employees/:id/documents/:docKey/upload', (req: Request, res: Resp
 
 // Helper to handle secure document serving and downloading
 function handleDocumentStreaming(req: Request, res: Response, isDownload: boolean) {
-  const { role } = getAuthContext(req);
   const employeeId = req.params.id;
   const docKey = req.params.docKey;
+  const queryToken = req.query.token as string | undefined;
 
-  const employee = db.getEmployeeById(employeeId, role);
-  if (!employee) {
-    res.status(404).json({ error: 'Employee not found' });
+  // Authorization check: Either authorized staff role OR candidate with valid token matching this employeeId
+  const { role } = getAuthContext(req);
+  let isAuthorized = role === 'HR_ADMIN' || role === 'HR_MANAGER' || role === 'DEPT_HEAD_VIEWER';
+
+  if (!isAuthorized && queryToken) {
+    const publicCand = db.getPublicCandidateByToken(queryToken);
+    if (publicCand.valid && publicCand.candidate?.id === employeeId) {
+      isAuthorized = true;
+    }
+  }
+
+  if (!isAuthorized) {
+    res.status(403).json({ error: 'Unauthorized: Access to private personnel documents is restricted.' });
     return;
   }
 
-  const document = employee.documents?.[docKey];
-  if (!document) {
-    res.status(404).json({ error: 'Document not found' });
+  const fileInfo = db.getSecureDocumentFile(employeeId, docKey);
+  if (!fileInfo) {
+    res.status(404).json({ error: 'No document file has been uploaded for this item yet.' });
     return;
   }
 
-  const sanitizedFileName = (document.fileName || `${docKey}.pdf`).replace(/[^a-zA-Z0-9._-]/g, '_');
-  const mimeType = document.mimeType || (sanitizedFileName.endsWith('.png') ? 'image/png' : sanitizedFileName.endsWith('.jpg') || sanitizedFileName.endsWith('.jpeg') ? 'image/jpeg' : 'application/pdf');
-
+  const sanitizedFileName = fileInfo.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+  res.setHeader('Content-Type', fileInfo.mimeType);
 
   if (isDownload) {
     res.setHeader('Content-Disposition', `attachment; filename="${sanitizedFileName}"`);
@@ -285,46 +294,21 @@ function handleDocumentStreaming(req: Request, res: Response, isDownload: boolea
     res.setHeader('Content-Disposition', `inline; filename="${sanitizedFileName}"`);
   }
 
-  // 1. If base64 fileData is present
-  if (document.fileData && document.fileData.startsWith('data:')) {
-    const matches = document.fileData.match(/^data:([^;]+);base64,(.+)$/);
-    if (matches) {
-      const detectedMime = matches[1] || mimeType;
-      const buffer = Buffer.from(matches[2], 'base64');
-      res.setHeader('Content-Type', detectedMime);
-      res.setHeader('Content-Length', buffer.length.toString());
-      res.send(buffer);
-      return;
-    }
+  if (fileInfo.buffer) {
+    res.setHeader('Content-Length', fileInfo.buffer.length.toString());
+    res.send(fileInfo.buffer);
+    return;
   }
 
-  // 2. If fileData is a public or assets path
-  let relativeFilePath: string | null = null;
-  if (document.fileData && !document.fileData.startsWith('data:')) {
-    relativeFilePath = document.fileData.replace(/^\//, '');
-  } else {
-    // Default fallback demo PDFs for realistic verification
-    const fname = (document.fileName || '').toLowerCase();
-    if (fname.includes('information') || fname.includes('sheet')) {
-      relativeFilePath = 'assets/aistudio/Chetan_Information_Sheet_-_Sheet1_06bd8f64.pdf';
-    } else {
-      relativeFilePath = 'assets/aistudio/Employees_Details__Birthday___-_Sheet1_8b0b9282.pdf';
-    }
+  if (fileInfo.filePath && fs.existsSync(fileInfo.filePath)) {
+    const stat = fs.statSync(fileInfo.filePath);
+    res.setHeader('Content-Length', stat.size.toString());
+    const stream = fs.createReadStream(fileInfo.filePath);
+    stream.pipe(res);
+    return;
   }
 
-  if (relativeFilePath) {
-    const publicPath = path.join(__dirname, 'public', relativeFilePath);
-    if (fs.existsSync(publicPath)) {
-      res.setHeader('Content-Type', mimeType);
-      const stat = fs.statSync(publicPath);
-      res.setHeader('Content-Length', stat.size.toString());
-      const stream = fs.createReadStream(publicPath);
-      stream.pipe(res);
-      return;
-    }
-  }
-
-  res.status(404).json({ error: 'Document file not available' });
+  res.status(404).json({ error: 'Document file not found on secure storage.' });
 }
 
 // Secure Document View & Download Endpoints
@@ -336,7 +320,7 @@ app.get('/api/employees/:id/documents/:docKey/download', (req: Request, res: Res
   handleDocumentStreaming(req, res, true);
 });
 
-// Candidate one-time upload link management
+// Candidate document upload link management with configurable expiry and single/multi use
 app.post('/api/candidates/:id/upload-link/generate', (req: Request, res: Response) => {
   const { actor, role } = getAuthContext(req);
   if (role === 'DEPT_HEAD_VIEWER') {
@@ -344,7 +328,12 @@ app.post('/api/candidates/:id/upload-link/generate', (req: Request, res: Respons
     return;
   }
 
-  const result = db.generateUploadToken(req.params.id, actor, role);
+  const { expiryDays, isOneTime } = req.body || {};
+  const result = db.generateUploadToken(req.params.id, actor, role, {
+    expiryDays: typeof expiryDays === 'number' ? expiryDays : undefined,
+    isOneTime: typeof isOneTime === 'boolean' ? isOneTime : undefined,
+  });
+
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -387,6 +376,212 @@ app.post('/api/public/upload-portal/:token/submit', (req: Request, res: Response
   }
 
   const result = db.submitCandidateUpload(token, documents);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+// --------------------------------------------------------------------------
+// End-to-End HR Lifecycle Endpoints (Recruitment, Offer, Probation, Exit, FnF)
+// --------------------------------------------------------------------------
+
+// 1. Interviews
+app.post('/api/candidates/:id/interviews', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot schedule interviews.' });
+    return;
+  }
+  const result = db.addInterviewRound(req.params.id, req.body, actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.put('/api/candidates/:id/interviews/:roundId', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  const result = db.updateInterviewRound(req.params.id, req.params.roundId, req.body, actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.delete('/api/candidates/:id/interviews/:roundId', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot delete interview rounds.' });
+    return;
+  }
+  const result = db.deleteInterviewRound(req.params.id, req.params.roundId, actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+// 2. Offer Letter
+app.post('/api/candidates/:id/offer-letter/generate', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot generate offer letters.' });
+    return;
+  }
+  const result = db.generateOfferLetter(req.params.id, actor, role, req.body);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.put('/api/candidates/:id/offer-letter', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot edit offer letters.' });
+    return;
+  }
+  const result = db.generateOfferLetter(req.params.id, actor, role, req.body);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.post('/api/candidates/:id/offer-letter/approve', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER' || role === 'HR_EXECUTIVE') {
+    res.status(403).json({ error: 'Permission denied: Requires HR Admin or HR Manager approval.' });
+    return;
+  }
+  const result = db.approveOfferLetter(req.params.id, actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.post('/api/candidates/:id/offer-letter/issue', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot issue offer letters.' });
+    return;
+  }
+  const result = db.issueOfferLetter(req.params.id, actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.post('/api/candidates/:id/offer-letter/accept', (req: Request, res: Response) => {
+  const { signatureName, actor } = req.body || {};
+  const result = db.acceptOfferLetter(req.params.id, signatureName || 'Candidate', actor || 'Candidate Portal');
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+// 3. Probation Management
+app.post('/api/employees/:id/probation/review', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  const result = db.recordProbationReview(req.params.id, req.body, actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.post('/api/employees/:id/probation/confirm', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot confirm probation.' });
+    return;
+  }
+  const { confirmationLetterRef } = req.body || {};
+  const result = db.confirmProbation(req.params.id, actor, role, confirmationLetterRef);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.post('/api/employees/:id/probation/extend', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot extend probation.' });
+    return;
+  }
+  const { extensionMonths, reason } = req.body || {};
+  const result = db.extendProbation(req.params.id, extensionMonths || 1, reason || 'Performance observation', actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+// 4. Exit, Clearances & FnF Settlement
+app.post('/api/employees/:id/exit/initiate', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot initiate exits.' });
+    return;
+  }
+  const result = db.initiateExit(req.params.id, req.body, actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.put('/api/employees/:id/exit/clearance/:dept', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  const rawDept = req.params.dept;
+  const deptKey = (
+    rawDept === 'it' || rawDept === 'itClearance' ? 'itClearance' :
+    rawDept === 'hr' || rawDept === 'hrClearance' ? 'hrClearance' :
+    rawDept === 'finance' || rawDept === 'financeClearance' ? 'financeClearance' :
+    'deptHeadClearance'
+  );
+  const result = db.updateExitClearance(req.params.id, deptKey, req.body, actor, role);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.post('/api/employees/:id/exit/fnf/calculate', (req: Request, res: Response) => {
+  const result = db.calculateFnF(req.params.id, req.body);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+app.post('/api/employees/:id/exit/fnf/settle', (req: Request, res: Response) => {
+  const { actor, role } = getAuthContext(req);
+  if (role === 'DEPT_HEAD_VIEWER') {
+    res.status(403).json({ error: 'Permission denied: Viewers cannot execute settlements.' });
+    return;
+  }
+  const result = db.finalizeFnFSettlement(req.params.id, req.body || {}, actor, role);
   if (!result.success) {
     res.status(400).json(result);
     return;

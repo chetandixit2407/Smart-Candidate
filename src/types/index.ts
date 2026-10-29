@@ -1,4 +1,9 @@
-export type UserRole = 'HR_ADMIN' | 'HR_MANAGER' | 'DEPT_HEAD_VIEWER';
+export type UserRole =
+  | 'HR_ADMIN'
+  | 'HR_MANAGER'
+  | 'HR_EXECUTIVE'
+  | 'DEPT_HEAD_VIEWER'
+  | 'FINANCE_ADMIN';
 
 export interface CurrentUser {
   id: string;
@@ -49,6 +54,7 @@ export interface DocumentRecord {
   required: boolean;
   driveLink?: string;
   fileData?: string; // base64 or public url for immediate preview
+  storagePath?: string; // secure disk storage relative path
   mimeType?: string; // e.g. application/pdf, image/png, etc.
 }
 
@@ -65,6 +71,8 @@ export interface UploadToken {
   isRevoked?: boolean;
   revokedAt?: string;
   submissionCount?: number;
+  isOneTime?: boolean; // If true, expires immediately upon submission
+  expiryDays?: number; // Configurable duration in days
 }
 
 export interface FamilyMember {
@@ -113,6 +121,229 @@ export interface AspirationsInfo {
   associationDuration?: string;
   shortTermGoal?: string;
   longTermGoal?: string;
+}
+
+export type LifecycleStage =
+  | 'Application'
+  | 'Screening'
+  | 'Interview'
+  | 'Selected'
+  | 'Offer Extended'
+  | 'Offer Accepted'
+  | 'Joining Confirmed'
+  | 'Onboarded'
+  | 'Internship'
+  | 'Probation'
+  | 'Confirmed'
+  | 'Notice Period'
+  | 'Exit Clearance'
+  | 'FnF Settled'
+  | 'Ex-Employee';
+
+export interface InterviewRound {
+  id: string;
+  roundNumber: number;
+  roundName: string;
+  interviewer: string;
+  interviewerEmail?: string;
+  scheduledDate: string;
+  scheduledTime?: string;
+  mode: 'In-Person' | 'Google Meet' | 'Phone Call';
+  meetingLink?: string;
+  status: 'Scheduled' | 'Completed' | 'Cancelled' | 'Rescheduled';
+  rating?: number;
+  scores?: {
+    domainKnowledge?: number;
+    marketAcumen?: number;
+    communication?: number;
+    culturalFit?: number;
+  };
+  feedback?: string;
+  recommendation?: 'Strong Hire' | 'Hire' | 'Hold' | 'Reject' | 'Proceed to Next Round';
+  completedAt?: string;
+}
+
+export interface SalaryBreakup {
+  annualCtc: number;
+  monthlyCtc: number;
+  basicMonthly: number;
+  basicAnnual: number;
+  hraMonthly: number;
+  hraAnnual: number;
+  specialAllowanceMonthly: number;
+  specialAllowanceAnnual: number;
+  statutoryBonusMonthly: number;
+  statutoryBonusAnnual: number;
+  pfEmployerMonthly: number;
+  pfEmployerAnnual: number;
+  gratuityMonthly: number;
+  gratuityAnnual: number;
+  variableIncentiveAnnual: number;
+  grossMonthly: number;
+  grossAnnual: number;
+  approxNetInHandMonthly: number;
+  currency: 'INR' | 'AED';
+}
+
+export interface OfferLetterData {
+  refNo: string;
+  issueDate: string;
+  candidateName: string;
+  candidateAddress: string;
+  candidateEmail: string;
+  candidatePhone: string;
+  designation: string;
+  department: string;
+  reportingManager: string;
+  joiningDate: string;
+  workLocation: string;
+  market: MarketType;
+  probationMonths: number;
+  noticePeriodDays: number;
+  validTillDate: string;
+  status: 'Draft' | 'Under Review' | 'Approved' | 'Issued' | 'Accepted' | 'Declined';
+  salaryBreakup: SalaryBreakup;
+  clauses: string[];
+  missingFields: string[];
+  approvedBy?: string;
+  approvedAt?: string;
+  issuedAt?: string;
+  acceptedAt?: string;
+  candidateSignatureName?: string;
+  signedAt?: string;
+  pdfPath?: string;
+  templateVersion?: string;
+  customNotes?: string;
+}
+
+export interface ProbationReview {
+  id: string;
+  reviewDate: string;
+  reviewer: string;
+  reviewerRole: string;
+  milestone: '30-Day Check' | '60-Day Midterm' | '90-Day Final' | '180-Day Final';
+  kpiScore: number;
+  attendanceRating: 'Excellent' | 'Good' | 'Needs Improvement';
+  salesOrTargetAchievement?: string;
+  strengths: string;
+  areasOfImprovement: string;
+  recommendation: 'Confirm' | 'Extend' | 'Under Observation' | 'Terminate';
+}
+
+export interface ProbationRecord {
+  startDate: string;
+  endDate: string;
+  durationMonths: number;
+  status: 'In Probation' | 'Due for Confirmation' | 'Confirmed' | 'Extended' | 'Terminated';
+  reviews: ProbationReview[];
+  extensionMonths?: number;
+  extensionReason?: string;
+  confirmedDate?: string;
+  confirmationLetterRef?: string;
+  confirmedBy?: string;
+}
+
+export interface ExitClearanceRecord {
+  resignationDate: string;
+  resignationSubmittedDate: string;
+  exitType: 'Voluntary Resignation' | 'End of Contract' | 'Probation Non-Confirmation' | 'Mutual Separation' | 'Termination';
+  reasonForExit: string;
+  detailedReason?: string;
+  noticePeriodDays: number;
+  calculatedLwd: string;
+  actualLwd: string;
+  shortfallNoticeDays: number;
+  handoverToEmployeeId?: string;
+  handoverToName?: string;
+  handoverNotes?: string;
+  handoverCompleted: boolean;
+  handoverCompletedDate?: string;
+  departments: {
+    itClearance: {
+      status: 'Pending' | 'Approved' | 'Rejected';
+      approver?: string;
+      approvedAt?: string;
+      notes?: string;
+      emailRevoked: boolean;
+      crmAccessRevoked: boolean;
+      hardwareReturned: boolean;
+    };
+    hrClearance: {
+      status: 'Pending' | 'Approved' | 'Rejected';
+      approver?: string;
+      approvedAt?: string;
+      notes?: string;
+      idCardReturned: boolean;
+      exitInterviewCompleted: boolean;
+    };
+    financeClearance: {
+      status: 'Pending' | 'Approved' | 'Rejected';
+      approver?: string;
+      approvedAt?: string;
+      notes?: string;
+      claimsSettled: boolean;
+      salaryAdvancesRecovered: boolean;
+    };
+    deptHeadClearance: {
+      status: 'Pending' | 'Approved' | 'Rejected';
+      approver?: string;
+      approvedAt?: string;
+      notes?: string;
+      clientPipelineHandedOver: boolean;
+      knowledgeTransferDone: boolean;
+    };
+  };
+  overallStatus: 'Initiated' | 'In Progress' | 'Clearances Complete' | 'Settled' | 'Closed';
+}
+
+export interface FullAndFinalSettlement {
+  settlementId: string;
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  settlementDate: string;
+  lastWorkingDay: string;
+  joiningDate: string;
+  totalServiceDuration: string;
+  workingDaysInFinalMonth: number;
+  workedDays: number;
+  earnedBasicAndAllowance: number;
+  leaveBalanceDays: number;
+  leaveEncashmentRatePerDay: number;
+  leaveEncashmentAmount: number;
+  pendingIncentivesOrBonus: number;
+  gratuityAmount: number;
+  otherAllowances: number;
+  totalGrossEarnings: number;
+  noticeShortfallDays: number;
+  noticeShortfallDeduction: number;
+  unreturnedAssetDeduction: number;
+  salaryAdvanceDeduction: number;
+  providentFundEmployeeDeduction: number;
+  professionalTaxDeduction: number;
+  tdsIncomeTaxDeduction: number;
+  otherDeductions: number;
+  totalDeductions: number;
+  netSettlementAmount: number;
+  currency: 'INR' | 'AED';
+  status: 'Draft' | 'Finance Approved' | 'Paid' | 'Disputed';
+  paymentReference?: string;
+  paymentMode?: 'NEFT' | 'Bank Wire' | 'Cheque';
+  paymentDate?: string;
+  approvedByFinance?: string;
+  approvedAt?: string;
+  remarks?: string;
+}
+
+export interface LifecycleHistoryEntry {
+  id: string;
+  timestamp: string;
+  stage: LifecycleStage;
+  title: string;
+  description: string;
+  actor: string;
+  actorRole: UserRole;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Employee {
@@ -176,6 +407,16 @@ export interface Employee {
   profileCompletion: number; // 0-100%
   notes?: string;
   uploadToken?: UploadToken | null;
+
+  // End-to-End Lifecycle Properties
+  lifecycleStage?: LifecycleStage;
+  interviews?: InterviewRound[];
+  offerLetter?: OfferLetterData;
+  probation?: ProbationRecord;
+  exitClearance?: ExitClearanceRecord;
+  fnfSettlement?: FullAndFinalSettlement;
+  lifecycleHistory?: LifecycleHistoryEntry[];
+
   createdAt: string;
   updatedAt: string;
 }
@@ -239,8 +480,18 @@ export interface AuditLog {
   actor: string;
   actorRole: UserRole;
   action: string;
-  entityType: 'Employee' | 'Candidate' | 'Desk' | 'Asset' | 'Document' | 'Import';
-  entityId: string;
+  entityId?: string;
+  entityType:
+    | 'Employee'
+    | 'Candidate'
+    | 'Desk'
+    | 'Asset'
+    | 'Document'
+    | 'Import'
+    | 'Lifecycle'
+    | 'OfferLetter'
+    | 'ExitClearance'
+    | 'Settlement';
   entityName: string;
   details: string;
 }
@@ -264,7 +515,12 @@ export interface ImportSummary {
   timestamp: string;
 }
 
-export type AlertType = 'BIRTHDAY' | 'INTERNSHIP_COMPLETION';
+export type AlertType =
+  | 'BIRTHDAY'
+  | 'INTERNSHIP_COMPLETION'
+  | 'PROBATION_EXPIRY'
+  | 'NOTICE_PERIOD_LWD'
+  | 'PENDING_DOCUMENT_SUBMISSION';
 
 export interface AlertItem {
   id: string;

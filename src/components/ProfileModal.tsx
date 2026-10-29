@@ -35,6 +35,7 @@ import {
   Share2,
   Trash2,
   Loader2,
+  Download,
 } from 'lucide-react';
 import {
   Employee,
@@ -49,6 +50,7 @@ import {
   AuditLog,
 } from '../types/index.js';
 import { LiveDocumentViewerModal } from './LiveDocumentViewerModal.js';
+import { LifecycleTimeline } from './LifecycleTimeline.js';
 
 interface ProfileModalProps {
   employee: Employee;
@@ -65,7 +67,7 @@ interface ProfileModalProps {
   onReturnAsset?: (assetId: string, returnDate: string, condition: AssetCondition, notes: string) => Promise<void>;
   onUpdateAsset?: (assetId: string, updates: Partial<CompanyAsset>) => Promise<void>;
   onUploadDocumentFile?: (employeeId: string, docKey: string, fileData: string, fileName: string, fileSize: string, mimeType: string) => Promise<void>;
-  onGenerateUploadLink?: (candidateId: string) => Promise<{ success: boolean; token: UploadToken; message: string }>;
+  onGenerateUploadLink?: (candidateId: string, options?: { expiryDays?: number; isOneTime?: boolean }) => Promise<{ success: boolean; token: UploadToken; message: string }>;
   onRevokeUploadLink?: (candidateId: string) => Promise<{ success: boolean; message: string }>;
   onOpenCandidatePortal?: (token: string) => void;
 }
@@ -89,7 +91,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onRevokeUploadLink,
   onOpenCandidatePortal,
 }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'family' | 'experience' | 'education' | 'references' | 'documents' | 'assets' | 'audit'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'family' | 'experience' | 'education' | 'references' | 'documents' | 'assets' | 'audit' | 'timeline'>('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<Employee>>({ ...employee });
   const [saving, setSaving] = useState(false);
@@ -97,6 +99,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [successMsg, setSuccessMsg] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [tokenLoading, setTokenLoading] = useState(false);
+  const [linkExpiryDays, setLinkExpiryDays] = useState<number>(7);
+  const [linkIsOneTime, setLinkIsOneTime] = useState<boolean>(true);
+  const [showLinkConfig, setShowLinkConfig] = useState<boolean>(false);
 
   // Compute audit logs associated with this personnel record
   const personAuditLogs = (auditLogs || []).filter(
@@ -340,6 +345,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               { id: 'references', label: 'References', icon: FileCheck },
               { id: 'documents', label: 'Document Checklist', icon: FileText, badge: Object.values(employee.documents || {}).length },
               { id: 'assets', label: 'Company Assets', icon: Package, badge: assignedAssets.length },
+              { id: 'timeline', label: 'Lifecycle Journey', icon: Clock, badge: employee.lifecycleHistory?.length },
               { id: 'audit', label: 'Audit History', icon: History, badge: personAuditLogs.length },
             ].map(tab => {
               const Icon = tab.icon;
@@ -1667,22 +1673,47 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             <div className="space-y-6">
               {/* One-Time Candidate Upload Link Section */}
               {employee.isCandidate && (
-                <div className="p-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl border border-slate-700 shadow-sm">
+                <div className="p-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl border border-slate-700 shadow-sm space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-700">
                     <div>
                       <div className="flex items-center gap-2">
                         <Share2 className="w-4 h-4 text-amber-400" />
                         <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300">
-                          Candidate One-Time Secure Upload Portal Link
+                          Candidate Document Upload Portal Link
                         </h4>
                       </div>
                       <p className="text-xs text-slate-300 mt-1">
-                        Send a secure, single-use tokenized link for candidate self-service document submission. The link expires immediately upon submission.
+                        Generate or regenerate a secure tokenized link for candidate self-service document onboarding.
                       </p>
                     </div>
 
                     {!isViewer && (
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                        <div className="flex items-center gap-1.5 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700 text-xs">
+                          <Clock className="w-3.5 h-3.5 text-amber-400" />
+                          <select
+                            value={linkExpiryDays}
+                            onChange={e => setLinkExpiryDays(Number(e.target.value))}
+                            className="bg-transparent text-xs text-slate-200 border-none outline-none cursor-pointer"
+                          >
+                            <option value={1} className="bg-slate-900 text-white">Expires: 24h (1 Day)</option>
+                            <option value={3} className="bg-slate-900 text-white">Expires: 3 Days</option>
+                            <option value={7} className="bg-slate-900 text-white">Expires: 7 Days</option>
+                            <option value={14} className="bg-slate-900 text-white">Expires: 14 Days</option>
+                            <option value={30} className="bg-slate-900 text-white">Expires: 30 Days</option>
+                          </select>
+                        </div>
+
+                        <label className="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-700 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={linkIsOneTime}
+                            onChange={e => setLinkIsOneTime(e.target.checked)}
+                            className="rounded border-slate-600 text-amber-500 focus:ring-0"
+                          />
+                          <span>Single-Use</span>
+                        </label>
+
                         <button
                           type="button"
                           disabled={tokenLoading}
@@ -1690,8 +1721,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                             if (!onGenerateUploadLink) return;
                             try {
                               setTokenLoading(true);
-                              const res = await onGenerateUploadLink(employee.id);
-                              setSuccessMsg(res.message || 'One-time upload link generated.');
+                              const res = await onGenerateUploadLink(employee.id, {
+                                expiryDays: linkExpiryDays,
+                                isOneTime: linkIsOneTime,
+                              });
+                              setSuccessMsg(res.message || 'Upload link generated.');
                               setTimeout(() => setSuccessMsg(''), 3000);
                             } catch (err: unknown) {
                               const msg = err instanceof Error ? err.message : 'Failed to generate link';
@@ -1703,7 +1737,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                           className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors disabled:opacity-50"
                         >
                           <KeyRound className="w-3.5 h-3.5" />
-                          {employee.uploadToken ? 'Regenerate Link' : 'Generate Secure Link'}
+                          {employee.uploadToken ? 'Regenerate Link' : 'Create Upload Link'}
                         </button>
                       </div>
                     )}
@@ -1813,11 +1847,41 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-slate-500">Verified:</span>
-                  <span className="font-mono font-bold text-emerald-700">
-                    {Object.values(employee.documents || {}).filter(d => d.status === 'Verified').length} / {Object.values(employee.documents || {}).length}
-                  </span>
+                <div className="flex items-center gap-3 text-xs">
+                  {employee.isCandidate && !isViewer && onGenerateUploadLink && (
+                    <button
+                      type="button"
+                      disabled={tokenLoading}
+                      onClick={async () => {
+                        try {
+                          setTokenLoading(true);
+                          const res = await onGenerateUploadLink(employee.id, {
+                            expiryDays: linkExpiryDays,
+                            isOneTime: linkIsOneTime,
+                          });
+                          setSuccessMsg(res.message || 'Upload link created successfully.');
+                          setTimeout(() => setSuccessMsg(''), 3000);
+                        } catch (err: unknown) {
+                          const msg = err instanceof Error ? err.message : 'Failed to generate link';
+                          setErrorMsg(msg);
+                        } finally {
+                          setTokenLoading(false);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                      title="Create candidate upload portal link"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      Create Upload Link
+                    </button>
+                  )}
+
+                  <div className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                    <span className="text-slate-500">Verified:</span>
+                    <span className="font-mono font-bold text-emerald-700">
+                      {Object.values(employee.documents || {}).filter(d => d.status === 'Verified').length} / {Object.values(employee.documents || {}).length}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1870,7 +1934,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                                 📄 {doc.fileName} ({doc.fileSize || 'Attached'})
                               </button>
                             ) : (
-                              <span className="text-slate-400 italic">No document file attached</span>
+                              <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-[11px] font-medium border border-amber-200">
+                                No file uploaded yet
+                              </span>
+                            )}
+
+                            {doc.uploadedAt && (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-mono border border-emerald-200">
+                                Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()} {new Date(doc.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
                             )}
 
                             {doc.verifiedBy && (
@@ -1901,6 +1973,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                             <FileText className="w-3.5 h-3.5 text-blue-600" />
                             Live Preview
                           </button>
+
+                          {/* Original File Download */}
+                          {(doc.storagePath || doc.fileData || doc.fileName) && (
+                            <a
+                              href={`/api/employees/${employee.id}/documents/${doc.key}/download`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 flex items-center gap-1 transition-colors"
+                              title="Download original file"
+                            >
+                              <Download className="w-3.5 h-3.5 text-emerald-600" />
+                              Download
+                            </a>
+                          )}
 
                           {/* Direct File Upload button for HR */}
                           {!isViewer && onUploadDocumentFile && (
@@ -2271,6 +2357,32 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               )}
             </div>
           )}
+
+          {/* TAB 8: LIFECYCLE TIMELINE */}
+          {activeTab === 'timeline' && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 gap-2">
+                <div>
+                  <h3 className="font-semibold text-sm text-slate-900 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-500" />
+                    Career & Lifecycle Journey
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Chronological audit of recruitment, interviews, offer letters, probation milestones, performance, and exit clearance.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <span className="text-xs px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-full font-medium">
+                    Current Stage: <strong>{employee.lifecycleStage || (employee.isCandidate ? 'Interviewing' : 'Confirmed')}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200">
+                <LifecycleTimeline employee={employee} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Modal Footer */}
@@ -2286,36 +2398,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Simulated Document Viewer Modal */}
-      {previewDoc && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl p-5 border border-slate-300 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-              <h4 className="font-semibold text-sm text-slate-900">{previewDoc.title}</h4>
-              <button onClick={() => setPreviewDoc(null)} className="text-slate-400 hover:text-slate-700">✕</button>
-            </div>
-            <div className="h-64 bg-slate-100 rounded-lg border border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-6 space-y-3">
-              <FileText className="w-12 h-12 text-slate-400" />
-              <div>
-                <p className="text-xs font-semibold text-slate-800">{previewDoc.fileName || 'Document File'}</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Encrypted White Collar Realty Secure Storage</p>
-              </div>
-              <span className="px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-800 rounded border border-emerald-200">
-                Status: {previewDoc.status}
-              </span>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setPreviewDoc(null)}
-                className="px-4 py-1.5 text-xs bg-slate-900 text-white rounded-md"
-              >
-                Close Preview
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Sub-Modal: Issue Company Asset to Employee */}
       {isIssueModalOpen && (
         <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-900/60 p-3 sm:p-4 overflow-y-auto">

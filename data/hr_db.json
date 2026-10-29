@@ -36,7 +36,7 @@
       "reportingManager": "Abhishek (VP Gurgoan)",
       "joiningDate": "2026-09-01",
       "internshipCompletionDate": "2026-11-30",
-      "employmentStatus": "Intern",
+      "employmentStatus": "Notice Period",
       "isCandidate": false,
       "market": "Gurgaon",
       "desk": "C2",
@@ -217,7 +217,112 @@
       "profileCompletion": 100,
       "notes": "AI Intern working on automated real estate lead scoring and client recommendation models.",
       "createdAt": "2026-09-01T09:00:00Z",
-      "updatedAt": "2026-10-28T14:00:00Z"
+      "updatedAt": "2026-10-29T10:38:09.715Z",
+      "exitClearance": {
+        "resignationDate": "2026-10-25",
+        "resignationSubmittedDate": "2026-10-29",
+        "exitType": "Voluntary Resignation",
+        "reasonForExit": "Career Growth",
+        "detailedReason": "",
+        "noticePeriodDays": 30,
+        "calculatedLwd": "2026-11-24",
+        "actualLwd": "2026-11-24",
+        "shortfallNoticeDays": 0,
+        "handoverToName": "",
+        "handoverNotes": "",
+        "handoverCompleted": false,
+        "departments": {
+          "itClearance": {
+            "status": "Cleared",
+            "emailRevoked": false,
+            "crmAccessRevoked": false,
+            "hardwareReturned": false,
+            "remarks": "Laptop & ID Badge returned safely.",
+            "approver": "Simran Kaur (HR Head)",
+            "approvedAt": "2026-10-29T10:38:09.727Z"
+          },
+          "hrClearance": {
+            "status": "Pending",
+            "idCardReturned": false,
+            "exitInterviewCompleted": false
+          },
+          "financeClearance": {
+            "status": "Pending",
+            "claimsSettled": false,
+            "salaryAdvancesRecovered": false
+          },
+          "deptHeadClearance": {
+            "status": "Pending",
+            "clientPipelineHandedOver": false,
+            "knowledgeTransferDone": false
+          }
+        },
+        "overallStatus": "In Progress"
+      },
+      "fnfSettlement": {
+        "settlementId": "FNF-2026-WCR-INT-05",
+        "employeeId": "emp-chetan-dixit",
+        "employeeName": "Chetan Dixit",
+        "employeeCode": "WCR-INT-05",
+        "settlementDate": "2026-10-29",
+        "lastWorkingDay": "2026-11-24",
+        "joiningDate": "2026-09-01",
+        "totalServiceDuration": "0 Years, 2 Months (84 days)",
+        "workingDaysInFinalMonth": 30,
+        "workedDays": 25,
+        "earnedBasicAndAllowance": 1100,
+        "leaveBalanceDays": 8,
+        "leaveEncashmentRatePerDay": 32,
+        "leaveEncashmentAmount": 256,
+        "pendingIncentivesOrBonus": 15000,
+        "gratuityAmount": 0,
+        "otherAllowances": 0,
+        "totalGrossEarnings": 16356,
+        "noticeShortfallDays": 0,
+        "noticeShortfallDeduction": 0,
+        "unreturnedAssetDeduction": 0,
+        "salaryAdvanceDeduction": 0,
+        "providentFundEmployeeDeduction": 1800,
+        "professionalTaxDeduction": 200,
+        "tdsIncomeTaxDeduction": 818,
+        "otherDeductions": 0,
+        "totalDeductions": 2818,
+        "netSettlementAmount": 13538,
+        "currency": "INR",
+        "status": "Draft",
+        "paymentMode": "NEFT",
+        "remarks": "Calculated as per White Collar Realty employment agreement and exit clearance protocol."
+      },
+      "lifecycleHistory": [
+        {
+          "id": "evt-1793270289715-crqi",
+          "timestamp": "2026-10-29T10:38:09.715Z",
+          "stage": "Notice Period",
+          "title": "Exit Initiated: Voluntary Resignation",
+          "description": "Resignation recorded on 2026-10-25. Notice period: 30 days. Calculated Last Working Day: 2026-11-24. Handover to: Pending.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270280594-0yfk",
+          "timestamp": "2026-10-29T10:38:00.594Z",
+          "stage": "Notice Period",
+          "title": "Exit Initiated: Voluntary Resignation",
+          "description": "Resignation recorded on 2026-10-25. Notice period: 30 days. Calculated Last Working Day: 2026-11-24. Handover to: Pending.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270249975-2ulk",
+          "timestamp": "2026-10-29T10:37:29.975Z",
+          "stage": "Notice Period",
+          "title": "Exit Initiated: Voluntary Resignation",
+          "description": "Resignation recorded on 2026-10-25. Notice period: 30 days. Calculated Last Working Day: 2026-11-24. Handover to: Pending.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        }
+      ],
+      "lifecycleStage": "Notice Period"
     },
     {
       "id": "emp-lalit-sir",
@@ -2031,7 +2136,7 @@
       "familyDetails": [],
       "department": "Technology & AI Operations",
       "designation": "DA Intern",
-      "reportingManager": "Lalit Sir (CEO)",
+      "reportingManager": "Kimmi Mam",
       "joiningDate": "2026-09-28",
       "internshipCompletionDate": "2026-12-28",
       "employmentStatus": "Intern",
@@ -2135,9 +2240,9 @@
           "required": false
         }
       },
-      "profileCompletion": 85,
+      "profileCompletion": 76,
       "createdAt": "2026-09-28T09:00:00Z",
-      "updatedAt": "2026-10-27T10:00:00Z"
+      "updatedAt": "2026-10-29T09:54:16.882Z"
     },
     {
       "id": "emp-aryan-mehra",
@@ -2328,7 +2433,7 @@
       "isCandidate": true,
       "candidateStatus": "Offer Accepted",
       "market": "Gurgaon",
-      "desk": "F1",
+      "desk": "",
       "sourceSpreadsheetSeat": "F1 (Reserved)",
       "previousCompany": "Trecento Advisory Private Limited",
       "previousDesignation": "Senior Wealth Consultant",
@@ -2449,7 +2554,7 @@
       "profileCompletion": 87,
       "notes": "Offer letter signed. Relieving letter expected by Nov 10.",
       "createdAt": "2026-10-20T10:00:00Z",
-      "updatedAt": "2026-10-29T08:35:46.588Z",
+      "updatedAt": "2026-10-29T10:38:09.704Z",
       "uploadToken": {
         "token": "wcr-upl-n9niq89s-mvtag59o",
         "employeeId": "cand-vikram-malhotra",
@@ -2461,6 +2566,302 @@
         "revoked": false,
         "submissionCount": 1,
         "usedAt": "2026-10-29T08:35:46.588Z"
+      },
+      "interviews": [
+        {
+          "id": "rnd-1793270223663-xenz",
+          "roundNumber": 1,
+          "roundName": "Round 1: Technical & Market Knowledge",
+          "interviewer": "Simran Kaur",
+          "interviewerEmail": "",
+          "scheduledDate": "2026-11-02",
+          "scheduledTime": "11:00 AM",
+          "mode": "In-Person",
+          "meetingLink": "",
+          "status": "Completed",
+          "rating": 5,
+          "recommendation": "Hire"
+        },
+        {
+          "id": "rnd-1793270235523-63we",
+          "roundNumber": 2,
+          "roundName": "Round 1: Technical & Market Knowledge",
+          "interviewer": "Simran Kaur",
+          "interviewerEmail": "",
+          "scheduledDate": "2026-11-02",
+          "scheduledTime": "11:00 AM",
+          "mode": "In-Person",
+          "meetingLink": "",
+          "status": "Completed",
+          "rating": 5,
+          "recommendation": "Hire"
+        },
+        {
+          "id": "rnd-1793270249932-jmec",
+          "roundNumber": 3,
+          "roundName": "Round 1: Technical & Market Knowledge",
+          "interviewer": "Simran Kaur",
+          "interviewerEmail": "",
+          "scheduledDate": "2026-11-02",
+          "scheduledTime": "11:00 AM",
+          "mode": "In-Person",
+          "meetingLink": "",
+          "status": "Completed",
+          "rating": 5,
+          "recommendation": "Hire"
+        },
+        {
+          "id": "rnd-1793270280550-e2dw",
+          "roundNumber": 4,
+          "roundName": "Round 1: Technical & Market Knowledge",
+          "interviewer": "Simran Kaur",
+          "interviewerEmail": "",
+          "scheduledDate": "2026-11-02",
+          "scheduledTime": "11:00 AM",
+          "mode": "In-Person",
+          "meetingLink": "",
+          "status": "Completed",
+          "rating": 5,
+          "recommendation": "Hire"
+        },
+        {
+          "id": "rnd-1793270289659-07l4",
+          "roundNumber": 5,
+          "roundName": "Round 1: Technical & Market Knowledge",
+          "interviewer": "Simran Kaur",
+          "interviewerEmail": "",
+          "scheduledDate": "2026-11-02",
+          "scheduledTime": "11:00 AM",
+          "mode": "In-Person",
+          "meetingLink": "",
+          "status": "Completed",
+          "rating": 5,
+          "recommendation": "Hire"
+        }
+      ],
+      "lifecycleHistory": [
+        {
+          "id": "evt-1793270289704-a4ui",
+          "timestamp": "2026-10-29T10:38:09.704Z",
+          "stage": "Offer Accepted",
+          "title": "Offer Formally Accepted by Vikram Malhotra",
+          "description": "Candidate confirmed acceptance of offer Ref WCR/HR/OL/2026/WCR-022 (Pending). Target joining date: 2026-11-15.",
+          "actor": "Candidate Portal",
+          "actorRole": "HR_MANAGER"
+        },
+        {
+          "id": "evt-1793270289695-o3pi",
+          "timestamp": "2026-10-29T10:38:09.695Z",
+          "stage": "Offer Extended",
+          "title": "Offer Letter Issued to Candidate",
+          "description": "Official White Collar Realty offer letter dispatched to vikram.m.candidate@gmail.com. Candidate acceptance deadline: 2026-11-12.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270289687-5lly",
+          "timestamp": "2026-10-29T10:38:09.687Z",
+          "stage": "Offer Extended",
+          "title": "Offer Letter Approved by HR Leadership",
+          "description": "Offer Ref WCR/HR/OL/2026/WCR-022 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270289677-w75p",
+          "timestamp": "2026-10-29T10:38:09.677Z",
+          "stage": "Offer Extended",
+          "title": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
+          "description": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270289660-nv2a",
+          "timestamp": "2026-10-29T10:38:09.660Z",
+          "stage": "Interview",
+          "title": "Interview Scheduled: Round 1: Technical & Market Knowledge",
+          "description": "Round 5 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person).",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270280583-pryq",
+          "timestamp": "2026-10-29T10:38:00.583Z",
+          "stage": "Offer Accepted",
+          "title": "Offer Formally Accepted by Vikram Malhotra",
+          "description": "Candidate confirmed acceptance of offer Ref WCR/HR/OL/2026/WCR-022 (Pending). Target joining date: 2026-11-15.",
+          "actor": "Candidate Portal",
+          "actorRole": "HR_MANAGER"
+        },
+        {
+          "id": "evt-1793270280573-1kqn",
+          "timestamp": "2026-10-29T10:38:00.573Z",
+          "stage": "Offer Extended",
+          "title": "Offer Letter Issued to Candidate",
+          "description": "Official White Collar Realty offer letter dispatched to vikram.m.candidate@gmail.com. Candidate acceptance deadline: 2026-11-12.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270280566-zsgy",
+          "timestamp": "2026-10-29T10:38:00.566Z",
+          "stage": "Offer Extended",
+          "title": "Offer Letter Approved by HR Leadership",
+          "description": "Offer Ref WCR/HR/OL/2026/WCR-022 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270280558-3rb1",
+          "timestamp": "2026-10-29T10:38:00.558Z",
+          "stage": "Offer Extended",
+          "title": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
+          "description": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270280550-jc6l",
+          "timestamp": "2026-10-29T10:38:00.550Z",
+          "stage": "Interview",
+          "title": "Interview Scheduled: Round 1: Technical & Market Knowledge",
+          "description": "Round 4 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person).",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270249966-jucl",
+          "timestamp": "2026-10-29T10:37:29.966Z",
+          "stage": "Offer Accepted",
+          "title": "Offer Formally Accepted by Vikram Malhotra",
+          "description": "Candidate confirmed acceptance of offer Ref WCR/HR/OL/2026/WCR-022 (Pending). Target joining date: 2026-11-15.",
+          "actor": "Candidate Portal",
+          "actorRole": "HR_MANAGER"
+        },
+        {
+          "id": "evt-1793270249955-njxc",
+          "timestamp": "2026-10-29T10:37:29.955Z",
+          "stage": "Offer Extended",
+          "title": "Offer Letter Issued to Candidate",
+          "description": "Official White Collar Realty offer letter dispatched to vikram.m.candidate@gmail.com. Candidate acceptance deadline: 2026-11-12.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270249948-9pcv",
+          "timestamp": "2026-10-29T10:37:29.948Z",
+          "stage": "Offer Extended",
+          "title": "Offer Letter Approved by HR Leadership",
+          "description": "Offer Ref WCR/HR/OL/2026/WCR-022 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270249940-e5lu",
+          "timestamp": "2026-10-29T10:37:29.940Z",
+          "stage": "Offer Extended",
+          "title": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
+          "description": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270249932-t8l8",
+          "timestamp": "2026-10-29T10:37:29.932Z",
+          "stage": "Interview",
+          "title": "Interview Scheduled: Round 1: Technical & Market Knowledge",
+          "description": "Round 3 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person).",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270235540-4hq0",
+          "timestamp": "2026-10-29T10:37:15.540Z",
+          "stage": "Offer Extended",
+          "title": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
+          "description": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft.",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270235523-726z",
+          "timestamp": "2026-10-29T10:37:15.523Z",
+          "stage": "Interview",
+          "title": "Interview Scheduled: Round 1: Technical & Market Knowledge",
+          "description": "Round 2 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person).",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        },
+        {
+          "id": "evt-1793270223663-rat8",
+          "timestamp": "2026-10-29T10:37:03.663Z",
+          "stage": "Interview",
+          "title": "Interview Scheduled: Round 1: Technical & Market Knowledge",
+          "description": "Round 1 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person).",
+          "actor": "Simran Kaur (HR Head)",
+          "actorRole": "HR_ADMIN"
+        }
+      ],
+      "lifecycleStage": "Offer Accepted",
+      "offerLetter": {
+        "refNo": "WCR/HR/OL/2026/WCR-022 (Pending)",
+        "issueDate": "2026-10-29",
+        "candidateName": "Vikram Malhotra",
+        "candidateAddress": "Tower 8, Ireo Grand Arch, Golf Course Extn Road, Gurgaon",
+        "candidateEmail": "vikram.m.candidate@gmail.com",
+        "candidatePhone": "9811999887",
+        "designation": "Senior Property Consultant - Golf Course Road",
+        "department": "Sales & Investments",
+        "reportingManager": "Abhishek (VP Gurgoan)",
+        "joiningDate": "2026-11-15",
+        "workLocation": "White Collar Realty HQ, Golf Course Ext Road, Sector 65, Gurugram, Haryana - 122018",
+        "market": "Gurgaon",
+        "probationMonths": 3,
+        "noticePeriodDays": 30,
+        "validTillDate": "2026-11-12",
+        "status": "Accepted",
+        "salaryBreakup": {
+          "annualCtc": 1600000,
+          "monthlyCtc": 133333,
+          "basicMonthly": 53333,
+          "basicAnnual": 640000,
+          "hraMonthly": 26667,
+          "hraAnnual": 320000,
+          "specialAllowanceMonthly": 6848,
+          "specialAllowanceAnnual": 82173,
+          "statutoryBonusMonthly": 583,
+          "statutoryBonusAnnual": 6996,
+          "pfEmployerMonthly": 1800,
+          "pfEmployerAnnual": 21600,
+          "gratuityMonthly": 30769,
+          "gratuityAnnual": 369231,
+          "variableIncentiveAnnual": 160000,
+          "grossMonthly": 87431,
+          "grossAnnual": 1049172,
+          "approxNetInHandMonthly": 85431,
+          "currency": "INR"
+        },
+        "clauses": [
+          "1. APPOINTMENT & EFFECTIVE DATE: Your appointment will become effective upon your formal date of joining at White Collar Realty Private Limited. You are required to report to the designated office by 9:30 AM on your joining date.",
+          "2. PROBATION & CONFIRMATION: You shall be on probation for a period of 3 (three) months from your date of joining. During probation, your performance, attendance, and professional conduct will be reviewed. Upon satisfactory completion, you will receive written confirmation of your employment.",
+          "3. HOURS OF WORK & BIOMETRIC ATTENDANCE: Standard office working hours are Monday through Saturday, 9:30 AM to 6:30 PM. The 1st and 3rd Saturdays of every month are observed as working Saturdays unless otherwise specified by your Department Head. Biometric/system check-in is mandatory.",
+          "4. CODE OF CONDUCT & REAL ESTATE COMPLIANCE: You agree to adhere strictly to White Collar Realty company policies, ethical sales standards, and all statutory regulations governing real estate brokerage under Haryana Real Estate Regulatory Authority (HARERA) and Dubai Land Department (DLD) protocols.",
+          "5. CONFIDENTIALITY & PROPRIETARY INFORMATION: You shall maintain strictest confidentiality regarding client leads, high-net-worth investor dossiers, developer pricing matrices, commissions, internal software, and business strategies. This obligation survives termination of employment indefinitely.",
+          "6. NON-COMPETE & NON-SOLICITATION: For a period of 12 (twelve) months following cessation of your employment, you shall not directly or indirectly solicit any client, developer partner, channel associate, or employee of White Collar Realty.",
+          "7. SEPARATION & NOTICE PERIOD: During the probation period, either party may terminate this employment by giving 30 (thirty) days written notice or gross salary in lieu thereof. Post-confirmation, the notice period shall be 60 (sixty) days.",
+          "8. ASSET RECOVERY & ACCESS REVOCATION: Upon separation, all company property—including laptop, mobile SIM, CRM access, security passes, and physical keys—must be surrendered immediately to HR and IT departments prior to exit clearance.",
+          "9. BACKGROUND & DOCUMENT VERIFICATION: This offer is strictly contingent upon successful verification of your educational credentials, identity cards (Aadhaar/PAN/Passport), previous employment relieving certificates, and reference checks. Any false declaration will result in immediate termination for cause."
+        ],
+        "missingFields": [],
+        "approvedBy": "Simran Kaur (HR Head)",
+        "approvedAt": "2026-10-29T10:38:09.687Z",
+        "issuedAt": "2026-10-29T10:38:09.695Z",
+        "acceptedAt": "2026-10-29T10:38:09.704Z",
+        "candidateSignatureName": "Vikram Malhotra",
+        "signedAt": "2026-10-29T10:38:09.704Z",
+        "templateVersion": "v2.4-corporate-standard",
+        "customNotes": ""
       }
     },
     {
@@ -2527,15 +2928,27 @@
           "key": "aadhaar_card",
           "title": "Aadhaar Card / National ID",
           "category": "Identity",
-          "status": "Missing",
-          "required": true
+          "status": "Submitted",
+          "required": true,
+          "fileName": "Aanya_Aadhar_Card.pdf",
+          "fileSize": "56 KB",
+          "fileData": "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbMyAwIFJdCi9Db3VudCAxCj4+CmVuZG9iagozIDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9QYXJlbnQgMiAwIFIKL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KL0NvbnRlbnRzIDQgMCBSCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9MZW5ndGggNTAKPj4Kc3RyZWFtCkJUCi9GMSAxMiBUZgoxMDAgNzAwIFRECltBYW55YSBLYXBvb3IgLSBPZmZpY2lhbCBSZXN1bWVdIFRKIgpFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA1CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMDYwIDAwMDAwIG4gCjAwMDAwMDAxMTEgMDAwMDAgbiAKMDAwMDAwMDE3NCAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9TaXplIDUKL1Jvb3QgMSAwIFIKPj4Kc3RhcnR4cmVmCjI3NAolJUVPRg==",
+          "mimeType": "application/pdf",
+          "uploadedAt": "2026-10-29T10:06:07.726Z",
+          "storagePath": "secure_uploads/cand-aanya-kapoor/aadhaar_card_1793268367726_Aanya_Aadhar_Card.pdf"
         },
         "pan_card": {
           "key": "pan_card",
           "title": "PAN Card",
           "category": "Financial & Tax",
-          "status": "Missing",
-          "required": true
+          "status": "Submitted",
+          "required": true,
+          "fileName": "Aanya_PAN_Card.pdf",
+          "fileSize": "48 KB",
+          "fileData": "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbMyAwIFJdCi9Db3VudCAxCj4+CmVuZG9iagozIDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9QYXJlbnQgMiAwIFIKL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KL0NvbnRlbnRzIDQgMCBSCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9MZW5ndGggNTAKPj4Kc3RyZWFtCkJUCi9GMSAxMiBUZgoxMDAgNzAwIFRECltBYW55YSBLYXBvb3IgLSBPZmZpY2lhbCBSZXN1bWVdIFRKIgpFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA1CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMDYwIDAwMDAwIG4gCjAwMDAwMDAxMTEgMDAwMDAgbiAKMDAwMDAwMDE3NCAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9TaXplIDUKL1Jvb3QgMSAwIFIKPj4Kc3RhcnR4cmVmCjI3NAolJUVPRg==",
+          "mimeType": "application/pdf",
+          "uploadedAt": "2026-10-29T10:06:07.726Z",
+          "storagePath": "secure_uploads/cand-aanya-kapoor/pan_card_1793268367726_Aanya_PAN_Card.pdf"
         },
         "passport": {
           "key": "passport",
@@ -2615,10 +3028,25 @@
           "required": true
         }
       },
-      "profileCompletion": 70,
+      "profileCompletion": 87,
       "notes": "Relocating to Gurgaon office for dual-market luxury brokerage.",
       "createdAt": "2026-10-22T14:00:00Z",
-      "updatedAt": "2026-10-28T10:00:00Z"
+      "updatedAt": "2026-10-29T10:06:07.757Z",
+      "uploadToken": {
+        "token": "wcr-upl-ba7du5n2-mvtdoo78",
+        "employeeId": "cand-aanya-kapoor",
+        "candidateName": "Aanya Kapoor",
+        "candidateEmail": "aanya.kapoor97@gmail.com",
+        "createdAt": "2026-10-29T10:06:07.748Z",
+        "expiresAt": "2026-11-01T10:06:07.748Z",
+        "isUsed": false,
+        "revoked": true,
+        "isRevoked": true,
+        "submissionCount": 0,
+        "isOneTime": false,
+        "expiryDays": 3,
+        "revokedAt": "2026-10-29T10:06:07.757Z"
+      }
     },
     {
       "id": "cand-rohan-verma",
@@ -3263,6 +3691,380 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1793270289727-6yqsk",
+      "timestamp": "2026-10-29T10:38:09.727Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Exit Clearance Signed: IT & Systems",
+      "entityType": "ExitClearance",
+      "entityId": "emp-chetan-dixit",
+      "entityName": "Chetan Dixit",
+      "details": "Department clearance status updated to 'Cleared'. Approver: Simran Kaur (HR Head). Notes: None."
+    },
+    {
+      "id": "log-1793270289715-5pdgs",
+      "timestamp": "2026-10-29T10:38:09.715Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Exit Initiated: Voluntary Resignation",
+      "entityType": "Lifecycle",
+      "entityId": "emp-chetan-dixit",
+      "entityName": "Chetan Dixit",
+      "details": "Resignation recorded on 2026-10-25. Notice period: 30 days. Calculated Last Working Day: 2026-11-24. Handover to: Pending."
+    },
+    {
+      "id": "log-1793270289704-jqw4q",
+      "timestamp": "2026-10-29T10:38:09.704Z",
+      "actor": "Candidate Portal",
+      "actorRole": "HR_MANAGER",
+      "action": "Offer Formally Accepted by Vikram Malhotra",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Candidate confirmed acceptance of offer Ref WCR/HR/OL/2026/WCR-022 (Pending). Target joining date: 2026-11-15."
+    },
+    {
+      "id": "log-1793270289695-tjvtl",
+      "timestamp": "2026-10-29T10:38:09.695Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Offer Letter Issued to Candidate",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Official White Collar Realty offer letter dispatched to vikram.m.candidate@gmail.com. Candidate acceptance deadline: 2026-11-12."
+    },
+    {
+      "id": "log-1793270289687-3ntgu",
+      "timestamp": "2026-10-29T10:38:09.687Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Offer Letter Approved by HR Leadership",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Offer Ref WCR/HR/OL/2026/WCR-022 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate."
+    },
+    {
+      "id": "log-1793270289677-y6gk8",
+      "timestamp": "2026-10-29T10:38:09.677Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft."
+    },
+    {
+      "id": "log-1793270289660-iknr1",
+      "timestamp": "2026-10-29T10:38:09.660Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Interview Scheduled: Round 1: Technical & Market Knowledge",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Round 5 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person)."
+    },
+    {
+      "id": "log-1793270280594-ubc8a",
+      "timestamp": "2026-10-29T10:38:00.594Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Exit Initiated: Voluntary Resignation",
+      "entityType": "Lifecycle",
+      "entityId": "emp-chetan-dixit",
+      "entityName": "Chetan Dixit",
+      "details": "Resignation recorded on 2026-10-25. Notice period: 30 days. Calculated Last Working Day: 2026-11-24. Handover to: Pending."
+    },
+    {
+      "id": "log-1793270280583-lfzun",
+      "timestamp": "2026-10-29T10:38:00.583Z",
+      "actor": "Candidate Portal",
+      "actorRole": "HR_MANAGER",
+      "action": "Offer Formally Accepted by Vikram Malhotra",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Candidate confirmed acceptance of offer Ref WCR/HR/OL/2026/WCR-022 (Pending). Target joining date: 2026-11-15."
+    },
+    {
+      "id": "log-1793270280573-8dwgh",
+      "timestamp": "2026-10-29T10:38:00.573Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Offer Letter Issued to Candidate",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Official White Collar Realty offer letter dispatched to vikram.m.candidate@gmail.com. Candidate acceptance deadline: 2026-11-12."
+    },
+    {
+      "id": "log-1793270280566-t12kc",
+      "timestamp": "2026-10-29T10:38:00.566Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Offer Letter Approved by HR Leadership",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Offer Ref WCR/HR/OL/2026/WCR-022 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate."
+    },
+    {
+      "id": "log-1793270280558-libwz",
+      "timestamp": "2026-10-29T10:38:00.558Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft."
+    },
+    {
+      "id": "log-1793270280550-0mcmn",
+      "timestamp": "2026-10-29T10:38:00.550Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Interview Scheduled: Round 1: Technical & Market Knowledge",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Round 4 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person)."
+    },
+    {
+      "id": "log-1793270249975-uqcaj",
+      "timestamp": "2026-10-29T10:37:29.975Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Exit Initiated: Voluntary Resignation",
+      "entityType": "Lifecycle",
+      "entityId": "emp-chetan-dixit",
+      "entityName": "Chetan Dixit",
+      "details": "Resignation recorded on 2026-10-25. Notice period: 30 days. Calculated Last Working Day: 2026-11-24. Handover to: Pending."
+    },
+    {
+      "id": "log-1793270249966-3dcx2",
+      "timestamp": "2026-10-29T10:37:29.966Z",
+      "actor": "Candidate Portal",
+      "actorRole": "HR_MANAGER",
+      "action": "Offer Formally Accepted by Vikram Malhotra",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Candidate confirmed acceptance of offer Ref WCR/HR/OL/2026/WCR-022 (Pending). Target joining date: 2026-11-15."
+    },
+    {
+      "id": "log-1793270249955-shwzq",
+      "timestamp": "2026-10-29T10:37:29.955Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Offer Letter Issued to Candidate",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Official White Collar Realty offer letter dispatched to vikram.m.candidate@gmail.com. Candidate acceptance deadline: 2026-11-12."
+    },
+    {
+      "id": "log-1793270249948-s4qp2",
+      "timestamp": "2026-10-29T10:37:29.948Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Offer Letter Approved by HR Leadership",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Offer Ref WCR/HR/OL/2026/WCR-022 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate."
+    },
+    {
+      "id": "log-1793270249940-134ld",
+      "timestamp": "2026-10-29T10:37:29.940Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft."
+    },
+    {
+      "id": "log-1793270249932-4pi6n",
+      "timestamp": "2026-10-29T10:37:29.932Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Interview Scheduled: Round 1: Technical & Market Knowledge",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Round 3 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person)."
+    },
+    {
+      "id": "log-1793270235540-g8h0y",
+      "timestamp": "2026-10-29T10:37:15.540Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft."
+    },
+    {
+      "id": "log-1793270235523-up2o9",
+      "timestamp": "2026-10-29T10:37:15.523Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Interview Scheduled: Round 1: Technical & Market Knowledge",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Round 2 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person)."
+    },
+    {
+      "id": "log-1793270223663-tc7iw",
+      "timestamp": "2026-10-29T10:37:03.663Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Interview Scheduled: Round 1: Technical & Market Knowledge",
+      "entityType": "Lifecycle",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Round 1 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person)."
+    },
+    {
+      "id": "log-1793268367759-dphnm",
+      "timestamp": "2026-10-29T10:06:07.759Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Upload Link Revoked",
+      "entityType": "Candidate",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Revoked active document upload link."
+    },
+    {
+      "id": "log-1793268367749-doisy",
+      "timestamp": "2026-10-29T10:06:07.749Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Upload Link Generated",
+      "entityType": "Candidate",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Generated multi-use upload link (expires in 3 days on 11/1/2026)."
+    },
+    {
+      "id": "log-1793268367728-6kgdp",
+      "timestamp": "2026-10-29T10:06:07.728Z",
+      "actor": "Candidate Portal",
+      "actorRole": "HR_MANAGER",
+      "action": "Candidate Documents Uploaded via Secure Link",
+      "entityType": "Candidate",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Submitted 2 genuine documents via secure link. Link is now closed."
+    },
+    {
+      "id": "log-1793268367703-4hv49",
+      "timestamp": "2026-10-29T10:06:07.703Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Upload Link Generated",
+      "entityType": "Candidate",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Generated single-use upload link (expires in 7 days on 11/5/2026)."
+    },
+    {
+      "id": "log-1793268334693-m4of8",
+      "timestamp": "2026-10-29T10:05:34.693Z",
+      "actor": "Candidate Portal",
+      "actorRole": "HR_MANAGER",
+      "action": "Candidate Documents Uploaded via One-Time Link",
+      "entityType": "Candidate",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Submitted 2 documents via secure one-time upload link. Link is now closed."
+    },
+    {
+      "id": "log-1793268334664-nc5h2",
+      "timestamp": "2026-10-29T10:05:34.664Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "One-Time Upload Link Generated",
+      "entityType": "Candidate",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Generated unique document submission link (expires 11/5/2026)."
+    },
+    {
+      "id": "log-1793268280846-3cnee",
+      "timestamp": "2026-10-29T10:04:40.846Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "One-Time Upload Link Generated",
+      "entityType": "Candidate",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Generated unique document submission link (expires 11/5/2026)."
+    },
+    {
+      "id": "log-1793268265313-qapx7",
+      "timestamp": "2026-10-29T10:04:25.313Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "One-Time Upload Link Revoked",
+      "entityType": "Candidate",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Revoked active document upload link."
+    },
+    {
+      "id": "log-1793268265306-dixv6",
+      "timestamp": "2026-10-29T10:04:25.306Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "One-Time Upload Link Generated",
+      "entityType": "Candidate",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Generated unique document submission link (expires 11/5/2026)."
+    },
+    {
+      "id": "log-1793268265271-fpkyk",
+      "timestamp": "2026-10-29T10:04:25.271Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "One-Time Upload Link Generated",
+      "entityType": "Candidate",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Generated unique document submission link (expires 11/5/2026)."
+    },
+    {
+      "id": "log-1793268216483-glgwe",
+      "timestamp": "2026-10-29T10:03:36.484Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Desk Released",
+      "entityType": "Desk",
+      "entityId": "F1",
+      "entityName": "F1",
+      "details": "Released Desk F1 formerly held by Vikram Malhotra (WCR-022 (Pending))."
+    },
+    {
+      "id": "log-1793267656883-otmc1",
+      "timestamp": "2026-10-29T09:54:16.883Z",
+      "actor": "Simran Kaur (HR Head)",
+      "actorRole": "HR_ADMIN",
+      "action": "Profile Updated",
+      "entityType": "Employee",
+      "entityId": "emp-himanshu",
+      "entityName": "Himanshu",
+      "details": "Updated profile fields (id, employeeCode, fullName, email, phone, dateOfBirth, gender, nationality, currentAddress, permanentAddress, emergencyContact, familyDetails, department, designation, reportingManager, joiningDate, internshipCompletionDate, employmentStatus, isCandidate, market, desk, sourceSpreadsheetSeat, education, references, documents, profileCompletion, createdAt, updatedAt). Profile score: 76%."
+    },
+    {
       "id": "log-1793262946589-fikiq",
       "timestamp": "2026-10-29T08:35:46.589Z",
       "actor": "Candidate Portal",
@@ -3331,5 +4133,5 @@
   ],
   "acknowledgedAlerts": {},
   "version": 3,
-  "lastUpdated": "2026-10-29T08:35:46.589Z"
+  "lastUpdated": "2026-10-29T10:38:09.738Z"
 }

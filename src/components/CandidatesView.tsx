@@ -14,6 +14,11 @@ import {
   Copy,
   Check,
   KeyRound,
+  Ban,
+  X,
+  AlertCircle,
+  Eye,
+  FileText,
 } from 'lucide-react';
 import { Employee, UserRole, UploadToken } from '../types/index.js';
 
@@ -23,8 +28,10 @@ interface CandidatesViewProps {
   onOpenAddModal: () => void;
   onConvertCandidate: (id: string, params: { employeeCode?: string; joiningDate?: string; desk?: string }) => Promise<void>;
   userRole: UserRole;
-  onGenerateUploadLink?: (candidateId: string) => Promise<{ success: boolean; token: UploadToken; message: string }>;
+  onGenerateUploadLink?: (candidateId: string, options?: { expiryDays?: number; isOneTime?: boolean }) => Promise<{ success: boolean; token: UploadToken; message: string }>;
+  onRevokeUploadLink?: (candidateId: string) => Promise<{ success: boolean; message: string }>;
   onOpenCandidatePortal?: (token: string) => void;
+  onOpenOfferLetter?: (candidate: Employee) => void;
 }
 
 export const CandidatesView: React.FC<CandidatesViewProps> = ({
@@ -34,7 +41,9 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
   onConvertCandidate,
   userRole,
   onGenerateUploadLink,
+  onRevokeUploadLink,
   onOpenCandidatePortal,
+  onOpenOfferLetter,
 }) => {
   const [convertingCand, setConvertingCand] = useState<Employee | null>(null);
   const [assignedCode, setAssignedCode] = useState('');
@@ -43,7 +52,18 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
   const [converting, setConverting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Quick 1-click copy toast
   const [copiedTokenCandId, setCopiedTokenCandId] = useState<string | null>(null);
+
+  // Link Management Modal State
+  const [managingLinkCand, setManagingLinkCand] = useState<Employee | null>(null);
+  const [linkExpiryDays, setLinkExpiryDays] = useState<number>(7);
+  const [linkIsOneTime, setLinkIsOneTime] = useState<boolean>(true);
+  const [linkLoading, setLinkLoading] = useState<boolean>(false);
+  const [linkModalCopied, setLinkModalCopied] = useState<boolean>(false);
+  const [linkModalMsg, setLinkModalMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const isViewer = userRole === 'DEPT_HEAD_VIEWER';
 
   const openConvertModal = (e: React.MouseEvent, cand: Employee) => {
     e.stopPropagation();
@@ -73,6 +93,54 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
     }
   };
 
+  const handleGenerateLinkInModal = async () => {
+    if (!managingLinkCand || !onGenerateUploadLink) return;
+    try {
+      setLinkLoading(true);
+      setLinkModalMsg(null);
+      const res = await onGenerateUploadLink(managingLinkCand.id, {
+        expiryDays: linkExpiryDays,
+        isOneTime: linkIsOneTime,
+      });
+      if (res.token) {
+        setManagingLinkCand(prev => prev ? { ...prev, uploadToken: res.token } : null);
+      }
+      setLinkModalMsg({ type: 'success', text: res.message || 'Upload link successfully created.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to generate link';
+      setLinkModalMsg({ type: 'error', text: msg });
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const handleRevokeLinkInModal = async () => {
+    if (!managingLinkCand || !onRevokeUploadLink) return;
+    try {
+      setLinkLoading(true);
+      setLinkModalMsg(null);
+      const res = await onRevokeUploadLink(managingLinkCand.id);
+      setManagingLinkCand(prev => {
+        if (!prev || !prev.uploadToken) return prev;
+        return {
+          ...prev,
+          uploadToken: { ...prev.uploadToken, revoked: true, isRevoked: true },
+        };
+      });
+      setLinkModalMsg({ type: 'success', text: res.message || 'Link revoked.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to revoke link';
+      setLinkModalMsg({ type: 'error', text: msg });
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  // Keep managing candidate up-to-date with candidates prop
+  const currentSelectedCand = managingLinkCand
+    ? candidates.find(c => c.id === managingLinkCand.id) || managingLinkCand
+    : null;
+
   return (
     <div className="space-y-6">
       {/* Top Banner */}
@@ -82,11 +150,11 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
             Candidate Onboarding Pipeline
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage incoming hires, track pre-boarding document verification, reserve office desks, and convert to active employee records.
+            Manage incoming hires, track pre-boarding document verification, share secure upload links, reserve desks, and convert to active employee records.
           </p>
         </div>
 
-        {userRole !== 'DEPT_HEAD_VIEWER' && (
+        {!isViewer && (
           <button
             onClick={onOpenAddModal}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap shadow-xs"
@@ -103,7 +171,14 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
           // Document stats
           const docValues = Object.values(cand.documents || {});
           const verifiedDocs = docValues.filter(d => d.status === 'Verified').length;
+          const submittedDocs = docValues.filter(d => d.status === 'Submitted' || d.status === 'Under Review').length;
           const totalDocs = docValues.length;
+
+          const hasActiveToken =
+            cand.uploadToken &&
+            !cand.uploadToken.isUsed &&
+            !cand.uploadToken.isRevoked &&
+            new Date(cand.uploadToken.expiresAt).getTime() > Date.now();
 
           return (
             <div
@@ -124,9 +199,17 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                     </div>
                   </div>
 
-                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    {cand.candidateStatus || 'Offer Accepted'}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {hasActiveToken && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+                        <KeyRound className="w-3 h-3 text-amber-600" />
+                        Link Active
+                      </span>
+                    )}
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      {cand.candidateStatus || 'Offer Accepted'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Details Grid */}
@@ -148,7 +231,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                   <div className="p-2 bg-slate-50 rounded border border-slate-100">
                     <span className="text-[10px] text-slate-400 block">Offered CTC</span>
                     <span className="font-mono font-semibold text-slate-800 block">
-                      {cand.offeredCTC || 'Confidential'}
+                      {isViewer ? '🔒 Confidential' : cand.offeredCTC || 'Confidential'}
                     </span>
                   </div>
                 </div>
@@ -158,7 +241,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-500 text-[11px]">Onboarding Dossier Readiness</span>
                     <span className="font-mono font-bold text-slate-800 tabular-nums">
-                      {cand.profileCompletion}% ({verifiedDocs}/{totalDocs} Docs Verified)
+                      {cand.profileCompletion}% ({verifiedDocs} Verified{submittedDocs > 0 ? ` · ${submittedDocs} Submitted` : ''} / {totalDocs} Total)
                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -189,7 +272,31 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                 </span>
 
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  {cand.uploadToken && !cand.uploadToken.isUsed && !cand.uploadToken.isRevoked ? (
+                  {/* Dedicated Link Control Trigger */}
+                  {!isViewer && (
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        setManagingLinkCand(cand);
+                        setLinkExpiryDays(cand.uploadToken?.expiryDays || 7);
+                        setLinkIsOneTime(cand.uploadToken?.isOneTime !== false);
+                        setLinkModalMsg(null);
+                      }}
+                      className={`px-2.5 py-1.5 text-xs rounded font-medium flex items-center gap-1 transition-colors border ${
+                        hasActiveToken
+                          ? 'text-amber-900 bg-amber-50 hover:bg-amber-100 border-amber-300'
+                          : 'text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
+                      }`}
+                      title="Manage secure document upload link for this candidate"
+                    >
+                      <Share2 className="w-3.5 h-3.5 text-amber-600" />
+                      <span>{hasActiveToken ? 'Upload Link' : 'Generate Link'}</span>
+                    </button>
+                  )}
+
+                  {/* Quick Copy Link Button if already active */}
+                  {hasActiveToken && (
                     <button
                       type="button"
                       onClick={e => {
@@ -199,17 +306,31 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                         setCopiedTokenCandId(cand.id);
                         setTimeout(() => setCopiedTokenCandId(null), 2000);
                       }}
-                      className="px-2.5 py-1.5 text-xs text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-medium flex items-center gap-1 transition-colors"
-                      title="Copy one-time candidate document upload URL"
+                      className="p-1.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded transition-colors"
+                      title="Quick Copy Portal URL"
                     >
                       {copiedTokenCandId === cand.id ? (
                         <Check className="w-3.5 h-3.5 text-emerald-600" />
                       ) : (
-                        <Copy className="w-3.5 h-3.5 text-amber-700" />
+                        <Copy className="w-3.5 h-3.5 text-slate-600" />
                       )}
-                      <span>{copiedTokenCandId === cand.id ? 'Copied' : 'Upload Link'}</span>
                     </button>
-                  ) : null}
+                  )}
+
+                  {onOpenOfferLetter && (
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        onOpenOfferLetter(cand);
+                      }}
+                      className="px-2.5 py-1.5 text-xs text-slate-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-medium flex items-center gap-1 transition-colors"
+                      title="Open or generate executive offer letter"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-amber-600" />
+                      <span>{cand.offerLetter ? 'Offer Letter' : 'Draft Offer'}</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => onSelectCandidate(cand)}
@@ -218,7 +339,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                     View Dossier
                   </button>
 
-                  {userRole !== 'DEPT_HEAD_VIEWER' && (
+                  {!isViewer && (
                     <button
                       onClick={e => openConvertModal(e, cand)}
                       className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-600 rounded transition-colors flex items-center gap-1 shadow-xs"
@@ -239,6 +360,259 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Upload Link Management & Generation Modal */}
+      {currentSelectedCand && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-800 p-5 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <Share2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white tracking-tight">
+                    Candidate Document Upload Portal Link
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    For <strong>{currentSelectedCand.fullName}</strong> ({currentSelectedCand.employeeCode})
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setManagingLinkCand(null)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Notification alert */}
+            {linkModalMsg && (
+              <div
+                className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                  linkModalMsg.type === 'success'
+                    ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                    : 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
+                }`}
+              >
+                {linkModalMsg.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                )}
+                <span>{linkModalMsg.text}</span>
+              </div>
+            )}
+
+            {/* Current Token State */}
+            {currentSelectedCand.uploadToken ? (
+              <div className="p-4 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Current Link Status
+                  </span>
+                  {currentSelectedCand.uploadToken.isUsed ? (
+                    <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-400/30 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Submitted & Expired (Used)
+                    </span>
+                  ) : currentSelectedCand.uploadToken.isRevoked || currentSelectedCand.uploadToken.revoked ? (
+                    <span className="text-[11px] font-semibold text-rose-400 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-400/30 flex items-center gap-1">
+                      <Ban className="w-3 h-3" /> Revoked by HR
+                    </span>
+                  ) : new Date(currentSelectedCand.uploadToken.expiresAt).getTime() < Date.now() ? (
+                    <span className="text-[11px] font-semibold text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-400/30 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> Expired
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-semibold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-400/30 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Active & Waiting for Candidate
+                    </span>
+                  )}
+                </div>
+
+                {/* Portal Link URL Input */}
+                <div className="space-y-1">
+                  <label className="text-[11px] text-slate-300 block font-medium">
+                    Secure Shareable Link URL
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={`${window.location.origin}/?uploadToken=${currentSelectedCand.uploadToken.token}`}
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-amber-300 select-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = `${window.location.origin}/?uploadToken=${currentSelectedCand.uploadToken?.token}`;
+                        navigator.clipboard.writeText(url);
+                        setLinkModalCopied(true);
+                        setTimeout(() => setLinkModalCopied(false), 2000);
+                      }}
+                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold shrink-0 transition-colors flex items-center gap-1.5"
+                    >
+                      {linkModalCopied ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy URL</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-slate-400 font-mono">
+                  <div>
+                    <span>Expires: </span>
+                    <strong className="text-slate-200">
+                      {new Date(currentSelectedCand.uploadToken.expiresAt).toLocaleDateString()}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Mode: </span>
+                    <strong className="text-amber-300">
+                      {currentSelectedCand.uploadToken.isOneTime !== false ? 'Single-Use (One-Time)' : 'Multi-Use'}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Submissions count */}
+                {typeof currentSelectedCand.uploadToken.submissionCount === 'number' && (
+                  <div className="text-[11px] text-slate-400">
+                    Submissions completed:{' '}
+                    <strong className="text-white font-mono">
+                      {currentSelectedCand.uploadToken.submissionCount}
+                    </strong>
+                  </div>
+                )}
+
+                {/* Active Action Buttons */}
+                <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between gap-2 flex-wrap">
+                  {onOpenCandidatePortal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentSelectedCand.uploadToken) {
+                          onOpenCandidatePortal(currentSelectedCand.uploadToken.token);
+                          setManagingLinkCand(null);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Open Portal As Candidate</span>
+                    </button>
+                  )}
+
+                  {!isViewer &&
+                    !currentSelectedCand.uploadToken.isRevoked &&
+                    !currentSelectedCand.uploadToken.revoked &&
+                    !currentSelectedCand.uploadToken.isUsed && (
+                      <button
+                        type="button"
+                        onClick={handleRevokeLinkInModal}
+                        disabled={linkLoading}
+                        className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
+                      >
+                        <Ban className="w-3.5 h-3.5" />
+                        <span>Revoke Link Now</span>
+                      </button>
+                    )}
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-800 text-xs text-slate-400 text-center">
+                No active document upload link has been generated yet for this candidate.
+              </div>
+            )}
+
+            {/* Generation & Configuration Section */}
+            {!isViewer && (
+              <div className="p-4 bg-slate-800/40 rounded-xl border border-slate-700/60 space-y-3.5">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                  <span>
+                    {currentSelectedCand.uploadToken ? 'Regenerate Fresh Link' : 'Generate New Upload Link'}
+                  </span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  {/* Validity Window Duration */}
+                  <div className="space-y-1">
+                    <label className="text-slate-300 font-medium block">Validity Duration</label>
+                    <select
+                      value={linkExpiryDays}
+                      onChange={e => setLinkExpiryDays(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:border-amber-400 focus:outline-none"
+                    >
+                      <option value={1}>24 Hours (1 Day)</option>
+                      <option value={3}>3 Days</option>
+                      <option value={7}>7 Days (Standard)</option>
+                      <option value={14}>14 Days (2 Weeks)</option>
+                      <option value={30}>30 Days (1 Month)</option>
+                    </select>
+                  </div>
+
+                  {/* Single-Use vs Multi-Use Mode */}
+                  <div className="space-y-1">
+                    <label className="text-slate-300 font-medium block">Submission Expiry Rule</label>
+                    <select
+                      value={linkIsOneTime ? 'true' : 'false'}
+                      onChange={e => setLinkIsOneTime(e.target.value === 'true')}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:border-amber-400 focus:outline-none"
+                    >
+                      <option value="true">Single-Use (Auto-expire immediately upon submit)</option>
+                      <option value="false">Multi-Use (Candidate can update until expiry)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-400">
+                  {linkIsOneTime
+                    ? '🔒 High Security: Once the candidate submits their required documents, this link immediately closes to prevent unauthorized re-access.'
+                    : '🔄 Flexible Mode: Candidate can return to this link anytime during the validity window to review or submit additional files.'}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleGenerateLinkInModal}
+                  disabled={linkLoading}
+                  className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>
+                    {linkLoading
+                      ? 'Generating Link...'
+                      : currentSelectedCand.uploadToken
+                      ? 'Regenerate Fresh Link Anytime'
+                      : 'Create & Activate Upload Link'}
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {/* Bottom Modal Close */}
+            <div className="pt-2 border-t border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setManagingLinkCand(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Convert to Employee Modal */}
       {convertingCand && (

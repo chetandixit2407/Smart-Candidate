@@ -14,6 +14,9 @@ import { AddPersonModal } from './components/AddPersonModal.js';
 import { UpcomingAlertsModal } from './components/UpcomingAlertsModal.js';
 import { CandidateUploadPortal } from './components/CandidateUploadPortal.js';
 import { ConfirmDialog } from './components/ConfirmDialog.js';
+import { HiringLifecycleView } from './components/HiringLifecycleView.js';
+import { ExitManagementView } from './components/ExitManagementView.js';
+import { OfferLetterModal } from './components/OfferLetterModal.js';
 import {
   Employee,
   CompanyAsset,
@@ -24,6 +27,8 @@ import {
   AssetCondition,
   AlertItem,
   UploadToken,
+  OfferLetterData,
+  InterviewRound,
 } from './types/index.js';
 
 export default function App() {
@@ -56,6 +61,7 @@ export default function App() {
 
   // Modals
   const [selectedPerson, setSelectedPerson] = useState<Employee | null>(null);
+  const [offerModalCandidate, setOfferModalCandidate] = useState<Employee | null>(null);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [addModalIsCandidate, setAddModalIsCandidate] = useState<boolean>(false);
   const [liveToast, setLiveToast] = useState<{ text: string; time: number } | null>(null);
@@ -171,11 +177,65 @@ export default function App() {
           api.getDesks().then(d => setDesks(d.desks));
           break;
 
+        case 'CANDIDATE_DOCUMENTS_SUBMITTED':
         case 'UPLOAD_SUBMITTED':
-          setAllEmployees(prev => prev.map(e => (e.id === data.candidateId ? data.employee : e)));
-          setSelectedPerson(prev => (prev?.id === data.candidateId ? data.employee : prev));
-          showToast('Candidate completed document submission (link has expired).');
+          setAllEmployees(prev =>
+            prev.map(e => {
+              if (e.id === data.candidateId) {
+                return data.employee || {
+                  ...e,
+                  documents: data.documents,
+                  profileCompletion: data.profileCompletion,
+                  uploadToken: data.tokenInfo || e.uploadToken,
+                };
+              }
+              return e;
+            })
+          );
+          setSelectedPerson(prev => {
+            if (prev && prev.id === data.candidateId) {
+              return (data.employee as Employee) || {
+                ...prev,
+                documents: data.documents,
+                profileCompletion: data.profileCompletion,
+                uploadToken: data.tokenInfo || prev.uploadToken,
+              };
+            }
+            return prev;
+          });
+          showToast(`Candidate ${data.fullName || ''} uploaded ${data.filesCount || ''} document(s).`);
           api.getStats().then(setStats);
+          api.getAuditLogs().then(setAuditLogs);
+          break;
+
+        case 'UPLOAD_LINK_GENERATED':
+          setAllEmployees(prev =>
+            prev.map(e => (e.id === data.candidateId ? { ...e, uploadToken: data.token } : e))
+          );
+          setSelectedPerson(prev => {
+            if (prev && prev.id === data.candidateId) {
+              return { ...prev, uploadToken: data.token };
+            }
+            return prev;
+          });
+          api.getAuditLogs().then(setAuditLogs);
+          break;
+
+        case 'UPLOAD_LINK_REVOKED':
+          setAllEmployees(prev =>
+            prev.map(e =>
+              e.id === data.candidateId && e.uploadToken
+                ? { ...e, uploadToken: { ...e.uploadToken, revoked: true, isRevoked: true } }
+                : e
+            )
+          );
+          setSelectedPerson(prev => {
+            if (prev && prev.id === data.candidateId && prev.uploadToken) {
+              return { ...prev, uploadToken: { ...prev.uploadToken, revoked: true, isRevoked: true } };
+            }
+            return prev;
+          });
+          api.getAuditLogs().then(setAuditLogs);
           break;
 
         case 'EMPLOYEE_DELETED':
@@ -248,6 +308,26 @@ export default function App() {
           refreshAllData();
           refreshAlerts();
           showToast(type === 'DATABASE_RESET' ? 'Database reset to seed data' : 'Spreadsheet sync completed');
+          break;
+
+        case 'OFFER_LETTER_UPDATED':
+          setAllEmployees(prev => prev.map(e => (e.id === data.candidateId ? (data.employee || e) : e)));
+          setSelectedPerson(prev => (prev?.id === data.candidateId ? (data.employee || prev) : prev));
+          setOfferModalCandidate(prev => (prev?.id === data.candidateId ? (data.employee || prev) : prev));
+          showToast(`Offer letter updated for ${data.employee?.fullName || 'candidate'}`);
+          api.getStats().then(setStats);
+          api.getAuditLogs().then(setAuditLogs);
+          break;
+
+        case 'LIFECYCLE_EVENT_ADDED':
+          setAllEmployees(prev => prev.map(e => (e.id === data.employeeId ? (data.employee || e) : e)));
+          setSelectedPerson(prev => (prev?.id === data.employeeId ? (data.employee || prev) : prev));
+          setOfferModalCandidate(prev => (prev?.id === data.employeeId ? (data.employee || prev) : prev));
+          if (data.event?.title) {
+            showToast(data.event.title);
+          }
+          api.getStats().then(setStats);
+          api.getAuditLogs().then(setAuditLogs);
           break;
 
         case 'ALERT_DISMISSED':
@@ -348,15 +428,15 @@ export default function App() {
     showToast(`Document ${fileName} uploaded and saved.`);
   };
 
-  const handleGenerateUploadLink = async (candidateId: string) => {
-    const res = await api.generateUploadLink(candidateId);
+  const handleGenerateUploadLink = async (candidateId: string, options?: { expiryDays?: number; isOneTime?: boolean }) => {
+    const res = await api.generateUploadLink(candidateId, options);
     if (res.token) {
       setAllEmployees(prev =>
         prev.map(e => (e.id === candidateId ? { ...e, uploadToken: res.token } : e))
       );
       setSelectedPerson(prev => (prev?.id === candidateId ? { ...prev, uploadToken: res.token } : prev));
     }
-    showToast('Secure one-time link generated.');
+    showToast(res.message || 'Secure link generated.');
     return res;
   };
 
@@ -395,6 +475,111 @@ export default function App() {
     } finally {
       setResetLoading(false);
     }
+  };
+
+  // Recruitment & Interview Handlers
+  const handleScheduleInterview = async (candidateId: string, roundData: Partial<InterviewRound>) => {
+    const res = await api.addInterview(candidateId, roundData);
+    if (res.employee) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
+      if (offerModalCandidate?.id === candidateId) setOfferModalCandidate(res.employee);
+    }
+    showToast('Interview round scheduled.');
+  };
+
+  const handleUpdateInterview = async (candidateId: string, roundId: string, updates: Partial<InterviewRound>) => {
+    const res = await api.updateInterview(candidateId, roundId, updates);
+    if (res.employee) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
+      if (offerModalCandidate?.id === candidateId) setOfferModalCandidate(res.employee);
+    }
+    showToast('Interview evaluation updated.');
+  };
+
+  const handleDeleteInterview = async (candidateId: string, roundId: string) => {
+    const res = await api.deleteInterview(candidateId, roundId);
+    if (res.employee) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
+      if (offerModalCandidate?.id === candidateId) setOfferModalCandidate(res.employee);
+    }
+    showToast('Interview round removed.');
+  };
+
+  // Offer Letter Handlers
+  const handleUpdateOffer = async (candidateId: string, offerData: Partial<OfferLetterData>) => {
+    const res = await api.updateOfferLetter(candidateId, offerData);
+    if (res.employee) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
+      setOfferModalCandidate(res.employee);
+    }
+    showToast('Offer letter drafted/updated.');
+  };
+
+  const handleApproveOffer = async (candidateId: string) => {
+    const res = await api.approveOfferLetter(candidateId);
+    if (res.employee) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
+      setOfferModalCandidate(res.employee);
+    }
+    showToast('Offer letter approved by HR leadership.');
+  };
+
+  const handleIssueOffer = async (candidateId: string) => {
+    const res = await api.issueOfferLetter(candidateId);
+    if (res.employee) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
+      setOfferModalCandidate(res.employee);
+    }
+    showToast('Offer letter formally issued to candidate.');
+  };
+
+  const handleAcceptOffer = async (candidateId: string, signatureName: string) => {
+    const res = await api.acceptOfferLetter(candidateId, signatureName || 'Accepted');
+    if (res.employee) {
+      setAllEmployees(prev => prev.map(e => (e.id === candidateId ? res.employee : e)));
+      setSelectedPerson(prev => (prev?.id === candidateId ? res.employee : prev));
+      setOfferModalCandidate(res.employee);
+    }
+    showToast('Candidate offer accepted!');
+  };
+
+  // Exit & FnF Handlers
+  const handleInitiateExit = async (employeeId: string, data: any) => {
+    const res = await api.initiateExit(employeeId, data);
+    if (res.employee) {
+      setAllEmployees(prev => prev.map(e => (e.id === employeeId ? res.employee : e)));
+      setSelectedPerson(prev => (prev?.id === employeeId ? res.employee : prev));
+    }
+    showToast(`Exit workflow initiated for ${res.employee?.fullName || 'employee'}.`);
+  };
+
+  const handleUpdateExitClearance = async (employeeId: string, dept: string, updates: any) => {
+    const res = await api.updateExitClearance(employeeId, dept, updates);
+    if (res.employee) {
+      setAllEmployees(prev => prev.map(e => (e.id === employeeId ? res.employee : e)));
+      setSelectedPerson(prev => (prev?.id === employeeId ? res.employee : prev));
+    }
+    showToast(`${dept.toUpperCase()} clearance updated.`);
+  };
+
+  const handleCalculateFnF = async (employeeId: string, overrides?: any) => {
+    return await api.calculateFnF(employeeId, overrides);
+  };
+
+  const handleFinalizeFnF = async (employeeId: string, paymentData: any) => {
+    const res = await api.finalizeFnF(employeeId, paymentData);
+    if (res.employee) {
+      setAllEmployees(prev => prev.map(e => (e.id === employeeId ? res.employee : e)));
+      setSelectedPerson(prev => (prev?.id === employeeId ? res.employee : prev));
+    }
+    showToast('Full & Final settlement disbursed. Employee status moved to Ex-Employee.');
+    api.getDesks().then(d => setDesks(d.desks));
   };
 
   // If candidate accessed with ?uploadToken=..., render dedicated Candidate Upload Portal
@@ -472,6 +657,23 @@ export default function App() {
               />
             )}
 
+            {currentTab === 'hiring' && (
+              <HiringLifecycleView
+                candidates={candidates}
+                userRole={userRole}
+                onSelectCandidate={setSelectedPerson}
+                onOpenAddModal={() => {
+                  setAddModalIsCandidate(true);
+                  setShowAddModal(true);
+                }}
+                onOpenOfferModal={candidate => setOfferModalCandidate(candidate)}
+                onOpenUploadLinkModal={candidate => setSelectedPerson(candidate)}
+                onConvertCandidate={handleConvertCandidate}
+                onScheduleInterview={handleScheduleInterview}
+                onUpdateInterview={handleUpdateInterview}
+              />
+            )}
+
             {currentTab === 'candidates' && (
               <CandidatesView
                 candidates={candidates}
@@ -483,7 +685,24 @@ export default function App() {
                 onConvertCandidate={handleConvertCandidate}
                 userRole={userRole}
                 onGenerateUploadLink={handleGenerateUploadLink}
+                onRevokeUploadLink={handleRevokeUploadLink}
                 onOpenCandidatePortal={token => setCandidatePortalToken(token)}
+                onOpenOfferLetter={candidate => setOfferModalCandidate(candidate)}
+              />
+            )}
+
+            {currentTab === 'exit' && (
+              <ExitManagementView
+                employees={allEmployees}
+                assets={assets}
+                userRole={userRole}
+                currentUserName={userName}
+                onInitiateExit={handleInitiateExit}
+                onUpdateClearance={handleUpdateExitClearance}
+                onCalculateFnF={handleCalculateFnF}
+                onFinalizeFnF={handleFinalizeFnF}
+                onReturnAsset={handleReturnAsset}
+                onSelectEmployee={setSelectedPerson}
               />
             )}
 
@@ -562,6 +781,28 @@ export default function App() {
           onGenerateUploadLink={handleGenerateUploadLink}
           onRevokeUploadLink={handleRevokeUploadLink}
           onOpenCandidatePortal={token => setCandidatePortalToken(token)}
+        />
+      )}
+
+      {/* Executive Offer Letter Modal */}
+      {offerModalCandidate && (
+        <OfferLetterModal
+          candidate={offerModalCandidate}
+          isOpen={!!offerModalCandidate}
+          onClose={() => setOfferModalCandidate(null)}
+          userRole={userRole}
+          onSaveOffer={async offerData => {
+            await handleUpdateOffer(offerModalCandidate.id, offerData);
+          }}
+          onApproveOffer={async () => {
+            await handleApproveOffer(offerModalCandidate.id);
+          }}
+          onIssueOffer={async () => {
+            await handleIssueOffer(offerModalCandidate.id);
+          }}
+          onAcceptOffer={async signatureName => {
+            await handleAcceptOffer(offerModalCandidate.id, signatureName);
+          }}
         />
       )}
 

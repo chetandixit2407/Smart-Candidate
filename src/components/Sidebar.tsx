@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -12,6 +11,9 @@ import {
   Building2,
   Lock,
   X,
+  Briefcase,
+  LogOut,
+  DollarSign,
 } from 'lucide-react';
 import { UserRole } from '../types/index.js';
 
@@ -61,9 +63,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: LayoutDashboard,
     },
     {
-      id: 'employees',
-      label: 'Current Employees',
-      icon: Users,
+      id: 'hiring',
+      label: 'Recruitment & Offers',
+      icon: Briefcase,
+      badge: upcomingCount > 0 ? `${upcomingCount}` : undefined,
     },
     {
       id: 'candidates',
@@ -72,9 +75,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badge: upcomingCount > 0 ? `${upcomingCount}` : undefined,
     },
     {
+      id: 'employees',
+      label: 'Current Employees',
+      icon: Users,
+    },
+    {
+      id: 'exit',
+      label: 'Exit & FnF Settlement',
+      icon: LogOut,
+    },
+    {
       id: 'desks',
       label: 'Desk Allocation',
       icon: Armchair,
+    },
+    {
+      id: 'assets',
+      label: 'Assets & Inventory',
+      icon: Package,
+    },
+    {
+      id: 'import',
+      label: 'Spreadsheet Import',
+      icon: FileSpreadsheet,
     },
     {
       id: 'audit',
@@ -172,7 +195,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Security & RBAC
           </span>
           <span className="text-[10px] text-amber-400 font-mono">
-            {userRole === 'HR_ADMIN' ? 'FULL' : userRole === 'HR_MANAGER' ? 'OPS' : 'VIEW'}
+            {userRole === 'HR_ADMIN' ? 'ADMIN' : userRole === 'HR_MANAGER' ? 'OPS' : userRole === 'HR_EXECUTIVE' ? 'RECRUIT' : userRole === 'FINANCE_ADMIN' ? 'FINANCE' : 'VIEW'}
           </span>
         </div>
 
@@ -198,6 +221,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <span className="truncate">HR Manager (Ops & Docs)</span>
             {userRole === 'HR_MANAGER' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+          </button>
+          <button
+            onClick={() => handleRoleChange('HR_EXECUTIVE')}
+            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs transition-colors ${
+              userRole === 'HR_EXECUTIVE'
+                ? 'bg-slate-800 text-white font-medium border border-slate-700'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+            }`}
+          >
+            <span className="truncate">HR Executive (Recruitment)</span>
+            {userRole === 'HR_EXECUTIVE' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+          </button>
+          <button
+            onClick={() => handleRoleChange('FINANCE_ADMIN')}
+            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs transition-colors ${
+              userRole === 'FINANCE_ADMIN'
+                ? 'bg-slate-800 text-white font-medium border border-slate-700'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+            }`}
+          >
+            <span className="truncate">Finance Admin (FnF & Payouts)</span>
+            {userRole === 'FINANCE_ADMIN' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
           </button>
           <button
             onClick={() => handleRoleChange('DEPT_HEAD_VIEWER')}

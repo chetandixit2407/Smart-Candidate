@@ -23,8 +23,10 @@ export const TopNav: React.FC<TopNavProps> = ({
 }) => {
   const tabTitles: Record<string, { main: string; sub: string }> = {
     overview: { main: 'Executive HR Dashboard', sub: 'People Analytics & Onboarding' },
-    employees: { main: 'Employee Directory', sub: 'Active Workforce & Profiles' },
+    hiring: { main: 'Recruitment & Hiring Pipeline', sub: 'Applications, Interviews & Offers' },
+    employees: { main: 'Employee Directory', sub: 'Active Workforce & Probation' },
     candidates: { main: 'Candidate Pipeline', sub: 'New Joiners & Onboarding' },
+    exit: { main: 'Separation & Exit Management', sub: 'Notice Periods, Clearances & FnF' },
     desks: { main: 'Office Desk Allocation', sub: 'Bays A–H Interactive Layout' },
     assets: { main: 'Company Assets & Inventory', sub: 'Devices, Cards & Issued Items' },
     import: { main: 'Spreadsheet Synchronization', sub: 'Chetan Dossier & Birthday Sheet' },
@@ -81,12 +83,22 @@ export const TopNav: React.FC<TopNavProps> = ({
         {userRole === 'HR_ADMIN' ? (
           <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-medium border border-emerald-200">
             <Shield className="w-3 h-3" />
-            Full Access (CTC & Documents Unrestricted)
+            Full Admin Access (CTC & Approvals Unrestricted)
           </span>
         ) : userRole === 'HR_MANAGER' ? (
           <span className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[11px] font-medium border border-blue-200">
             <Shield className="w-3 h-3" />
             Manager Access (Verification & Desk Ops)
+          </span>
+        ) : userRole === 'HR_EXECUTIVE' ? (
+          <span className="flex items-center gap-1.5 text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-[11px] font-medium border border-purple-200">
+            <Shield className="w-3 h-3" />
+            Executive Access (Recruitment & Sourcing)
+          </span>
+        ) : userRole === 'FINANCE_ADMIN' ? (
+          <span className="flex items-center gap-1.5 text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded text-[11px] font-medium border border-emerald-300">
+            <Shield className="w-3 h-3" />
+            Finance Admin (Salary CTC & FnF Disbursal)
           </span>
         ) : (
           <span className="flex items-center gap-1.5 text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-[11px] font-medium border border-amber-200">

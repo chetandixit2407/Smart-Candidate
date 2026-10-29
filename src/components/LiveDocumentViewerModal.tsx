@@ -55,19 +55,23 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
 
   const isViewer = userRole === 'DEPT_HEAD_VIEWER';
 
-  // Determine file preview source: base64, backend endpoint, or bundled verified sample
-  const fileUrl =
-    document.fileData ||
-    (document.fileName?.toLowerCase().includes('information') || document.fileName?.toLowerCase().includes('sheet')
-      ? '/assets/aistudio/Chetan_Information_Sheet_-_Sheet1_06bd8f64.pdf'
-      : document.fileName?.toLowerCase().includes('aadhaar') || document.fileName?.toLowerCase().includes('pan')
-      ? '/assets/aistudio/Employees_Details__Birthday___-_Sheet1_8b0b9282.pdf'
-      : `/api/employees/${employeeId}/documents/${document.key}/file`);
+  // Check if document genuinely has an uploaded file (never show mock files)
+  const hasGenuineFile = Boolean(document.fileName || document.fileData || (document as any).storagePath);
+
+  let fileUrl: string | null = null;
+  if (hasGenuineFile) {
+    if (document.fileData) {
+      fileUrl = document.fileData;
+    } else {
+      fileUrl = `/api/employees/${employeeId}/documents/${document.key}/file`;
+    }
+  }
 
   const isImage =
-    document.mimeType?.startsWith('image/') ||
-    (document.fileName && /\.(png|jpe?g|webp|gif)$/i.test(document.fileName)) ||
-    (typeof fileUrl === 'string' && fileUrl.startsWith('data:image/'));
+    Boolean(fileUrl) &&
+    (document.mimeType?.startsWith('image/') ||
+      (document.fileName && /\.(png|jpe?g|webp|gif)$/i.test(document.fileName)) ||
+      (typeof fileUrl === 'string' && fileUrl.startsWith('data:image/')));
 
   const handleDownload = async () => {
     try {
@@ -161,7 +165,7 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
                 )}
               </div>
               <p className="text-[11px] sm:text-xs text-slate-300 truncate mt-0.5">
-                Personnel: <strong>{employeeName}</strong> · File: <span className="font-mono text-slate-200">{document.fileName || 'No file attached'}</span> ({document.fileSize || '1.2 MB'})
+                Personnel: <strong>{employeeName}</strong> · File: <span className="font-mono text-slate-200">{document.fileName || 'No file uploaded'}</span> {document.fileSize ? `(${document.fileSize})` : ''} · Uploaded: <span className="text-amber-300 font-mono">{document.uploadedAt ? new Date(document.uploadedAt).toLocaleDateString() : 'Pending'}</span>
               </p>
             </div>
           </div>
@@ -247,12 +251,17 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
                 />
               )
             ) : (
-              <div className="p-8 text-center space-y-3">
-                <FileText className="w-14 h-14 text-slate-600 mx-auto" />
+              <div className="p-8 text-center space-y-3 max-w-sm mx-auto">
+                <div className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto text-slate-500">
+                  <FileText className="w-7 h-7" />
+                </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-300">No document preview available yet</p>
-                  <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-                    Candidate or HR has not uploaded a digital copy of this file. Use the button above to upload a PDF or image.
+                  <h4 className="text-sm font-semibold text-slate-200">No Document Uploaded Yet</h4>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    This document record is marked as <strong className="text-amber-400">{document.status}</strong>, but no genuine file has been uploaded by the candidate or compliance officer.
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-2">
+                    To maintain strict compliance integrity, mock documents are never shown. Upload a file above or have the candidate submit it via their secure link.
                   </p>
                 </div>
               </div>

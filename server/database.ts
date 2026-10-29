@@ -11,6 +11,14 @@ import type {
   ImportSummary,
   AlertItem,
   UploadToken,
+  InterviewRound,
+  OfferLetterData,
+  ProbationReview,
+  ProbationRecord,
+  ExitClearanceRecord,
+  FullAndFinalSettlement,
+  LifecycleStage,
+  LifecycleHistoryEntry,
 } from '../src/types/index.ts';
 import {
   ALL_DESK_CODES,
@@ -23,6 +31,12 @@ import {
   calculateCompletion,
   getDefaultDocumentChecklist,
 } from './seedData.ts';
+import {
+  buildOfferLetterData,
+  calculateSalaryBreakup,
+  calculateFullAndFinalSettlement,
+  checkOfferMissingFields,
+} from './lifecycleEngine.ts';
 
 interface DatabaseSchema {
   employees: Employee[];
@@ -35,12 +49,16 @@ interface DatabaseSchema {
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'hr_db.json');
+const SECURE_UPLOADS_DIR = path.join(DATA_DIR, 'secure_uploads');
 
 class DatabaseService {
   private data: DatabaseSchema;
   private sseClients: Response[] = [];
 
   constructor() {
+    if (!fs.existsSync(SECURE_UPLOADS_DIR)) {
+      fs.mkdirSync(SECURE_UPLOADS_DIR, { recursive: true });
+    }
     this.data = this.loadData();
     // Heartbeat every 25 seconds for SSE
     setInterval(() => {
@@ -461,7 +479,91 @@ class DatabaseService {
     return cand;
   }
 
-  // --- Document Verification ---
+  // --- Secure Private File Storage Helpers ---
+  public saveSecureFile(personId: string, docKey: string, originalFileName: string, fileData: string): string {
+    const personDir = path.join(SECURE_UPLOADS_DIR, personId);
+    if (!fs.existsSync(personDir)) {
+      fs.mkdirSync(personDir, { recursive: true });
+    }
+
+    const sanitizedBase = path.basename(originalFileName).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storedFileName = `${docKey}_${Date.now()}_${sanitizedBase}`;
+    const targetFilePath = path.join(personDir, storedFileName);
+
+    if (fileData.startsWith('data:')) {
+      const match = fileData.match(/^data:[^;]+;base64,(.+)$/);
+      if (match) {
+        fs.writeFileSync(targetFilePath, Buffer.from(match[1], 'base64'));
+      } else {
+        fs.writeFileSync(targetFilePath, Buffer.from(fileData, 'utf-8'));
+      }
+    } else {
+      fs.writeFileSync(targetFilePath, Buffer.from(fileData, 'utf-8'));
+    }
+
+    return path.join('secure_uploads', personId, storedFileName);
+  }
+
+  public getSecureDocumentFile(employeeId: string, docKey: string): { filePath?: string; buffer?: Buffer; mimeType: string; fileName: string } | null {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp || !emp.documents || !emp.documents[docKey]) return null;
+
+    const doc = emp.documents[docKey];
+    // Check if this document genuinely has an attached file
+    if (!doc.fileName && !doc.fileData && !doc.storagePath) {
+      return null;
+    }
+
+    const fileName = doc.fileName || `${docKey}.pdf`;
+    let mimeType = doc.mimeType;
+    if (!mimeType) {
+      if (fileName.endsWith('.png')) mimeType = 'image/png';
+      else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) mimeType = 'image/jpeg';
+      else mimeType = 'application/pdf';
+    }
+
+    // 1. Check storagePath on disk in secure_uploads
+    if (doc.storagePath) {
+      const diskPath = path.resolve(DATA_DIR, doc.storagePath);
+      if (fs.existsSync(diskPath)) {
+        return { filePath: diskPath, mimeType, fileName };
+      }
+    }
+
+    // 2. Check base64 fileData
+    if (doc.fileData && doc.fileData.startsWith('data:')) {
+      const match = doc.fileData.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        return {
+          buffer: Buffer.from(match[2], 'base64'),
+          mimeType: match[1] || mimeType,
+          fileName,
+        };
+      }
+    }
+
+    // 3. Pre-seeded historical sheets for Chetan Dixit only
+    if (emp.id === 'emp-chetan-dixit') {
+      const fname = fileName.toLowerCase();
+      let relativePath = '';
+      if (fname.includes('information') || fname.includes('sheet')) {
+        relativePath = 'assets/aistudio/Chetan_Information_Sheet_-_Sheet1_06bd8f64.pdf';
+      } else if (fname.includes('birthday') || fname.includes('details')) {
+        relativePath = 'assets/aistudio/Employees_Details__Birthday___-_Sheet1_8b0b9282.pdf';
+      }
+      if (relativePath) {
+        const publicPath = path.resolve(process.cwd(), 'public', relativePath);
+        if (fs.existsSync(publicPath)) {
+          return { filePath: publicPath, mimeType: 'application/pdf', fileName };
+        }
+      }
+    }
+
+    // No mock fallback for candidates without genuine files!
+    return null;
+  }
+
+  // --- Document Verification & HR Upload ---
   public updateDocument(
     employeeId: string,
     docKey: string,
@@ -501,8 +603,18 @@ class DatabaseService {
     if (params.reviewNotes !== undefined) doc.reviewNotes = params.reviewNotes;
     if (params.fileName) doc.fileName = params.fileName;
     if (params.fileSize) doc.fileSize = params.fileSize;
-    if (params.fileData) doc.fileData = params.fileData;
     if (params.mimeType) doc.mimeType = params.mimeType;
+
+    // Save actual file data to private disk storage
+    if (params.fileData) {
+      doc.fileData = params.fileData;
+      try {
+        const savedPath = this.saveSecureFile(emp.id, docKey, params.fileName || `${docKey}.pdf`, params.fileData);
+        doc.storagePath = savedPath;
+      } catch (err) {
+        console.error(`[DB] Failed to persist file to secure storage for ${emp.id}/${docKey}:`, err);
+      }
+    }
 
     if (params.status === 'Verified') {
       doc.verifiedBy = params.verifiedBy || actor;
@@ -526,19 +638,28 @@ class DatabaseService {
     );
 
     this.broadcast('DOCUMENT_STATUS_CHANGED', { employeeId: emp.id, docKey, doc, profileCompletion: emp.profileCompletion });
+    this.broadcast('EMPLOYEE_UPDATED', emp);
     return emp;
   }
 
-  // --- Candidate One-Time Upload Links ---
-  public generateUploadToken(candidateId: string, actor: string, actorRole: UserRole): { success: boolean; token?: UploadToken; message: string } {
+  // --- Candidate Document Upload Links ---
+  public generateUploadToken(
+    candidateId: string,
+    actor: string,
+    actorRole: UserRole,
+    options?: { expiryDays?: number; isOneTime?: boolean }
+  ): { success: boolean; token?: UploadToken; message: string } {
     const candidate = this.data.employees.find(e => e.id === candidateId);
     if (!candidate) {
       return { success: false, message: 'Candidate not found.' };
     }
 
+    const expiryDays = options?.expiryDays && options.expiryDays > 0 ? options.expiryDays : 7;
+    const isOneTime = options?.isOneTime !== undefined ? Boolean(options.isOneTime) : true;
+
     const tokenString = 'wcr-upl-' + Math.random().toString(36).substring(2, 10) + '-' + Date.now().toString(36);
     const expires = new Date();
-    expires.setDate(expires.getDate() + 7);
+    expires.setDate(expires.getDate() + expiryDays);
 
     const tokenObj: UploadToken = {
       token: tokenString,
@@ -549,7 +670,10 @@ class DatabaseService {
       expiresAt: expires.toISOString(),
       isUsed: false,
       revoked: false,
+      isRevoked: false,
       submissionCount: 0,
+      isOneTime,
+      expiryDays,
     };
 
     candidate.uploadToken = tokenObj;
@@ -559,15 +683,16 @@ class DatabaseService {
     this.logAudit(
       actor,
       actorRole,
-      'One-Time Upload Link Generated',
+      'Upload Link Generated',
       'Candidate',
       candidate.id,
       candidate.fullName,
-      `Generated unique document submission link (expires ${expires.toLocaleDateString()}).`
+      `Generated ${isOneTime ? 'single-use' : 'multi-use'} upload link (expires in ${expiryDays} days on ${expires.toLocaleDateString()}).`
     );
 
     this.broadcast('UPLOAD_LINK_GENERATED', { candidateId: candidate.id, token: tokenObj });
-    return { success: true, token: tokenObj, message: 'One-time upload link generated successfully.' };
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
+    return { success: true, token: tokenObj, message: 'Candidate document upload link generated successfully.' };
   }
 
   public revokeUploadToken(candidateId: string, actor: string, actorRole: UserRole): { success: boolean; message: string } {
@@ -577,6 +702,7 @@ class DatabaseService {
     }
 
     candidate.uploadToken.revoked = true;
+    candidate.uploadToken.isRevoked = true;
     candidate.uploadToken.revokedAt = new Date().toISOString();
     candidate.updatedAt = new Date().toISOString();
     this.persist();
@@ -584,7 +710,7 @@ class DatabaseService {
     this.logAudit(
       actor,
       actorRole,
-      'One-Time Upload Link Revoked',
+      'Upload Link Revoked',
       'Candidate',
       candidate.id,
       candidate.fullName,
@@ -592,6 +718,7 @@ class DatabaseService {
     );
 
     this.broadcast('UPLOAD_LINK_REVOKED', { candidateId: candidate.id });
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
     return { success: true, message: 'Upload link successfully revoked.' };
   }
 
@@ -618,15 +745,33 @@ class DatabaseService {
     }
 
     const t = candidate.uploadToken;
-    if (t.revoked) {
-      return { valid: false, error: 'This upload link was revoked by the White Collar Realty HR team.' };
+    if (t.revoked || t.isRevoked) {
+      return { valid: false, error: 'This upload link has been revoked by the HR compliance team.' };
     }
-    if (t.isUsed) {
-      return { valid: false, error: 'This one-time upload link has already been used and is now expired.' };
+    if (t.isOneTime !== false && t.isUsed) {
+      return { valid: false, error: 'This one-time upload link has already been submitted and is now closed.' };
     }
     if (new Date() > new Date(t.expiresAt)) {
-      return { valid: false, error: 'This upload link has expired. Please contact HR to generate a new link.' };
+      return { valid: false, error: 'This upload link has expired. Please contact White Collar Realty HR to generate a fresh link.' };
     }
+
+    // Return sanitized document list
+    const docs = candidate.documents || {};
+    const sanitizedDocs: Record<string, any> = {};
+    Object.entries(docs).forEach(([key, d]) => {
+      sanitizedDocs[key] = {
+        key: d.key,
+        title: d.title,
+        category: d.category,
+        status: d.status,
+        required: d.required,
+        fileName: d.fileName,
+        fileSize: d.fileSize,
+        uploadedAt: d.uploadedAt,
+        mimeType: d.mimeType,
+        hasFile: Boolean(d.fileName && (d.fileData || d.storagePath)),
+      };
+    });
 
     return {
       valid: true,
@@ -640,7 +785,7 @@ class DatabaseService {
         designation: candidate.designation,
         market: candidate.market,
         joiningDate: candidate.joiningDate,
-        documents: candidate.documents || {},
+        documents: sanitizedDocs,
         tokenInfo: t,
       },
     };
@@ -656,10 +801,10 @@ class DatabaseService {
     }
 
     const t = candidate.uploadToken;
-    if (t.revoked) {
+    if (t.revoked || t.isRevoked) {
       return { success: false, message: 'This upload link has been revoked.' };
     }
-    if (t.isUsed) {
+    if (t.isOneTime !== false && t.isUsed) {
       return { success: false, message: 'This one-time link has already been submitted.' };
     }
     if (new Date() > new Date(t.expiresAt)) {
@@ -685,19 +830,33 @@ class DatabaseService {
           required: true,
         };
       }
+
+      // Persist raw file to secure disk storage
+      let savedPath: string | undefined = undefined;
+      try {
+        savedPath = this.saveSecureFile(candidate.id, key, item.fileName || `${key}.pdf`, item.fileData);
+      } catch (err) {
+        console.error(`[DB] Error writing upload to disk for candidate ${candidate.id}:`, err);
+      }
+
       candidate.documents[key].status = 'Submitted';
       candidate.documents[key].fileName = item.fileName;
       candidate.documents[key].fileSize = item.fileSize || '1.0 MB';
       candidate.documents[key].fileData = item.fileData;
       candidate.documents[key].mimeType = item.mimeType;
       candidate.documents[key].uploadedAt = nowIso;
+      if (savedPath) {
+        candidate.documents[key].storagePath = savedPath;
+      }
       if (item.reviewNotes) {
         candidate.documents[key].reviewNotes = item.reviewNotes;
       }
     }
 
-    t.isUsed = true;
-    t.usedAt = nowIso;
+    if (t.isOneTime !== false) {
+      t.isUsed = true;
+      t.usedAt = nowIso;
+    }
     t.submissionCount = (t.submissionCount || 0) + 1;
 
     candidate.updatedAt = nowIso;
@@ -707,27 +866,617 @@ class DatabaseService {
     this.logAudit(
       'Candidate Portal',
       'HR_MANAGER',
-      'Candidate Documents Uploaded via One-Time Link',
+      'Candidate Documents Uploaded via Secure Link',
       'Candidate',
       candidate.id,
       candidate.fullName,
-      `Submitted ${filesCount} documents via secure one-time upload link. Link is now closed.`
+      `Submitted ${filesCount} genuine documents via secure link.${t.isOneTime !== false ? ' Link is now closed.' : ' Multi-use link remains active.'}`
     );
 
-    this.broadcast('CANDIDATE_DOCUMENTS_SUBMITTED', {
+    const payload = {
       candidateId: candidate.id,
       fullName: candidate.fullName,
       filesCount,
       profileCompletion: candidate.profileCompletion,
       documents: candidate.documents,
       tokenInfo: t,
-    });
+      employee: candidate,
+    };
+
+    this.broadcast('CANDIDATE_DOCUMENTS_SUBMITTED', payload);
+    this.broadcast('UPLOAD_SUBMITTED', payload);
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
 
     return {
       success: true,
-      message: 'Documents successfully submitted. Your secure one-time link is now closed.',
+      message: t.isOneTime !== false
+        ? 'Documents successfully submitted. Your secure one-time link is now closed.'
+        : 'Documents successfully submitted and updated.',
       candidate,
     };
+  }
+
+  // --- End-to-End HR Lifecycle Methods ---
+  public addLifecycleEvent(
+    emp: Employee,
+    stage: LifecycleStage,
+    title: string,
+    description: string,
+    actor: string,
+    actorRole: UserRole,
+    metadata?: Record<string, unknown>
+  ) {
+    if (!emp.lifecycleHistory) {
+      emp.lifecycleHistory = [];
+    }
+    const entry: LifecycleHistoryEntry = {
+      id: `evt-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toISOString(),
+      stage,
+      title,
+      description,
+      actor,
+      actorRole,
+      metadata,
+    };
+    emp.lifecycleHistory.unshift(entry);
+    emp.lifecycleStage = stage;
+    emp.updatedAt = new Date().toISOString();
+    this.logAudit(actor, actorRole, title, 'Lifecycle', emp.id, emp.fullName, description);
+    this.broadcast('LIFECYCLE_EVENT_ADDED', { employeeId: emp.id, event: entry, employee: emp });
+  }
+
+  // 1. Interview Pipeline
+  public addInterviewRound(
+    candidateId: string,
+    data: Partial<InterviewRound>,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; candidate?: Employee; message: string } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate) return { success: false, message: 'Candidate not found.' };
+
+    if (!candidate.interviews) candidate.interviews = [];
+    const roundNumber = candidate.interviews.length + 1;
+    const newRound: InterviewRound = {
+      id: `rnd-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      roundNumber,
+      roundName: data.roundName || `Round ${roundNumber} - Assessment`,
+      interviewer: data.interviewer || actor,
+      interviewerEmail: data.interviewerEmail || '',
+      scheduledDate: data.scheduledDate || new Date().toISOString().split('T')[0],
+      scheduledTime: data.scheduledTime || '11:00 AM',
+      mode: data.mode || 'Google Meet',
+      meetingLink: data.meetingLink || '',
+      status: data.status || 'Scheduled',
+      rating: data.rating,
+      scores: data.scores,
+      feedback: data.feedback,
+      recommendation: data.recommendation,
+    };
+
+    candidate.interviews.push(newRound);
+    this.addLifecycleEvent(
+      candidate,
+      'Interview',
+      `Interview Scheduled: ${newRound.roundName}`,
+      `Round ${roundNumber} scheduled with ${newRound.interviewer} on ${newRound.scheduledDate} at ${newRound.scheduledTime} (${newRound.mode}).`,
+      actor,
+      actorRole
+    );
+    this.persist();
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
+    return { success: true, candidate, message: 'Interview round scheduled successfully.' };
+  }
+
+  public updateInterviewRound(
+    candidateId: string,
+    roundId: string,
+    updates: Partial<InterviewRound>,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; candidate?: Employee; message: string } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate || !candidate.interviews) return { success: false, message: 'Candidate or interview round not found.' };
+
+    const roundIndex = candidate.interviews.findIndex(r => r.id === roundId);
+    if (roundIndex === -1) return { success: false, message: 'Round not found.' };
+
+    const current = candidate.interviews[roundIndex];
+    const updatedRound = { ...current, ...updates };
+    if (updates.status === 'Completed' && !updatedRound.completedAt) {
+      updatedRound.completedAt = new Date().toISOString();
+    }
+    candidate.interviews[roundIndex] = updatedRound;
+
+    if (updatedRound.status === 'Completed' && (updatedRound.recommendation === 'Strong Hire' || updatedRound.recommendation === 'Hire')) {
+      candidate.candidateStatus = 'Interviewing';
+      this.addLifecycleEvent(
+        candidate,
+        'Selected',
+        `Interview Completed: ${updatedRound.roundName} (Recommended for Hire)`,
+        `Evaluated by ${updatedRound.interviewer}. Score: ${updatedRound.rating || 'N/A'}/5. Feedback: ${updatedRound.feedback || 'Recommended for offer.'}`,
+        actor,
+        actorRole
+      );
+    } else {
+      this.logAudit(
+        actor,
+        actorRole,
+        `Interview Updated: ${updatedRound.roundName}`,
+        'Candidate',
+        candidate.id,
+        candidate.fullName,
+        `Status: ${updatedRound.status}. Rating: ${updatedRound.rating || 'N/A'}/5. Feedback: ${updatedRound.feedback || 'None'}.`
+      );
+    }
+
+    this.persist();
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
+    return { success: true, candidate, message: 'Interview round updated successfully.' };
+  }
+
+  public deleteInterviewRound(
+    candidateId: string,
+    roundId: string,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; candidate?: Employee; message: string } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate || !candidate.interviews) return { success: false, message: 'Candidate or round not found.' };
+
+    candidate.interviews = candidate.interviews.filter(r => r.id !== roundId);
+    this.logAudit(actor, actorRole, 'Interview Round Cancelled', 'Candidate', candidate.id, candidate.fullName, `Removed interview round ${roundId}.`);
+    this.persist();
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
+    return { success: true, candidate, message: 'Interview round removed.' };
+  }
+
+  // 2. Offer Letter Generation & Management
+  public generateOfferLetter(
+    candidateId: string,
+    actor: string,
+    actorRole: UserRole,
+    customOverrides?: Partial<OfferLetterData>
+  ): { success: boolean; candidate?: Employee; offerLetter?: OfferLetterData; message: string } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate) return { success: false, message: 'Candidate not found.' };
+
+    const offerLetter = buildOfferLetterData(candidate, customOverrides);
+    candidate.offerLetter = offerLetter;
+    if (customOverrides?.salaryBreakup?.annualCtc) {
+      candidate.offeredCTC = `${(customOverrides.salaryBreakup.annualCtc / 100000).toFixed(1)} LPA`;
+    }
+
+    this.addLifecycleEvent(
+      candidate,
+      'Offer Extended',
+      `Executive Offer Letter Prepared: Ref ${offerLetter.refNo}`,
+      `Prepared offer letter for ${offerLetter.designation} (${offerLetter.department}) with Annual CTC of ${offerLetter.salaryBreakup.currency} ${offerLetter.salaryBreakup.annualCtc.toLocaleString()}. Status: ${offerLetter.status}.`,
+      actor,
+      actorRole
+    );
+
+    this.persist();
+    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter });
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
+    return { success: true, candidate, offerLetter, message: 'Offer letter generated successfully.' };
+  }
+
+  public approveOfferLetter(
+    candidateId: string,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; candidate?: Employee; offerLetter?: OfferLetterData; message: string } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate || !candidate.offerLetter) return { success: false, message: 'Candidate or offer letter not found.' };
+
+    candidate.offerLetter.status = 'Approved';
+    candidate.offerLetter.approvedBy = actor;
+    candidate.offerLetter.approvedAt = new Date().toISOString();
+
+    this.addLifecycleEvent(
+      candidate,
+      'Offer Extended',
+      `Offer Letter Approved by HR Leadership`,
+      `Offer Ref ${candidate.offerLetter.refNo} officially approved by ${actor} (${actorRole}). Ready for issuance to candidate.`,
+      actor,
+      actorRole
+    );
+
+    this.persist();
+    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter });
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
+    return { success: true, candidate, offerLetter: candidate.offerLetter, message: 'Offer letter approved successfully.' };
+  }
+
+  public issueOfferLetter(
+    candidateId: string,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; candidate?: Employee; offerLetter?: OfferLetterData; message: string } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate || !candidate.offerLetter) return { success: false, message: 'Candidate or offer letter not found.' };
+
+    candidate.offerLetter.status = 'Issued';
+    candidate.offerLetter.issuedAt = new Date().toISOString();
+    candidate.candidateStatus = 'Offer Extended';
+
+    this.addLifecycleEvent(
+      candidate,
+      'Offer Extended',
+      `Offer Letter Issued to Candidate`,
+      `Official White Collar Realty offer letter dispatched to ${candidate.email}. Candidate acceptance deadline: ${candidate.offerLetter.validTillDate}.`,
+      actor,
+      actorRole
+    );
+
+    this.persist();
+    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter });
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
+    return { success: true, candidate, offerLetter: candidate.offerLetter, message: 'Offer letter issued to candidate.' };
+  }
+
+  public acceptOfferLetter(
+    candidateId: string,
+    signatureName: string,
+    actor = 'Candidate Portal',
+    actorRole: UserRole = 'HR_MANAGER'
+  ): { success: boolean; candidate?: Employee; offerLetter?: OfferLetterData; message: string } {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate || !candidate.offerLetter) return { success: false, message: 'Candidate or offer letter not found.' };
+
+    candidate.offerLetter.status = 'Accepted';
+    candidate.offerLetter.acceptedAt = new Date().toISOString();
+    candidate.offerLetter.candidateSignatureName = signatureName || candidate.fullName;
+    candidate.offerLetter.signedAt = new Date().toISOString();
+    candidate.candidateStatus = 'Offer Accepted';
+
+    this.addLifecycleEvent(
+      candidate,
+      'Offer Accepted',
+      `Offer Formally Accepted by ${candidate.fullName}`,
+      `Candidate confirmed acceptance of offer Ref ${candidate.offerLetter.refNo}. Target joining date: ${candidate.joiningDate || candidate.offerLetter.joiningDate}.`,
+      actor,
+      actorRole
+    );
+
+    this.persist();
+    this.broadcast('OFFER_LETTER_UPDATED', { candidateId: candidate.id, offerLetter: candidate.offerLetter });
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
+    return { success: true, candidate, offerLetter: candidate.offerLetter, message: 'Offer accepted successfully.' };
+  }
+
+  // 3. Probation Reviews & Confirmation
+  public recordProbationReview(
+    employeeId: string,
+    reviewData: Partial<ProbationReview>,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; employee?: Employee; message: string } {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp) return { success: false, message: 'Employee not found.' };
+
+    if (!emp.probation) {
+      const joinDt = new Date(emp.joiningDate || new Date().toISOString().split('T')[0]);
+      const endDt = new Date(joinDt);
+      endDt.setMonth(endDt.getMonth() + 3);
+      emp.probation = {
+        startDate: emp.joiningDate || joinDt.toISOString().split('T')[0],
+        endDate: endDt.toISOString().split('T')[0],
+        durationMonths: 3,
+        status: 'In Probation',
+        reviews: [],
+      };
+    }
+
+    const review: ProbationReview = {
+      id: `prb-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      reviewDate: reviewData.reviewDate || new Date().toISOString().split('T')[0],
+      reviewer: reviewData.reviewer || actor,
+      reviewerRole: reviewData.reviewerRole || actorRole,
+      milestone: reviewData.milestone || '60-Day Midterm',
+      kpiScore: reviewData.kpiScore || 85,
+      attendanceRating: reviewData.attendanceRating || 'Good',
+      salesOrTargetAchievement: reviewData.salesOrTargetAchievement || 'Met monthly target metrics.',
+      strengths: reviewData.strengths || 'Professional customer handling and active client follow-up.',
+      areasOfImprovement: reviewData.areasOfImprovement || 'Continue developing deeper product knowledge.',
+      recommendation: reviewData.recommendation || 'Confirm',
+    };
+
+    emp.probation.reviews.push(review);
+    this.addLifecycleEvent(
+      emp,
+      'Probation',
+      `Probation Milestone Review: ${review.milestone}`,
+      `Evaluated by ${review.reviewer}. Score: ${review.kpiScore}/100. Recommendation: ${review.recommendation}.`,
+      actor,
+      actorRole
+    );
+
+    this.persist();
+    this.broadcast('EMPLOYEE_UPDATED', emp);
+    return { success: true, employee: emp, message: 'Probation review recorded.' };
+  }
+
+  public confirmProbation(
+    employeeId: string,
+    actor: string,
+    actorRole: UserRole,
+    confirmationLetterRef?: string
+  ): { success: boolean; employee?: Employee; message: string } {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp) return { success: false, message: 'Employee not found.' };
+
+    const ref = confirmationLetterRef || `WCR/HR/CONF/${new Date().getFullYear()}/${emp.employeeCode}`;
+    const confirmedDate = new Date().toISOString().split('T')[0];
+
+    if (!emp.probation) {
+      emp.probation = {
+        startDate: emp.joiningDate,
+        endDate: confirmedDate,
+        durationMonths: 3,
+        status: 'Confirmed',
+        reviews: [],
+      };
+    }
+
+    emp.probation.status = 'Confirmed';
+    emp.probation.confirmedDate = confirmedDate;
+    emp.probation.confirmedBy = actor;
+    emp.probation.confirmationLetterRef = ref;
+    emp.employmentStatus = 'Full-Time';
+
+    this.addLifecycleEvent(
+      emp,
+      'Confirmed',
+      `Employment Formally Confirmed (Letter Ref: ${ref})`,
+      `Successfully completed probation. Regularized as permanent Full-Time employee by ${actor}.`,
+      actor,
+      actorRole
+    );
+
+    this.persist();
+    this.broadcast('EMPLOYEE_UPDATED', emp);
+    return { success: true, employee: emp, message: 'Employee probation confirmed.' };
+  }
+
+  public extendProbation(
+    employeeId: string,
+    extensionMonths: number,
+    reason: string,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; employee?: Employee; message: string } {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp) return { success: false, message: 'Employee not found.' };
+
+    if (!emp.probation) {
+      emp.probation = {
+        startDate: emp.joiningDate,
+        endDate: new Date().toISOString().split('T')[0],
+        durationMonths: 3,
+        status: 'In Probation',
+        reviews: [],
+      };
+    }
+
+    const currentEnd = new Date(emp.probation.endDate);
+    currentEnd.setMonth(currentEnd.getMonth() + extensionMonths);
+
+    emp.probation.endDate = currentEnd.toISOString().split('T')[0];
+    emp.probation.status = 'Extended';
+    emp.probation.extensionMonths = extensionMonths;
+    emp.probation.extensionReason = reason;
+
+    this.addLifecycleEvent(
+      emp,
+      'Probation',
+      `Probation Extended by ${extensionMonths} Month(s)`,
+      `New probation end date: ${emp.probation.endDate}. Reason: ${reason}`,
+      actor,
+      actorRole
+    );
+
+    this.persist();
+    this.broadcast('EMPLOYEE_UPDATED', emp);
+    return { success: true, employee: emp, message: `Probation extended by ${extensionMonths} month(s).` };
+  }
+
+  // 4. Exit, Clearances & FnF Settlement
+  public initiateExit(
+    employeeId: string,
+    data: {
+      resignationDate: string;
+      reasonForExit: string;
+      detailedReason?: string;
+      exitType?: ExitClearanceRecord['exitType'];
+      noticePeriodDays?: number;
+      handoverToEmployeeId?: string;
+      handoverNotes?: string;
+    },
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; employee?: Employee; message: string } {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp) return { success: false, message: 'Employee not found.' };
+
+    const resignationDate = data.resignationDate || new Date().toISOString().split('T')[0];
+    const noticePeriodDays = data.noticePeriodDays || (emp.employmentStatus === 'Probation' ? 30 : 60);
+
+    const resDt = new Date(resignationDate);
+    const lwdDt = new Date(resDt);
+    lwdDt.setDate(lwdDt.getDate() + noticePeriodDays);
+    const calculatedLwd = lwdDt.toISOString().split('T')[0];
+
+    let handoverToName = '';
+    if (data.handoverToEmployeeId) {
+      const colleague = this.data.employees.find(e => e.id === data.handoverToEmployeeId);
+      handoverToName = colleague ? colleague.fullName : data.handoverToEmployeeId;
+    }
+
+    emp.employmentStatus = 'Notice Period';
+    emp.exitClearance = {
+      resignationDate,
+      resignationSubmittedDate: new Date().toISOString().split('T')[0],
+      exitType: data.exitType || 'Voluntary Resignation',
+      reasonForExit: data.reasonForExit || 'Career Growth',
+      detailedReason: data.detailedReason || '',
+      noticePeriodDays,
+      calculatedLwd,
+      actualLwd: calculatedLwd,
+      shortfallNoticeDays: 0,
+      handoverToEmployeeId: data.handoverToEmployeeId,
+      handoverToName,
+      handoverNotes: data.handoverNotes || '',
+      handoverCompleted: false,
+      departments: {
+        itClearance: {
+          status: 'Pending',
+          emailRevoked: false,
+          crmAccessRevoked: false,
+          hardwareReturned: false,
+        },
+        hrClearance: {
+          status: 'Pending',
+          idCardReturned: false,
+          exitInterviewCompleted: false,
+        },
+        financeClearance: {
+          status: 'Pending',
+          claimsSettled: false,
+          salaryAdvancesRecovered: false,
+        },
+        deptHeadClearance: {
+          status: 'Pending',
+          clientPipelineHandedOver: false,
+          knowledgeTransferDone: false,
+        },
+      },
+      overallStatus: 'Initiated',
+    };
+
+    emp.fnfSettlement = calculateFullAndFinalSettlement(emp, { lastWorkingDay: calculatedLwd });
+
+    this.addLifecycleEvent(
+      emp,
+      'Notice Period',
+      `Exit Initiated: ${emp.exitClearance.exitType}`,
+      `Resignation recorded on ${resignationDate}. Notice period: ${noticePeriodDays} days. Calculated Last Working Day: ${calculatedLwd}. Handover to: ${handoverToName || 'Pending'}.`,
+      actor,
+      actorRole
+    );
+
+    this.persist();
+    this.broadcast('EMPLOYEE_UPDATED', emp);
+    return { success: true, employee: emp, message: 'Exit process initiated successfully.' };
+  }
+
+  public updateExitClearance(
+    employeeId: string,
+    deptKey: 'itClearance' | 'hrClearance' | 'financeClearance' | 'deptHeadClearance',
+    updates: any,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; employee?: Employee; message: string } {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp || !emp.exitClearance) return { success: false, message: 'Exit clearance not found.' };
+
+    const dept = emp.exitClearance.departments[deptKey];
+    Object.assign(dept, updates);
+    dept.approver = actor;
+    dept.approvedAt = new Date().toISOString();
+
+    const depts = emp.exitClearance.departments;
+    const allApproved =
+      depts.itClearance.status === 'Approved' &&
+      depts.hrClearance.status === 'Approved' &&
+      depts.financeClearance.status === 'Approved' &&
+      depts.deptHeadClearance.status === 'Approved';
+
+    if (allApproved) {
+      emp.exitClearance.overallStatus = 'Clearances Complete';
+      emp.lifecycleStage = 'Exit Clearance';
+    } else {
+      emp.exitClearance.overallStatus = 'In Progress';
+    }
+
+    const deptName =
+      deptKey === 'itClearance' ? 'IT & Systems' :
+      deptKey === 'hrClearance' ? 'Human Resources' :
+      deptKey === 'financeClearance' ? 'Finance & Accounts' : 'Department Head';
+
+    this.logAudit(
+      actor,
+      actorRole,
+      `Exit Clearance Signed: ${deptName}`,
+      'ExitClearance',
+      emp.id,
+      emp.fullName,
+      `Department clearance status updated to '${dept.status}'. Approver: ${actor}. Notes: ${dept.notes || 'None'}.`
+    );
+
+    this.persist();
+    this.broadcast('EMPLOYEE_UPDATED', emp);
+    return { success: true, employee: emp, message: `${deptName} clearance updated.` };
+  }
+
+  public calculateFnF(
+    employeeId: string,
+    overrides?: Partial<FullAndFinalSettlement>
+  ): { success: boolean; fnfSettlement?: FullAndFinalSettlement; employee?: Employee; message: string } {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp) return { success: false, message: 'Employee not found.' };
+
+    const fnf = calculateFullAndFinalSettlement(emp, overrides);
+    emp.fnfSettlement = fnf;
+    this.persist();
+    this.broadcast('EMPLOYEE_UPDATED', emp);
+    return { success: true, fnfSettlement: fnf, employee: emp, message: 'Full & Final settlement calculated.' };
+  }
+
+  public finalizeFnFSettlement(
+    employeeId: string,
+    paymentData: {
+      paymentReference?: string;
+      paymentMode?: 'NEFT' | 'Bank Wire' | 'Cheque';
+      remarks?: string;
+    },
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; employee?: Employee; message: string } {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp || !emp.fnfSettlement) return { success: false, message: 'Employee or FnF settlement record not found.' };
+
+    emp.fnfSettlement.status = 'Paid';
+    emp.fnfSettlement.paymentReference = paymentData.paymentReference || `UTR-${Date.now().toString().slice(-8)}`;
+    emp.fnfSettlement.paymentMode = paymentData.paymentMode || 'NEFT';
+    emp.fnfSettlement.paymentDate = new Date().toISOString().split('T')[0];
+    emp.fnfSettlement.approvedByFinance = actor;
+    emp.fnfSettlement.approvedAt = new Date().toISOString();
+    if (paymentData.remarks) emp.fnfSettlement.remarks = paymentData.remarks;
+
+    emp.employmentStatus = 'Ex-Employee';
+    emp.isCandidate = false;
+    if (emp.exitClearance) emp.exitClearance.overallStatus = 'Settled';
+
+    if (emp.desk) {
+      this.releaseDesk(emp.desk, actor, actorRole);
+      emp.desk = '';
+    }
+
+    this.addLifecycleEvent(
+      emp,
+      'FnF Settled',
+      `Full & Final Settlement Disbursed (${emp.fnfSettlement.currency} ${emp.fnfSettlement.netSettlementAmount.toLocaleString()})`,
+      `Final settlement executed via ${emp.fnfSettlement.paymentMode} (Ref: ${emp.fnfSettlement.paymentReference}) by ${actor}. Account closed and experience letter cleared.`,
+      actor,
+      actorRole
+    );
+
+    this.persist();
+    this.broadcast('EMPLOYEE_UPDATED', emp);
+    return { success: true, employee: emp, message: 'Full & Final settlement disbursed and account closed.' };
   }
 
   // --- Master Single-Sheet Excel Generator (Requirement 5) ---
@@ -1418,6 +2167,104 @@ class DatabaseService {
             summary: `${person.fullName}'s internship completes in ${
               diffDays === 0 ? 'today!' : diffDays === 1 ? '1 day (tomorrow)' : `${diffDays} days`
             } on ${formattedEndDate}. Review performance appraisal, documentation, and full-time conversion offer.`,
+            market: person.market,
+            dismissed: isDismissed,
+            dismissedAt: ack?.dismissedAt,
+            profileCompletion: person.profileCompletion,
+          });
+        }
+      }
+    });
+
+    // 3. Probation Completion Alerts (Within 15 days)
+    this.data.employees.forEach(person => {
+      if (!person.probation || person.probation.status !== 'In Probation' || !person.probation.endDate) return;
+
+      const pParts = person.probation.endDate.split(/[-/]/);
+      if (pParts.length < 3) return;
+
+      const pYear = parseInt(pParts[0], 10);
+      const pMonth = parseInt(pParts[1], 10);
+      const pDay = parseInt(pParts[2], 10);
+      if (isNaN(pYear) || isNaN(pMonth) || isNaN(pDay)) return;
+
+      const pDate = new Date(pYear, pMonth - 1, pDay, 0, 0, 0, 0);
+      const diffMs = pDate.getTime() - refMidnight.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffDays >= 0 && diffDays <= 15) {
+        const alertId = `probation-${person.id}-${person.probation.endDate}`;
+        const ack = this.data.acknowledgedAlerts?.[alertId];
+        const isDismissed = Boolean(ack);
+
+        if (!activeOnly || !isDismissed) {
+          const formattedPDate = `${pDay} ${monthNames[pMonth - 1]} ${pYear}`;
+          alerts.push({
+            id: alertId,
+            type: 'PROBATION_EXPIRY',
+            personId: person.id,
+            fullName: person.fullName,
+            designation: person.designation,
+            department: person.department,
+            phone: person.phone,
+            email: person.email,
+            isCandidate: person.isCandidate,
+            eventDate: person.probation.endDate,
+            formattedEventDate: formattedPDate,
+            daysRemaining: diffDays,
+            joiningDate: person.joiningDate,
+            desk: person.desk,
+            title: `Probation Ending: ${person.fullName}`,
+            summary: `${person.fullName}'s probation ends in ${diffDays} day(s) on ${formattedPDate}. Conduct confirmation review or extension decision.`,
+            market: person.market,
+            dismissed: isDismissed,
+            dismissedAt: ack?.dismissedAt,
+            profileCompletion: person.profileCompletion,
+          });
+        }
+      }
+    });
+
+    // 4. Notice Period & Last Working Day Alerts (Within 15 days)
+    this.data.employees.forEach(person => {
+      if (person.employmentStatus !== 'Notice Period' || !person.exitClearance?.calculatedLwd) return;
+
+      const lwdParts = person.exitClearance.calculatedLwd.split(/[-/]/);
+      if (lwdParts.length < 3) return;
+
+      const lYear = parseInt(lwdParts[0], 10);
+      const lMonth = parseInt(lwdParts[1], 10);
+      const lDay = parseInt(lwdParts[2], 10);
+      if (isNaN(lYear) || isNaN(lMonth) || isNaN(lDay)) return;
+
+      const lDate = new Date(lYear, lMonth - 1, lDay, 0, 0, 0, 0);
+      const diffMs = lDate.getTime() - refMidnight.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffDays >= 0 && diffDays <= 15) {
+        const alertId = `notice-${person.id}-${person.exitClearance.calculatedLwd}`;
+        const ack = this.data.acknowledgedAlerts?.[alertId];
+        const isDismissed = Boolean(ack);
+
+        if (!activeOnly || !isDismissed) {
+          const formattedLwd = `${lDay} ${monthNames[lMonth - 1]} ${lYear}`;
+          alerts.push({
+            id: alertId,
+            type: 'NOTICE_PERIOD_LWD',
+            personId: person.id,
+            fullName: person.fullName,
+            designation: person.designation,
+            department: person.department,
+            phone: person.phone,
+            email: person.email,
+            isCandidate: person.isCandidate,
+            eventDate: person.exitClearance.calculatedLwd,
+            formattedEventDate: formattedLwd,
+            daysRemaining: diffDays,
+            joiningDate: person.joiningDate,
+            desk: person.desk,
+            title: `Last Working Day: ${person.fullName}`,
+            summary: `${person.fullName}'s last working day is in ${diffDays} day(s) on ${formattedLwd}. Ensure IT, HR, Finance clearances and FnF settlement are completed.`,
             market: person.market,
             dismissed: isDismissed,
             dismissedAt: ack?.dismissedAt,

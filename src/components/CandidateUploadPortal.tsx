@@ -16,6 +16,7 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { api } from '../services/api.js';
+import { SecurePdfCanvasViewer } from './SecurePdfCanvasViewer.js';
 
 interface CandidateUploadPortalProps {
   token: string;
@@ -379,9 +380,38 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
                           </button>
                         </div>
                       ) : doc.fileName ? (
-                        <p className="text-xs text-slate-400 pt-0.5">
-                          Previously submitted: <span className="font-mono text-slate-300">{doc.fileName}</span> ({doc.status})
-                        </p>
+                        <div className="flex items-center gap-3 pt-1 text-xs flex-wrap">
+                          <span className="text-slate-200 font-mono font-medium flex items-center gap-1">
+                            📄 {doc.fileName} {doc.fileSize ? `(${doc.fileSize})` : ''}
+                          </span>
+                          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 font-semibold">
+                            {doc.status}
+                          </span>
+                          {doc.uploadedAt && (
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                          {doc.hasFile && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPreviewFile({
+                                  key: doc.key,
+                                  file: null as any,
+                                  fileName: doc.fileName,
+                                  fileSize: doc.fileSize || '',
+                                  fileData: `/api/employees/${candidateData.id}/documents/${doc.key}/file?token=${token}`,
+                                  mimeType: doc.mimeType || (doc.fileName.endsWith('.png') ? 'image/png' : doc.fileName.endsWith('.jpg') || doc.fileName.endsWith('.jpeg') ? 'image/jpeg' : 'application/pdf'),
+                                });
+                              }}
+                              className="text-blue-400 hover:text-blue-300 underline text-[11px] flex items-center gap-1"
+                            >
+                              <Eye className="w-3 h-3" />
+                              Preview
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <p className="text-[11px] text-slate-400 pt-0.5">
                           Attach a clear scanned copy or photo of your original document.
@@ -427,7 +457,9 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
               Ready to submit: <strong className="text-white font-mono">{stagedCount}</strong> documents
             </div>
             <p className="text-[10px] sm:text-[11px] text-slate-500">
-              One-time link expires immediately after submitting to protect privacy.
+              {candidateData.tokenInfo?.isOneTime !== false
+                ? 'One-time link expires immediately after submitting to protect privacy.'
+                : 'Multi-use link allows updates until expiry.'}
             </p>
           </div>
 
@@ -477,10 +509,10 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
                   className="max-h-[60vh] object-contain rounded-lg mx-auto"
                 />
               ) : (
-                <iframe
-                  src={previewFile.fileData}
-                  title={previewFile.fileName}
-                  className="w-full h-[60vh] rounded-lg border-0"
+                <SecurePdfCanvasViewer
+                  source={previewFile.fileData}
+                  fileName={previewFile.fileName}
+                  className="w-full h-[60vh] rounded-lg"
                 />
               )}
             </div>

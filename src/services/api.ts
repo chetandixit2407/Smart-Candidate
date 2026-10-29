@@ -9,6 +9,11 @@ import {
   ImportSummary,
   AlertItem,
   UploadToken,
+  InterviewRound,
+  OfferLetterData,
+  ProbationReview,
+  FullAndFinalSettlement,
+  ExitClearanceRecord,
 } from '../types/index.js';
 
 class ApiService {
@@ -22,6 +27,8 @@ class ApiService {
     } else {
       if (role === 'HR_ADMIN') this.currentUserName = 'Simran Kaur (HR Head)';
       else if (role === 'HR_MANAGER') this.currentUserName = 'Ritu Agarwal (HR Ops)';
+      else if (role === 'HR_EXECUTIVE') this.currentUserName = 'Ananya Sen (Talent Acquisition)';
+      else if (role === 'FINANCE_ADMIN') this.currentUserName = 'Rajesh Mehta (Head of Finance & FnF)';
       else this.currentUserName = 'Varun Batra (Sales Director - Viewer)';
     }
   }
@@ -71,6 +78,12 @@ class ApiService {
       'DATABASE_RESET',
       'ALERT_DISMISSED',
       'ALERTS_RESET',
+      'CANDIDATE_DOCUMENTS_SUBMITTED',
+      'UPLOAD_SUBMITTED',
+      'UPLOAD_LINK_GENERATED',
+      'UPLOAD_LINK_REVOKED',
+      'OFFER_LETTER_UPDATED',
+      'LIFECYCLE_EVENT_ADDED',
     ];
 
     eventTypes.forEach(type => {
@@ -374,10 +387,14 @@ class ApiService {
   }
 
   // --- One-Time Upload Link ---
-  public async generateUploadLink(candidateId: string): Promise<{ success: boolean; token: UploadToken; message: string }> {
+  public async generateUploadLink(
+    candidateId: string,
+    options?: { expiryDays?: number; isOneTime?: boolean }
+  ): Promise<{ success: boolean; token: UploadToken; message: string }> {
     const res = await fetch(`/api/candidates/${candidateId}/upload-link/generate`, {
       method: 'POST',
       headers: this.getHeaders(),
+      body: JSON.stringify(options || {}),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || data.error || 'Failed to generate upload link');
@@ -459,6 +476,202 @@ class ApiService {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     }, 200);
+  }
+
+  // --- Lifecycle & Interviews ---
+  public async addInterview(candidateId: string, data: Partial<InterviewRound>): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/interviews`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to schedule interview');
+    }
+    return res.json();
+  }
+
+  public async updateInterview(candidateId: string, roundId: string, updates: Partial<InterviewRound>): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/interviews/${roundId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to update interview');
+    }
+    return res.json();
+  }
+
+  public async deleteInterview(candidateId: string, roundId: string): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/interviews/${roundId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to delete interview');
+    }
+    return res.json();
+  }
+
+  // --- Offer Letters ---
+  public async generateOfferLetter(candidateId: string, customOverrides?: Partial<OfferLetterData>): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/offer-letter/generate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(customOverrides || {}),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to generate offer letter');
+    }
+    return res.json();
+  }
+
+  public async updateOfferLetter(candidateId: string, customOverrides: Partial<OfferLetterData>): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/offer-letter`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(customOverrides),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to update offer letter');
+    }
+    return res.json();
+  }
+
+  public async approveOfferLetter(candidateId: string): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/offer-letter/approve`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to approve offer letter');
+    }
+    return res.json();
+  }
+
+  public async issueOfferLetter(candidateId: string): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/offer-letter/issue`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to issue offer letter');
+    }
+    return res.json();
+  }
+
+  public async acceptOfferLetter(candidateId: string, signatureName: string): Promise<any> {
+    const res = await fetch(`/api/candidates/${candidateId}/offer-letter/accept`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ signatureName }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to accept offer letter');
+    }
+    return res.json();
+  }
+
+  // --- Probation ---
+  public async recordProbationReview(employeeId: string, data: Partial<ProbationReview>): Promise<any> {
+    const res = await fetch(`/api/employees/${employeeId}/probation/review`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to record probation review');
+    }
+    return res.json();
+  }
+
+  public async confirmProbation(employeeId: string, confirmationLetterRef?: string): Promise<any> {
+    const res = await fetch(`/api/employees/${employeeId}/probation/confirm`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ confirmationLetterRef }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to confirm probation');
+    }
+    return res.json();
+  }
+
+  public async extendProbation(employeeId: string, extensionMonths: number, reason: string): Promise<any> {
+    const res = await fetch(`/api/employees/${employeeId}/probation/extend`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ extensionMonths, reason }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to extend probation');
+    }
+    return res.json();
+  }
+
+  // --- Exit, Clearances & FnF ---
+  public async initiateExit(employeeId: string, data: any): Promise<any> {
+    const res = await fetch(`/api/employees/${employeeId}/exit/initiate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to initiate exit');
+    }
+    return res.json();
+  }
+
+  public async updateExitClearance(employeeId: string, dept: string, updates: any): Promise<any> {
+    const res = await fetch(`/api/employees/${employeeId}/exit/clearance/${dept}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to update exit clearance');
+    }
+    return res.json();
+  }
+
+  public async calculateFnF(employeeId: string, overrides?: any): Promise<any> {
+    const res = await fetch(`/api/employees/${employeeId}/exit/fnf/calculate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(overrides || {}),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to calculate FnF');
+    }
+    return res.json();
+  }
+
+  public async finalizeFnF(employeeId: string, paymentData: any): Promise<any> {
+    const res = await fetch(`/api/employees/${employeeId}/exit/fnf/settle`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(paymentData || {}),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || err.error || 'Failed to finalize FnF settlement');
+    }
+    return res.json();
   }
 
   // --- Reset Database ---
