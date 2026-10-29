@@ -1,0 +1,445 @@
+import React, { useState, useMemo } from 'react';
+import {
+  Search,
+  Filter,
+  Plus,
+  Eye,
+  Trash2,
+  Edit,
+  ArrowUpDown,
+  Building,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Armchair,
+} from 'lucide-react';
+import { Employee, UserRole } from '../types/index.js';
+
+interface EmployeesViewProps {
+  employees: Employee[];
+  onSelectEmployee: (emp: Employee) => void;
+  onOpenAddModal: () => void;
+  onDeleteEmployee: (id: string) => Promise<void>;
+  userRole: UserRole;
+}
+
+export const EmployeesView: React.FC<EmployeesViewProps> = ({
+  employees,
+  onSelectEmployee,
+  onOpenAddModal,
+  onDeleteEmployee,
+  userRole,
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDept, setSelectedDept] = useState('All');
+  const [selectedMarket, setSelectedMarket] = useState('All');
+  const [selectedStatus, setSelectedStatus] = useState('All');
+  const [sortField, setSortField] = useState<'fullName' | 'employeeCode' | 'joiningDate' | 'profileCompletion'>('employeeCode');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [pageSize, setPageSize] = useState<number>(15);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Departments list
+  const departments = useMemo(() => {
+    const set = new Set<string>();
+    employees.forEach(e => {
+      if (e.department) set.add(e.department);
+    });
+    return ['All', ...Array.from(set)];
+  }, [employees]);
+
+  // Filtered & Sorted employees
+  const filteredEmployees = useMemo(() => {
+    return employees
+      .filter(e => {
+        if (selectedDept !== 'All' && e.department !== selectedDept) return false;
+        if (selectedMarket !== 'All' && e.market !== selectedMarket) return false;
+        if (selectedStatus !== 'All' && e.employmentStatus !== selectedStatus) return false;
+        if (searchTerm) {
+          const q = searchTerm.toLowerCase();
+          const match =
+            e.fullName.toLowerCase().includes(q) ||
+            e.employeeCode.toLowerCase().includes(q) ||
+            e.email.toLowerCase().includes(q) ||
+            e.phone.toLowerCase().includes(q) ||
+            e.designation.toLowerCase().includes(q) ||
+            (e.desk && e.desk.toLowerCase().includes(q));
+          if (!match) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        let valA = a[sortField] || '';
+        let valB = b[sortField] || '';
+        if (typeof valA === 'string') valA = valA.toLowerCase();
+        if (typeof valB === 'string') valB = valB.toLowerCase();
+
+        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+  }, [employees, selectedDept, selectedMarket, selectedStatus, searchTerm, sortField, sortDirection]);
+
+  // Pagination slice
+  const totalPages = Math.ceil(filteredEmployees.length / pageSize) || 1;
+  const paginatedEmployees = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredEmployees.slice(start, start + pageSize);
+  }, [filteredEmployees, currentPage, pageSize]);
+
+  const toggleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, emp: Employee) => {
+    e.stopPropagation();
+    if (confirm(`Are you sure you want to delete employee record for ${emp.fullName} (${emp.employeeCode})?`)) {
+      await onDeleteEmployee(emp.id);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Control Bar: Filters & Search */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+          {/* Search Box */}
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by name, code, desk, phone, role..."
+              value={searchTerm}
+              onChange={e => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-slate-900 focus:bg-white"
+            />
+          </div>
+
+          {/* Quick Stats Pill */}
+          <div className="flex items-center gap-3 text-xs text-slate-500 w-full md:w-auto justify-between md:justify-end">
+            <span>
+              Showing <strong className="font-mono text-slate-800">{filteredEmployees.length}</strong> of{' '}
+              <span className="font-mono">{employees.length}</span> active employees
+            </span>
+            {userRole !== 'DEPT_HEAD_VIEWER' && (
+              <button
+                onClick={onOpenAddModal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Employee
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Filter Dropdowns */}
+        <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-slate-100 text-xs">
+          <span className="text-slate-400 text-[11px] font-medium flex items-center gap-1">
+            <Filter className="w-3 h-3" /> Filters:
+          </span>
+
+          <select
+            value={selectedDept}
+            onChange={e => {
+              setSelectedDept(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-2.5 py-1 bg-white border border-slate-200 rounded text-slate-700 text-xs focus:ring-1 focus:ring-slate-900"
+          >
+            {departments.map(d => (
+              <option key={d} value={d}>
+                Dept: {d}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedMarket}
+            onChange={e => {
+              setSelectedMarket(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-2.5 py-1 bg-white border border-slate-200 rounded text-slate-700 text-xs focus:ring-1 focus:ring-slate-900"
+          >
+            <option value="All">Market: All Markets</option>
+            <option value="Gurgaon">Market: Gurgaon (NCR)</option>
+            <option value="Dubai">Market: Dubai (UAE)</option>
+            <option value="Dual Market">Market: Dual Market</option>
+          </select>
+
+          <select
+            value={selectedStatus}
+            onChange={e => {
+              setSelectedStatus(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-2.5 py-1 bg-white border border-slate-200 rounded text-slate-700 text-xs focus:ring-1 focus:ring-slate-900"
+          >
+            <option value="All">Status: All Statuses</option>
+            <option value="Full-Time">Full-Time</option>
+            <option value="Intern">Intern</option>
+            <option value="Probation">Probation</option>
+            <option value="Notice Period">Notice Period</option>
+          </select>
+
+          {(searchTerm || selectedDept !== 'All' || selectedMarket !== 'All' || selectedStatus !== 'All') && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedDept('All');
+                setSelectedMarket('All');
+                setSelectedStatus('All');
+                setCurrentPage(1);
+              }}
+              className="text-xs text-amber-700 hover:text-amber-900 font-medium px-2 py-0.5 rounded hover:bg-amber-50"
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Employees Directory Table */}
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold select-none">
+              <tr>
+                <th
+                  onClick={() => toggleSort('employeeCode')}
+                  className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Emp Code</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => toggleSort('fullName')}
+                  className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Full Name & Contact</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                  </div>
+                </th>
+                <th className="px-4 py-3">Designation & Department</th>
+                <th className="px-4 py-3">Desk</th>
+                <th className="px-4 py-3">Market</th>
+                <th
+                  onClick={() => toggleSort('joiningDate')}
+                  className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Joining Date</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => toggleSort('profileCompletion')}
+                  className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Readiness</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {paginatedEmployees.map(emp => {
+                const isChetan = emp.fullName.toLowerCase().includes('chetan');
+                const avatar = isChetan ? '/src/assets/images/avatar_chetan_sharma_1793257665587.jpg' : null;
+
+                return (
+                  <tr
+                    key={emp.id}
+                    onClick={() => onSelectEmployee(emp)}
+                    className="hover:bg-slate-50/80 cursor-pointer transition-colors group"
+                  >
+                    {/* Code */}
+                    <td className="px-4 py-3 font-mono font-semibold text-slate-900 whitespace-nowrap">
+                      <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        {emp.employeeCode}
+                      </span>
+                    </td>
+
+                    {/* Name & Contact */}
+                    <td className="px-4 py-3 min-w-[200px]">
+                      <div className="flex items-center gap-3">
+                        {avatar ? (
+                          <img
+                            src={avatar}
+                            alt={emp.fullName}
+                            referrerPolicy="no-referrer"
+                            className="w-9 h-9 rounded-full object-cover border border-amber-400 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-slate-800 text-amber-400 flex items-center justify-center font-bold text-xs shrink-0">
+                            {emp.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                          </div>
+                        )}
+                        <div className="overflow-hidden min-w-0">
+                          <p className="font-semibold text-slate-900 group-hover:text-amber-800 truncate">
+                            {emp.fullName}
+                          </p>
+                          <p className="text-[11px] text-slate-500 font-mono truncate">
+                            {emp.phone || emp.email}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Designation & Department */}
+                    <td className="px-4 py-3 min-w-[180px]">
+                      <p className="font-medium text-slate-800 truncate">{emp.designation}</p>
+                      <p className="text-[11px] text-slate-500 truncate">{emp.department}</p>
+                    </td>
+
+                    {/* Desk */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {emp.desk ? (
+                        <span className="font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-xs">
+                          {emp.desk}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 italic">Unassigned</span>
+                      )}
+                    </td>
+
+                    {/* Market */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span
+                        className={`text-[11px] font-medium px-2 py-0.5 rounded ${
+                          emp.market === 'Dual Market'
+                            ? 'bg-purple-50 text-purple-800 border border-purple-200'
+                            : emp.market === 'Dubai'
+                            ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {emp.market}
+                      </span>
+                    </td>
+
+                    {/* Joining Date */}
+                    <td className="px-4 py-3 font-mono text-slate-700 whitespace-nowrap">
+                      {emp.joiningDate || '—'}
+                    </td>
+
+                    {/* Readiness */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="w-14 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${
+                              emp.profileCompletion >= 90
+                                ? 'bg-emerald-500'
+                                : emp.profileCompletion >= 70
+                                ? 'bg-amber-500'
+                                : 'bg-rose-500'
+                            }`}
+                            style={{ width: `${emp.profileCompletion}%` }}
+                          />
+                        </div>
+                        <span className="font-mono font-semibold text-slate-800 text-[11px] tabular-nums">
+                          {emp.profileCompletion}%
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            onSelectEmployee(emp);
+                          }}
+                          title="Open Dossier"
+                          className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {userRole === 'HR_ADMIN' && (
+                          <button
+                            onClick={e => handleDelete(e, emp)}
+                            title="Delete Record"
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {paginatedEmployees.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-4 py-12 text-center text-xs text-slate-400">
+                    No employees matching the selected criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Bar */}
+        <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+          <div className="flex items-center gap-2">
+            <span>Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={e => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="px-2 py-0.5 bg-white border border-slate-300 rounded text-xs"
+            >
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="font-mono">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className="px-2.5 py-1 bg-white border border-slate-300 rounded text-xs disabled:opacity-40 hover:bg-slate-100"
+              >
+                Previous
+              </button>
+              <button
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className="px-2.5 py-1 bg-white border border-slate-300 rounded text-xs disabled:opacity-40 hover:bg-slate-100"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,6 @@
+{
+  "name": "White Collar Realty - HR & Candidate Management System",
+  "description": "Enterprise employee directory, candidate onboarding dossier, desk allocation, asset tracking, and document verification system for White Collar Realty.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
