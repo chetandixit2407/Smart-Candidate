@@ -64,6 +64,7 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
   const [crossfadeOpacity, setCrossfadeOpacity] = useState<number>(50); // for overlay diff
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAcceptInput, setShowAcceptInput] = useState(false);
+  const [candidateSigName, setCandidateSigName] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
 
@@ -313,6 +314,18 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
       showToast(err.message || 'Failed to accept offer.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDownloadDocx = async () => {
+    try {
+      setIsDownloadingDocx(true);
+      await api.downloadOfferLetterDocx(candidate.id, formData);
+      showToast(`Downloaded official offer letter as editable Microsoft Word (.docx) for ${candidate.fullName}!`);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to download Word (.docx) document.');
+    } finally {
+      setIsDownloadingDocx(false);
     }
   };
 
@@ -890,6 +903,24 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
                 Fidelity Audit & History
               </button>
             </div>
+
+            {/* Download Word (.docx) Button */}
+            <button
+              type="button"
+              disabled={isDownloadingDocx}
+              onClick={handleDownloadDocx}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg border border-blue-500 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors disabled:opacity-50"
+              title="Download editable Microsoft Word (.docx) offer letter document"
+            >
+              {isDownloadingDocx ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-200" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-blue-200" />
+              )}
+              <span className="hidden sm:inline">
+                {isDownloadingDocx ? 'Generating .docx...' : 'Download Word (.docx)'}
+              </span>
+            </button>
 
             {/* Print / Save PDF Button */}
             <button
@@ -1541,6 +1572,19 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={isDownloadingDocx}
+              onClick={handleDownloadDocx}
+              className="px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-bold flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
+            >
+              {isDownloadingDocx ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-100" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-blue-100" />
+              )}
+              <span>{isDownloadingDocx ? 'Downloading...' : 'Download Word (.docx)'}</span>
+            </button>
             <button
               type="button"
               onClick={handlePrint}

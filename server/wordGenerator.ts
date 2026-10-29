@@ -60,12 +60,13 @@ export async function generateWcrOfferLetterDocx(
     console.warn('[WordGenerator] Could not load footer image:', e);
   }
 
+  const rawCandidateName = data.candidateName || (data as any).fullName || 'Candidate';
   const candidateSalutationName =
-    data.candidateName.startsWith('Mr.') ||
-    data.candidateName.startsWith('Ms.') ||
-    data.candidateName.startsWith('Dr.')
-      ? data.candidateName
-      : `Mr. ${data.candidateName}`;
+    rawCandidateName.startsWith('Mr.') ||
+    rawCandidateName.startsWith('Ms.') ||
+    rawCandidateName.startsWith('Dr.')
+      ? rawCandidateName
+      : `Mr. ${rawCandidateName}`;
 
   const isAccepted = data.status === 'Accepted';
   const signedDate = data.signedAt ? new Date(data.signedAt).toLocaleDateString('en-GB') : '';
@@ -220,6 +221,7 @@ export async function generateWcrOfferLetterDocx(
           new ImageRun({
             data: headerImgBuffer,
             transformation: { width: 560, height: 154 },
+            type: 'png',
           }),
         ],
       })
@@ -384,6 +386,7 @@ export async function generateWcrOfferLetterDocx(
           new ImageRun({
             data: stampImgBuffer,
             transformation: { width: 75, height: 75 },
+            type: 'png',
           }),
         ],
         spacing: { after: 40 },
@@ -469,6 +472,7 @@ export async function generateWcrOfferLetterDocx(
           new ImageRun({
             data: footerImgBuffer,
             transformation: { width: 560, height: 160 },
+            type: 'png',
           }),
         ],
       })
@@ -1023,6 +1027,7 @@ export async function generateWcrOfferLetterDocx(
           new ImageRun({
             data: stampImgBuffer,
             transformation: { width: 85, height: 85 },
+            type: 'png',
           }),
         ],
         spacing: { after: 40 },
