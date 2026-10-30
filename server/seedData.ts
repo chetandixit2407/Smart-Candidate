@@ -2,8 +2,32 @@ import type { Employee, CompanyAsset, DeskSlot, AuditLog, DocumentRecord, Depart
 
 export const DEFAULT_DEPARTMENTS: DepartmentConfig[] = [
   {
+    id: 'dept-hr',
+    name: 'HR',
+    description: 'Human Resources, talent acquisition, onboarding compliance, and people operations.',
+    marketFocus: 'Dual Market',
+    subDepartments: [
+      {
+        id: 'sub-hr-emp',
+        name: 'HR Employees',
+        description: 'Full-time HR managers, recruiters, talent leads, and compliance officers',
+        createdAt: '2026-01-01T09:00:00Z',
+        updatedAt: '2026-01-01T09:00:00Z',
+      },
+      {
+        id: 'sub-hr-intern',
+        name: 'HR Interns',
+        description: 'Talent coordination, candidate onboarding, and HR operations internship cohort',
+        createdAt: '2026-01-01T09:00:00Z',
+        updatedAt: '2026-01-01T09:00:00Z',
+      },
+    ],
+    createdAt: '2026-01-01T09:00:00Z',
+    updatedAt: '2026-01-01T09:00:00Z',
+  },
+  {
     id: 'dept-ai',
-    name: 'AI Department',
+    name: 'AI',
     description: 'Artificial intelligence engineering, agentic automation, and LLM solutions.',
     marketFocus: 'Gurgaon',
     subDepartments: [
@@ -27,7 +51,7 @@ export const DEFAULT_DEPARTMENTS: DepartmentConfig[] = [
   },
   {
     id: 'dept-da',
-    name: 'DA Department',
+    name: 'DA',
     description: 'Data analytics, business intelligence, real estate metrics, and market forecasting.',
     marketFocus: 'Gurgaon',
     subDepartments: [
@@ -50,6 +74,30 @@ export const DEFAULT_DEPARTMENTS: DepartmentConfig[] = [
     updatedAt: '2026-01-01T09:00:00Z',
   },
   {
+    id: 'dept-dm',
+    name: 'DM',
+    description: 'Digital marketing, brand strategy, performance marketing, and creative lead generation.',
+    marketFocus: 'Dual Market',
+    subDepartments: [
+      {
+        id: 'sub-dm-emp',
+        name: 'DM Employees',
+        description: 'Full-time performance marketers, campaign managers, and creative leads',
+        createdAt: '2026-01-01T09:00:00Z',
+        updatedAt: '2026-01-01T09:00:00Z',
+      },
+      {
+        id: 'sub-dm-intern',
+        name: 'DM Interns',
+        description: 'Social media, reels, organic campaigns, and content creation internship cohort',
+        createdAt: '2026-01-01T09:00:00Z',
+        updatedAt: '2026-01-01T09:00:00Z',
+      },
+    ],
+    createdAt: '2026-01-01T09:00:00Z',
+    updatedAt: '2026-01-01T09:00:00Z',
+  },
+  {
     id: 'dept-gurgaon-market',
     name: 'Gurgaon Market',
     description: 'Golf Course Road, DLF Camellias/Magnolias, and Gurgaon micro-market advisory teams.',
@@ -59,13 +107,6 @@ export const DEFAULT_DEPARTMENTS: DepartmentConfig[] = [
         id: 'sub-ggn-emp',
         name: 'Gurgaon Employees',
         description: 'Full-time luxury residential advisors, team leaders, and sales directors',
-        createdAt: '2026-01-01T09:00:00Z',
-        updatedAt: '2026-01-01T09:00:00Z',
-      },
-      {
-        id: 'sub-ggn-intern',
-        name: 'Gurgaon Interns',
-        description: 'Property sales associates and micro-market trainees',
         createdAt: '2026-01-01T09:00:00Z',
         updatedAt: '2026-01-01T09:00:00Z',
       },
@@ -86,82 +127,20 @@ export const DEFAULT_DEPARTMENTS: DepartmentConfig[] = [
         createdAt: '2026-01-01T09:00:00Z',
         updatedAt: '2026-01-01T09:00:00Z',
       },
-      {
-        id: 'sub-dxb-intern',
-        name: 'Dubai Interns',
-        description: 'Cross-border HNI advisory associates and international trainees',
-        createdAt: '2026-01-01T09:00:00Z',
-        updatedAt: '2026-01-01T09:00:00Z',
-      },
-    ],
-    createdAt: '2026-01-01T09:00:00Z',
-    updatedAt: '2026-01-01T09:00:00Z',
-  },
-  {
-    id: 'dept-marketing',
-    name: 'Digital Marketing Department',
-    description: 'Full-time brand strategy, performance marketing, and digital lead generation.',
-    marketFocus: 'Dual Market',
-    subDepartments: [
-      {
-        id: 'sub-dm-emp',
-        name: 'DM Employees',
-        description: 'Full-time performance marketers, campaign managers, and creative leads',
-        createdAt: '2026-01-01T09:00:00Z',
-        updatedAt: '2026-01-01T09:00:00Z',
-      },
-      {
-        id: 'sub-dm-intern',
-        name: 'DM Interns',
-        description: 'Social media, reels, organic campaigns, and content creation interns',
-        createdAt: '2026-01-01T09:00:00Z',
-        updatedAt: '2026-01-01T09:00:00Z',
-      },
-    ],
-    createdAt: '2026-01-01T09:00:00Z',
-    updatedAt: '2026-01-01T09:00:00Z',
-  },
-  {
-    id: 'dept-hr',
-    name: 'Human Resources',
-    description: 'People operations, talent acquisition, onboarding compliance, and employee lifecycle.',
-    marketFocus: 'Dual Market',
-    subDepartments: [
-      {
-        id: 'sub-hr-emp',
-        name: 'HR Employees',
-        description: 'Full-time HR managers, recruiters, and compliance officers',
-        createdAt: '2026-01-01T09:00:00Z',
-        updatedAt: '2026-01-01T09:00:00Z',
-      },
-      {
-        id: 'sub-hr-intern',
-        name: 'HR Interns',
-        description: 'Talent coordination, candidate onboarding, and HR operations interns',
-        createdAt: '2026-01-01T09:00:00Z',
-        updatedAt: '2026-01-01T09:00:00Z',
-      },
     ],
     createdAt: '2026-01-01T09:00:00Z',
     updatedAt: '2026-01-01T09:00:00Z',
   },
   {
     id: 'dept-admin-ops',
-    name: 'Administration & IT',
+    name: 'Administration & Operations',
     description: 'Workplace facilities, IT infrastructure, asset custody, desk management, and hospitality.',
     marketFocus: 'Gurgaon',
     subDepartments: [
       {
         id: 'sub-admin-emp',
-        name: 'Admin & IT Employees',
+        name: 'Administration & Operations Employees',
         description: 'Full-time IT administrators, workplace managers, and facilities staff',
-        createdAt: '2026-01-01T09:00:00Z',
-        updatedAt: '2026-01-01T09:00:00Z',
-      },
-      {
-        id: 'sub-admin-intern',
-        name: 'Admin & IT Interns',
-        description: 'Workplace operations, IT support, and hospitality trainees',
         createdAt: '2026-01-01T09:00:00Z',
         updatedAt: '2026-01-01T09:00:00Z',
       },
@@ -177,7 +156,7 @@ export const DEFAULT_DEPARTMENTS: DepartmentConfig[] = [
     subDepartments: [
       {
         id: 'sub-exec-leadership',
-        name: 'Executive Leadership',
+        name: 'Executive Leadership Employees',
         description: 'Founders, C-Suite, and Managing Directors',
         createdAt: '2026-01-01T09:00:00Z',
         updatedAt: '2026-01-01T09:00:00Z',

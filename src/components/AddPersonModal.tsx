@@ -6,6 +6,7 @@ import {
   MarketType,
   ALL_DESK_CODES,
   DepartmentWithCounts,
+  isInternAllowedDepartment,
 } from '../types/index.js';
 
 interface AddPersonModalProps {
@@ -23,14 +24,14 @@ interface AddPersonModalProps {
 }
 
 const FALLBACK_DEPARTMENTS = [
+  'HR',
+  'AI',
+  'DA',
+  'DM',
   'Gurgaon Market',
   'Dubai Market',
-  'AI Intern',
-  'DM Intern',
-  'Marketing & Digital Media',
-  'Human Resources',
-  'Executive Leadership',
   'Administration & Operations',
+  'Executive Leadership',
 ];
 
 export const AddPersonModal: React.FC<AddPersonModalProps> = ({
@@ -48,10 +49,13 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
   const initialDeptName =
     defaultDepartment || departments[0]?.name || 'Gurgaon Market';
   const initialDeptObj = departments.find(d => d.name === initialDeptName);
+  const initialIsInternAllowed = isInternAllowedDepartment(initialDeptName);
   const initialSubDept =
     defaultSubDepartment !== undefined
       ? defaultSubDepartment
-      : initialDeptObj?.subDepartments[0]?.name || '';
+      : (initialDeptObj?.subDepartments || []).find(
+          s => initialIsInternAllowed || !s.name.toLowerCase().includes('intern')
+        )?.name || '';
 
   const [formData, setFormData] = useState<Partial<Employee>>({
     fullName: '',
@@ -64,10 +68,9 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
     department: initialDeptName,
     departmentId: initialDeptObj?.id,
     subDepartment: initialSubDept,
-    employmentCategory:
-      initialDeptName.toLowerCase().includes('intern') || initialSubDept.toLowerCase().includes('intern')
-        ? 'Intern'
-        : 'Employee',
+    employmentCategory: initialIsInternAllowed && initialSubDept.toLowerCase().includes('intern')
+      ? 'Intern'
+      : 'Employee',
     designation: 'Property Consultant',
     reportingManager: 'Varun Batra',
     joiningDate: new Date().toISOString().split('T')[0],
@@ -90,24 +93,21 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
     setIsCandidate(isCandidateDefault);
     const deptName = defaultDepartment || departments[0]?.name || 'Gurgaon Market';
     const deptObj = departments.find(d => d.name === deptName);
+    const isInternAllowed = isInternAllowedDepartment(deptName);
     const subName =
       defaultSubDepartment !== undefined
         ? defaultSubDepartment
-        : deptObj?.subDepartments[0]?.name || '';
-    const isInternDept =
-      deptName.toLowerCase().includes('intern') || subName.toLowerCase().includes('intern');
+        : (deptObj?.subDepartments || []).find(
+            s => isInternAllowed || !s.name.toLowerCase().includes('intern')
+          )?.name || '';
 
     setFormData(prev => ({
       ...prev,
       department: deptName,
       departmentId: deptObj?.id,
       subDepartment: subName,
+      employmentCategory: isInternAllowed ? prev.employmentCategory : 'Employee',
       market: deptName === 'Dubai Market' ? 'Dubai' : prev.market || 'Gurgaon',
-      designation: isInternDept && prev.designation === 'Property Consultant'
-        ? deptName === 'AI Intern'
-          ? 'AI & Automation Intern'
-          : 'Digital Marketing Intern'
-        : prev.designation,
     }));
   }, [isOpen, isCandidateDefault, defaultDepartment, defaultSubDepartment, departments]);
 
@@ -116,10 +116,13 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
 
   if (!isOpen) return null;
 
+  const isCurrentInternAllowed = isInternAllowedDepartment(formData.department);
   const selectedDeptObj = departments.find(
     d => d.id === formData.departmentId || d.name === formData.department
   );
-  const availableSubDepts = selectedDeptObj?.subDepartments || [];
+  const availableSubDepts = (selectedDeptObj?.subDepartments || []).filter(
+    s => isCurrentInternAllowed || !s.name.toLowerCase().includes('intern')
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,7 +135,11 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
       return;
     }
 
-    const isInternDept = (formData.department || '').toLowerCase().includes('intern');
+    const isInternAllowed = isInternAllowedDepartment(formData.department);
+    const chosenCat = isInternAllowed ? (formData.employmentCategory || 'Employee') : 'Employee';
+    const chosenStatus = isCandidate
+      ? 'Upcoming Joiner'
+      : (chosenCat === 'Intern' && isInternAllowed ? 'Intern' : 'Full-Time');
 
     try {
       setSaving(true);
@@ -141,14 +148,9 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
         {
           ...formData,
           isCandidate,
-          employmentCategory:
-            formData.employmentCategory ||
-            (formData.subDepartment?.toLowerCase().includes('intern') || isInternDept ? 'Intern' : 'Employee'),
-          employmentStatus: isCandidate
-            ? 'Upcoming Joiner'
-            : formData.employmentCategory === 'Intern' || isInternDept
-              ? 'Intern'
-              : 'Full-Time',
+          employmentCategory: chosenCat,
+          employmentStatus: chosenStatus,
+          internshipCompletionDate: isInternAllowed ? formData.internshipCompletionDate : undefined,
           candidateStatus: isCandidate ? 'Offer Accepted' : undefined,
         },
         { openQrAfterCreate }
@@ -296,12 +298,18 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
                   onChange={e => {
                     const nextName = e.target.value;
                     const matched = departments.find(d => d.name === nextName);
-                    const nextSub = matched?.subDepartments[0]?.name || '';
+                    const isNextInternAllowed = isInternAllowedDepartment(nextName);
+                    const validSubs = (matched?.subDepartments || []).filter(
+                      s => isNextInternAllowed || !s.name.toLowerCase().includes('intern')
+                    );
+                    const nextSub = validSubs[0]?.name || '';
                     setFormData({
                       ...formData,
                       department: nextName,
                       departmentId: matched?.id,
                       subDepartment: nextSub,
+                      employmentCategory: isNextInternAllowed ? formData.employmentCategory : 'Employee',
+                      internshipCompletionDate: isNextInternAllowed ? formData.internshipCompletionDate : '',
                       market:
                         nextName === 'Dubai Market'
                           ? 'Dubai'
@@ -356,7 +364,7 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
                   Employment Category *
                 </label>
                 <select
-                  value={formData.employmentCategory || 'Employee'}
+                  value={isCurrentInternAllowed ? (formData.employmentCategory || 'Employee') : 'Employee'}
                   onChange={e => {
                     const cat = e.target.value as any;
                     setFormData({
@@ -367,7 +375,9 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
                   className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded bg-white font-medium"
                 >
                   <option value="Employee">Employee (Full-Time Regular)</option>
-                  <option value="Intern">Intern (Cohort / Stipend Trainee)</option>
+                  {isCurrentInternAllowed && (
+                    <option value="Intern">Intern (Cohort / Stipend Trainee)</option>
+                  )}
                   <option value="Consultant">Consultant (Professional / Advisory)</option>
                   <option value="Contractor">Contractor (Fixed-Term Agreement)</option>
                 </select>

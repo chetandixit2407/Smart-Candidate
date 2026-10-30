@@ -15,10 +15,9 @@ import {
   Share2,
   Mail,
   Sparkles,
-  Wifi,
-  Laptop,
   Globe,
   Settings,
+  ExternalLink,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import {
@@ -34,6 +33,53 @@ interface QrCodeModalProps {
   userRole: UserRole;
   onClose: () => void;
   onQrUpdated?: () => void;
+}
+
+// Permanent public HTTPS application endpoint (deployed globally on Cloud Run)
+export const PERMANENT_PUBLIC_APP_URL =
+  'https://ais-pre-vtqywkmlbp4hnugfkn6ztw-912480930497.asia-southeast1.run.app';
+
+export function isInvalidHostOrIp(hostOrUrl: string): boolean {
+  if (!hostOrUrl) return true;
+  const lower = hostOrUrl.toLowerCase();
+  return (
+    lower.includes('localhost') ||
+    lower.includes('127.0.0.1') ||
+    lower.includes('0.0.0.0') ||
+    lower.includes('169.254.') ||
+    lower.startsWith('192.168.') ||
+    lower.includes('.192.168.') ||
+    lower.startsWith('10.') ||
+    lower.includes('.10.') ||
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(lower) ||
+    lower.includes('.local')
+  );
+}
+
+export function getPublicShareOrigin(customCandidate?: string): string {
+  if (customCandidate && customCandidate.trim()) {
+    try {
+      const parsed = new URL(customCandidate.trim());
+      if (
+        (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
+        !isInvalidHostOrIp(parsed.hostname)
+      ) {
+        return parsed.origin;
+      }
+    } catch {}
+  }
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    const origin = window.location.origin;
+    if (
+      (origin.startsWith('https://') || origin.startsWith('http://')) &&
+      !isInvalidHostOrIp(window.location.hostname)
+    ) {
+      return origin;
+    }
+  }
+
+  return PERMANENT_PUBLIC_APP_URL;
 }
 
 function formatDurationMs(ms: number): string {
@@ -64,40 +110,23 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  // Network and Base URL state for mobile Wi-Fi LAN testing
-  const [networkInfo, setNetworkInfo] = useState<{
-    port: number;
-    lanIp: string | null;
-    lanOrigin: string | null;
-    configuredBaseUrl: string | null;
-  } | null>(null);
-
-  // URL Target mode: 'lan' (Wi-Fi phone scan) | 'browser' (localhost/current) | 'custom'
-  const [urlMode, setUrlMode] = useState<'lan' | 'browser' | 'custom'>('lan');
+  // Configurable public base URL
   const [customOriginInput, setCustomOriginInput] = useState('');
-  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [showCustomConfig, setShowCustomConfig] = useState(false);
 
-  // Live client-rendered QR data URL
+  // Client-rendered QR image data URL
   const [renderedQrDataUrl, setRenderedQrDataUrl] = useState<string | null>(null);
+
+  const activeOrigin = useMemo(() => getPublicShareOrigin(customOriginInput), [customOriginInput]);
 
   const loadStatus = useCallback(async () => {
     try {
       setError(null);
-      const res = await api.getEmployeeDocumentQr(person.id);
+      const res = await api.getEmployeeDocumentQr(person.id, {
+        customOrigin: activeOrigin,
+      });
       setInspection(res.inspection);
       setQrStatus(res.qrStatus);
-      if (res.networkInfo) {
-        setNetworkInfo(res.networkInfo);
-        // If we have a LAN IP, default to 'lan' mode for effortless mobile phone Wi-Fi testing
-        if (res.networkInfo.lanIp) {
-          setUrlMode('lan');
-        } else if (res.networkInfo.configuredBaseUrl) {
-          setUrlMode('custom');
-          setCustomOriginInput(res.networkInfo.configuredBaseUrl);
-        } else {
-          setUrlMode('browser');
-        }
-      }
       if (res.qrStatus.expiresAt && res.qrStatus.isActive) {
         const diff = Math.max(0, new Date(res.qrStatus.expiresAt).getTime() - Date.now());
         setRemainingMs(diff);
@@ -109,7 +138,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [person.id]);
+  }, [person.id, activeOrigin]);
 
   useEffect(() => {
     loadStatus();
@@ -133,30 +162,31 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
     return () => clearInterval(interval);
   }, [qrStatus?.expiresAt, qrStatus?.isRevoked, qrStatus?.isActive]);
 
-  // Compute effective token
+  // Extract raw token string
   const tokenString = useMemo(() => {
     if (!qrStatus?.shareUrl) return null;
     const match = qrStatus.shareUrl.match(/\/qr-upload\/([a-fA-F0-9]{64})/);
     return match ? match[1] : null;
   }, [qrStatus?.shareUrl]);
 
-  // Compute effective share URL based on selected mode
+  // Effective share URL: Strictly uses verified public HTTPS origin, never localhost or LAN
   const effectiveShareUrl = useMemo(() => {
-    if (!tokenString) return qrStatus?.shareUrl || '';
-
-    let base = window.location.origin;
-    if (urlMode === 'lan' && networkInfo?.lanOrigin) {
-      base = networkInfo.lanOrigin;
-    } else if (urlMode === 'custom' && customOriginInput.trim()) {
-      base = customOriginInput.trim().replace(/\/+$/, '');
-    } else if (networkInfo?.configuredBaseUrl && urlMode !== 'browser') {
-      base = networkInfo.configuredBaseUrl.replace(/\/+$/, '');
+    if (!tokenString) {
+      if (!qrStatus?.shareUrl) return '';
+      try {
+        const parsed = new URL(qrStatus.shareUrl);
+        if (isInvalidHostOrIp(parsed.hostname)) {
+          return `${activeOrigin}/qr-upload/`;
+        }
+        return qrStatus.shareUrl;
+      } catch {
+        return qrStatus.shareUrl;
+      }
     }
+    return `${activeOrigin}/qr-upload/${tokenString}`;
+  }, [tokenString, qrStatus?.shareUrl, activeOrigin]);
 
-    return `${base}/qr-upload/${tokenString}`;
-  }, [tokenString, urlMode, networkInfo, customOriginInput, qrStatus?.shareUrl]);
-
-  // Re-generate QR code data URL whenever the effective URL changes
+  // Re-generate high-contrast QR code data URL whenever the effective URL changes
   useEffect(() => {
     if (!effectiveShareUrl) {
       setRenderedQrDataUrl(qrStatus?.qrDataUrl || null);
@@ -184,12 +214,10 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
     try {
       const res = await api.generateEmployeeDocumentQr(person.id, {
         includeOptionalMissing,
-        preferLan: urlMode === 'lan',
-        customOrigin: urlMode === 'custom' ? customOriginInput : undefined,
+        customOrigin: activeOrigin,
       });
       setInspection(res.inspection);
       setQrStatus(res.qrStatus);
-      if (res.networkInfo) setNetworkInfo(res.networkInfo);
       if (res.qrStatus.expiresAt) {
         setRemainingMs(Math.max(0, new Date(res.qrStatus.expiresAt).getTime() - Date.now()));
       }
@@ -224,29 +252,28 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
     try {
       await navigator.clipboard.writeText(effectiveShareUrl);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2200);
+      setTimeout(() => setCopied(false), 2500);
     } catch {
-      setError('Clipboard copy blocked by browser. Please select and copy from the text box directly.');
+      setError('Unable to copy link to clipboard.');
     }
   };
 
   const handleDownloadQrPng = () => {
-    const targetUrl = renderedQrDataUrl || qrStatus?.qrDataUrl;
-    if (!targetUrl) return;
+    const src = renderedQrDataUrl || qrStatus?.qrDataUrl;
+    if (!src) return;
     const a = document.createElement('a');
-    a.href = targetUrl;
-    const safeName = person.fullName.replace(/[^a-zA-Z0-9_-]/g, '_');
-    a.download = `WCR_Document_QR_${safeName}_24h.png`;
+    a.href = src;
+    const cleanName = person.fullName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    a.download = `White_Collar_Realty_Doc_QR_${cleanName}_${person.employeeCode}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   };
 
   const isCurrentlyActive = Boolean(qrStatus?.isActive && remainingMs > 0);
-  const isCurrentlyExpired = Boolean(qrStatus?.hasToken && !qrStatus?.isRevoked && (qrStatus?.isExpired || remainingMs === 0));
+  const isCurrentlyExpired = Boolean(qrStatus?.isExpired || (qrStatus?.hasToken && remainingMs === 0 && !qrStatus?.isRevoked));
 
-  const cleanPhone = (person.phone || '').replace(/\D/g, '');
-  const waPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+  const waPhone = person.phone?.replace(/[^0-9]/g, '') || '';
   const shareMessage = effectiveShareUrl
     ? `Hello ${person.fullName},\n\nPlease upload your pending onboarding documents for White Collar Realty (${person.designation} - ${person.department}) using your secure 24-hour link:\n${effectiveShareUrl}\n\nAccepted formats: PDF, JPG, PNG. Note: This link expires automatically in 24 hours.`
     : '';
@@ -283,7 +310,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-400 truncate mt-0.5">
-                Candidate-specific 256-bit opaque QR token · Exact 24-hour automatic expiry · Wi-Fi LAN & Mobile friendly
+                Candidate-specific 256-bit opaque QR token · Exact 24-hour automatic expiry · Permanent Global Public HTTPS
               </p>
             </div>
           </div>
@@ -320,7 +347,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              {/* Left Column: Automatic Missing Document Inspection */}
+              {/* Left Column: Automatic Missing Document Inspection & Domain Notice */}
               <div className="lg:col-span-7 space-y-4">
                 <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
                   <div className="flex items-center justify-between gap-2 mb-3">
@@ -331,7 +358,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
                     <button
                       type="button"
                       onClick={loadStatus}
-                      className="text-[11px] font-medium text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
+                      className="text-[11px] font-medium text-slate-600 hover:text-slate-900 inline-flex items-center gap-1 cursor-pointer"
                     >
                       <RefreshCw className="w-3 h-3" />
                       Recheck
@@ -365,7 +392,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
                     <div>
                       <p className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
                         <FileWarning className="w-3.5 h-3.5 text-rose-600" />
-                        Missing Required Documents ({inspection.missingRequired.length}) — Shown on Candidate QR Page:
+                        Missing Required Documents ({inspection.missingRequired.length}) — Configured on Candidate QR:
                       </p>
                       <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                         {inspection.missingRequired.map(doc => (
@@ -401,29 +428,69 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
                         type="checkbox"
                         checked={includeOptionalMissing}
                         onChange={e => setIncludeOptionalMissing(e.target.checked)}
-                        className="mt-0.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                        className="mt-0.5 rounded border-slate-300 text-slate-900"
                       />
-                      <span className="text-xs text-slate-700">
-                        Also include <strong>{inspection.missingOptional.length}</strong> optional document(s) (previous employment / salary slips) on QR upload page
+                      <span className="text-xs text-slate-600">
+                        Include {inspection.missingOptional.length} optional missing document(s) on QR checklist
                       </span>
                     </label>
                   )}
                 </div>
 
-                {/* Network & Local Testing Guidance */}
-                <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900 space-y-2">
-                  <div className="font-semibold flex items-center gap-1.5 text-blue-950">
-                    <Wifi className="w-4 h-4 text-blue-600 shrink-0" />
-                    Mobile Wi-Fi Scanning & LAN Testing
+                {/* Permanent Public HTTPS Domain Notice */}
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-950 space-y-2">
+                  <div className="font-semibold flex items-center justify-between text-emerald-900">
+                    <span className="flex items-center gap-1.5">
+                      <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
+                      Global Public HTTPS Scanning (Any Phone / Any Network)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomConfig(!showCustomConfig)}
+                      className="text-[10px] text-emerald-700 hover:text-emerald-900 underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Settings className="w-3 h-3" />
+                      <span>{showCustomConfig ? 'Hide Config' : 'Domain Config'}</span>
+                    </button>
                   </div>
-                  <p className="text-[11px] leading-relaxed text-blue-800">
-                    When testing locally, phone cameras scanning a <code className="bg-blue-100 px-1 py-0.5 rounded font-mono">localhost</code> QR code will fail.
-                    White Collar Realty automatically detects your local network IP (<strong>{networkInfo?.lanIp || 'Available on Wi-Fi'}</strong>) so candidates or testers on the same Wi-Fi can scan and upload instantly!
+                  <p className="text-[11px] leading-relaxed text-emerald-800">
+                    Never generates unroutable localhost or LAN IP addresses. White Collar Realty embeds the live global Cloud Run HTTPS domain (<strong>{activeOrigin}</strong>). Anyone scanning this QR code from an iPhone, Android, or mobile cellular data network anywhere in the world will immediately reach the candidate&apos;s upload portal.
                   </p>
+
+                  {showCustomConfig && (
+                    <div className="pt-2 border-t border-emerald-200/60 space-y-1.5">
+                      <label className="block text-[10px] font-semibold text-emerald-900">
+                        Override Public Domain (e.g., custom HTTPS domain or APP_BASE_URL):
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={customOriginInput}
+                          onChange={e => setCustomOriginInput(e.target.value)}
+                          placeholder={PERMANENT_PUBLIC_APP_URL}
+                          className="flex-1 px-2.5 py-1 text-xs border border-emerald-300 bg-white rounded-lg text-slate-900 font-mono"
+                        />
+                        {customOriginInput && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomOriginInput('')}
+                            className="px-2 py-1 text-[10px] rounded bg-emerald-200 hover:bg-emerald-300 text-emerald-900 font-semibold"
+                          >
+                            Reset Default
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-1 text-[11px] text-emerald-700 font-medium">
+                    <span>Security:</span>
+                    <span>Opaque 256-bit token · 24h Expiry · Zero PII in URL · Real-time SSE Sync</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Right Column: QR Display, Target Mode, Countdown & Share Controls */}
+              {/* Right Column: QR Display, Countdown & Share Controls */}
               <div className="lg:col-span-5 flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2.5">
@@ -433,7 +500,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
                     {isCurrentlyActive ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Active
+                        Active (24h)
                       </span>
                     ) : isCurrentlyExpired ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-semibold">
@@ -449,78 +516,6 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
                       </span>
                     )}
                   </div>
-
-                  {/* QR Scan Target Switcher (LAN Wi-Fi vs Localhost vs Custom) */}
-                  {isCurrentlyActive && (
-                    <div className="mb-3 space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-500 font-medium">QR Link Target:</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowCustomInput(!showCustomInput)}
-                          className="text-slate-600 hover:text-slate-900 inline-flex items-center gap-1 text-[10px]"
-                        >
-                          <Settings className="w-3 h-3" />
-                          <span>Custom Base URL</span>
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-1.5 bg-slate-100 p-1 rounded-lg">
-                        <button
-                          type="button"
-                          onClick={() => setUrlMode('lan')}
-                          className={`py-1.5 px-2 text-[11px] font-medium rounded-md flex items-center justify-center gap-1.5 transition-colors ${
-                            urlMode === 'lan'
-                              ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                          title="Mobile phone scanning over local Wi-Fi network"
-                        >
-                          <Wifi className="w-3.5 h-3.5 text-blue-600" />
-                          <span>Wi-Fi / LAN IP</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setUrlMode('browser')}
-                          className={`py-1.5 px-2 text-[11px] font-medium rounded-md flex items-center justify-center gap-1.5 transition-colors ${
-                            urlMode === 'browser'
-                              ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                          title="Current computer browser / localhost:4000 link"
-                        >
-                          <Laptop className="w-3.5 h-3.5 text-slate-700" />
-                          <span>Localhost / Browser</span>
-                        </button>
-                      </div>
-
-                      {showCustomInput && (
-                        <div className="pt-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              value={customOriginInput}
-                              onChange={e => {
-                                setCustomOriginInput(e.target.value);
-                                setUrlMode('custom');
-                              }}
-                              placeholder="e.g. https://tunnel.ngrok.app or custom IP"
-                              className="flex-1 px-2.5 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
-                            />
-                            {customOriginInput && (
-                              <button
-                                type="button"
-                                onClick={() => setUrlMode('custom')}
-                                className="px-2 py-1 text-[10px] font-semibold bg-slate-900 text-white rounded-lg"
-                              >
-                                Apply
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
 
                   {/* Active QR Code Box */}
                   {isCurrentlyActive && (renderedQrDataUrl || qrStatus?.qrDataUrl) ? (
@@ -564,7 +559,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
                             <button
                               type="button"
                               onClick={handleCopyLink}
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 text-xs font-medium inline-flex items-center gap-1 shrink-0 transition-colors"
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 text-xs font-medium inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
                               title="Copy QR Upload Link"
                             >
                               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -572,21 +567,33 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
                             </button>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-1.5">
+                          <div className="grid grid-cols-4 gap-1.5">
                             <button
                               type="button"
                               onClick={handleDownloadQrPng}
-                              className="px-2 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-semibold inline-flex items-center justify-center gap-1 transition-colors"
+                              className="px-2 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-semibold inline-flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                              title="Download QR code image (.png)"
                             >
                               <Download className="w-3.5 h-3.5" />
-                              <span>QR PNG</span>
+                              <span>PNG</span>
                             </button>
+                            <a
+                              href={effectiveShareUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-semibold inline-flex items-center justify-center gap-1 transition-colors"
+                              title="Open public portal page in new tab"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>Open</span>
+                            </a>
                             {whatsappHref && (
                               <a
                                 href={whatsappHref}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="px-2 py-2 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold inline-flex items-center justify-center gap-1 transition-colors"
+                                title="Share directly to candidate via WhatsApp"
                               >
                                 <Share2 className="w-3.5 h-3.5" />
                                 <span>WhatsApp</span>
@@ -596,6 +603,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
                               <a
                                 href={mailtoHref}
                                 className="px-2 py-2 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-800 text-[11px] font-semibold inline-flex items-center justify-center gap-1 transition-colors"
+                                title="Email upload invitation to candidate"
                               >
                                 <Mail className="w-3.5 h-3.5" />
                                 <span>Email</span>
@@ -627,7 +635,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
                         <>
                           <p className="text-xs font-bold text-slate-800">Ready to Generate Candidate QR</p>
                           <p className="text-[11px] text-slate-500 leading-relaxed">
-                            Generate a unique 24-hour QR code linked exclusively to {person.fullName}&apos;s missing documents.
+                            Generate a unique 24-hour QR code linked exclusively to {person.fullName}&apos;s missing documents on the permanent public HTTPS domain.
                           </p>
                         </>
                       )}

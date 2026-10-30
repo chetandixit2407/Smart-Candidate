@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import QRCode from 'qrcode';
+import * as XLSX from 'xlsx';
 import type { Response } from 'express';
 import type {
   Employee,
@@ -64,6 +65,102 @@ export function normalizeLegacyRole(raw?: string): UserRole {
   if (raw === 'FINANCE_ADMIN') return 'Co-Founder';
   if (raw === 'DEPT_HEAD_VIEWER') return 'CEO';
   return 'HR';
+}
+
+// Permanent public HTTPS application endpoint (deployed globally on Cloud Run)
+export const PERMANENT_PUBLIC_APP_URL =
+  (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || '').trim() ||
+  'https://ais-pre-vtqywkmlbp4hnugfkn6ztw-912480930497.asia-southeast1.run.app';
+
+export function isInvalidHostOrIp(hostOrUrl: string): boolean {
+  if (!hostOrUrl) return true;
+  const lower = hostOrUrl.toLowerCase();
+  return (
+    lower.includes('localhost') ||
+    lower.includes('127.0.0.1') ||
+    lower.includes('0.0.0.0') ||
+    lower.includes('169.254.') ||
+    lower.startsWith('192.168.') ||
+    lower.includes('.192.168.') ||
+    lower.startsWith('10.') ||
+    lower.includes('.10.') ||
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(lower) ||
+    lower.includes('.local')
+  );
+}
+
+export function cleanPublicOrigin(candidateOrigin?: string): string {
+  const envUrl = (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || '').trim();
+  if (envUrl && !isInvalidHostOrIp(envUrl)) {
+    try {
+      const parsed = new URL(envUrl);
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+        return parsed.origin;
+      }
+    } catch {}
+  }
+
+  if (candidateOrigin && typeof candidateOrigin === 'string' && candidateOrigin.trim()) {
+    try {
+      const parsed = new URL(candidateOrigin.trim());
+      if (
+        (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
+        !isInvalidHostOrIp(parsed.hostname)
+      ) {
+        return parsed.origin;
+      }
+    } catch {}
+  }
+
+  return PERMANENT_PUBLIC_APP_URL;
+}
+
+// Exactly and ONLY these 4 departments can have Intern sub-departments or Intern categories
+export function isInternAllowedDepartment(deptNameOrId?: string): boolean {
+  if (!deptNameOrId) return false;
+  const s = deptNameOrId.trim().toLowerCase();
+  return (
+    s === 'hr' ||
+    s === 'dept-hr' ||
+    s === 'human resources' ||
+    s === 'human resources (hr)' ||
+    s === 'ai' ||
+    s === 'dept-ai' ||
+    s === 'ai department' ||
+    s === 'ai intern' ||
+    s === 'da' ||
+    s === 'dept-da' ||
+    s === 'da department' ||
+    s === 'dm' ||
+    s === 'dept-dm' ||
+    s === 'dept-marketing' ||
+    s === 'dm department' ||
+    s === 'dm intern' ||
+    s === 'digital marketing' ||
+    s === 'digital marketing department' ||
+    s === 'marketing & digital media'
+  );
+}
+
+export function normalizeStandardDepartmentName(rawDept?: string): string {
+  if (!rawDept) return 'Gurgaon Market';
+  const s = rawDept.trim().toLowerCase();
+  if (s === 'hr' || s === 'human resources' || s === 'human resources (hr)' || s === 'dept-hr') return 'HR';
+  if (s === 'ai' || s === 'ai department' || s === 'ai intern' || s === 'dept-ai') return 'AI';
+  if (s === 'da' || s === 'da department' || s === 'dept-da') return 'DA';
+  if (
+    s === 'dm' ||
+    s === 'dm department' ||
+    s === 'dm intern' ||
+    s === 'digital marketing' ||
+    s === 'digital marketing department' ||
+    s === 'marketing & digital media' ||
+    s === 'dept-dm' ||
+    s === 'dept-marketing'
+  ) {
+    return 'DM';
+  }
+  return rawDept.trim();
 }
 
 interface DatabaseSchema {
@@ -500,6 +597,7 @@ class DatabaseService {
       previousDesignation: empData.previousDesignation,
       previousCTC: empData.previousCTC,
       offeredCTC: empData.offeredCTC,
+      employmentCategory: empData.employmentCategory || 'Employee',
       totalExperienceYears: empData.totalExperienceYears || 0,
       totalExperienceMonths: empData.totalExperienceMonths || 0,
       gurgaonMarketExperience: empData.gurgaonMarketExperience,
@@ -530,6 +628,16 @@ class DatabaseService {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    if (!isInternAllowedDepartment(newEmp.department)) {
+      if (newEmp.employmentCategory === 'Intern') {
+        newEmp.employmentCategory = 'Employee';
+      }
+      if (newEmp.employmentStatus === 'Intern') {
+        newEmp.employmentStatus = newEmp.isCandidate ? 'Offer Accepted' : 'Full-Time';
+      }
+      newEmp.internshipCompletionDate = undefined;
+    }
 
     newEmp.profileCompletion = calculateCompletion(newEmp);
 
@@ -593,6 +701,16 @@ class DatabaseService {
       merged.departmentId = resolvedDept.departmentId;
       merged.department = resolvedDept.department;
       merged.subDepartment = resolvedDept.subDepartment;
+    }
+
+    if (!isInternAllowedDepartment(merged.department)) {
+      if (merged.employmentCategory === 'Intern') {
+        merged.employmentCategory = 'Employee';
+      }
+      if (merged.employmentStatus === 'Intern') {
+        merged.employmentStatus = merged.isCandidate ? 'Offer Accepted' : 'Full-Time';
+      }
+      merged.internshipCompletionDate = undefined;
     }
 
     if (!merged.documents || Object.keys(merged.documents).length === 0) {
@@ -2279,6 +2397,467 @@ class DatabaseService {
     });
   }
 
+  // --- Comprehensive Individual Profile Excel Generator (All Linked Records) ---
+  public generateIndividualProfileExcel(employeeId: string, role: UserRole): Buffer | null {
+    const emp = this.getEmployeeById(employeeId, role);
+    if (!emp) return null;
+
+    const fVal = (v: any, fallback = 'Not Provided'): string => {
+      if (v === null || v === undefined || v === '') return fallback;
+      if (typeof v === 'number') return isNaN(v) ? fallback : String(v);
+      if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+      if (Array.isArray(v)) {
+        if (v.length === 0) return fallback;
+        return v
+          .map(item => (typeof item === 'object' ? JSON.stringify(item) : String(item)))
+          .join('; ');
+      }
+      return String(v).trim() || fallback;
+    };
+
+    const wb = XLSX.utils.book_new();
+
+    // ------------------------------------------------------------------------
+    // Sheet 1: Personal & Contact
+    // ------------------------------------------------------------------------
+    const personalRows: Array<[string, string]> = [
+      ['SECTION: BASIC PROFILE INFORMATION', ''],
+      ['Full Legal Name', fVal(emp.fullName)],
+      ['Employee / Candidate Code', fVal(emp.employeeCode)],
+      ['Profile Classification', emp.isCandidate ? 'Candidate / Upcoming Joiner' : 'Active Full-Time Employee'],
+      ['Official Work Email', fVal(emp.email)],
+      ['Primary Contact Phone', fVal(emp.phone)],
+      ['Alternate Phone', fVal(emp.alternatePhone, 'None / Not Provided')],
+      ['Date of Birth', fVal(emp.dateOfBirth)],
+      ['Gender', fVal(emp.gender)],
+      ['Nationality', fVal(emp.nationality)],
+      ['Current Residential Address', fVal(emp.currentAddress)],
+      ['Permanent Residential Address', fVal(emp.permanentAddress)],
+      ['', ''],
+      ['SECTION: EMERGENCY & NEXT OF KIN CONTACT', ''],
+      ['Emergency Contact Name', fVal(emp.emergencyContact?.name)],
+      ['Emergency Contact Relationship', fVal(emp.emergencyContact?.relation)],
+      ['Emergency Contact Phone', fVal(emp.emergencyContact?.phone)],
+      ['Registered Family Members Count', String(emp.familyDetails?.length || 0)],
+      [
+        'Family Members Details',
+        emp.familyDetails && emp.familyDetails.length > 0
+          ? emp.familyDetails
+              .map(
+                f =>
+                  `${f.relation}: ${f.name} (Phone: ${fVal(f.phone, 'N/A')}, Occupation: ${fVal(f.occupation, 'N/A')})`
+              )
+              .join(' | ')
+          : 'None Registered',
+      ],
+      ['', ''],
+      ['SECTION: STATUTORY IDENTITY & BANKING DETAILS', ''],
+      ['Aadhaar Card Number', fVal(emp.identityDetails?.aadhaarNo)],
+      ['PAN Card Number', fVal(emp.identityDetails?.panNo)],
+      ['Passport Number', fVal(emp.identityDetails?.passportNo, 'Not Applicable / Not Provided')],
+      ['Visa Status & Details', fVal(emp.identityDetails?.visaStatus, 'Not Applicable / Indian Citizen')],
+      ['Bank Name', fVal(emp.bankDetails?.bankName)],
+      ['Bank Account Number', fVal(emp.bankDetails?.accountNo)],
+      ['Bank IFSC Code', fVal(emp.bankDetails?.ifscCode)],
+      ['Bank Branch Name', fVal(emp.bankDetails?.branchName)],
+      ['', ''],
+      ['SECTION: SOCIAL, PORTFOLIO & PERSONAL BACKGROUND', ''],
+      ['LinkedIn Profile URL', fVal(emp.linkedinUrl, 'Not Provided')],
+      ['Google Drive Dossier Link', fVal(emp.googleDriveLink, 'Not Linked')],
+      ['Hobbies & Interests', fVal(emp.hobbies, 'Not Disclosed')],
+      ['Medical / Health Conditions', fVal(emp.medicalConditions, 'None Disclosed (Fit to Work)')],
+    ];
+
+    const wsPersonal = XLSX.utils.aoa_to_sheet([
+      ['Information Field', 'Recorded Profile Value'],
+      ...personalRows,
+    ]);
+    wsPersonal['!cols'] = [{ wch: 34 }, { wch: 72 }];
+    XLSX.utils.book_append_sheet(wb, wsPersonal, 'Personal & Contact');
+
+    // ------------------------------------------------------------------------
+    // Sheet 2: Employment & Department
+    // ------------------------------------------------------------------------
+    const isInternDept = isInternAllowedDepartment(emp.department);
+    const empRows: Array<[string, string]> = [
+      ['SECTION: ORGANIZATIONAL ALIGNMENT', ''],
+      ['Designation / Title', fVal(emp.designation)],
+      ['Department', fVal(emp.department)],
+      ['Sub-Department / Unit', fVal(emp.subDepartment, 'General (Department Root)')],
+      ['Employment Category', fVal(emp.employmentCategory, 'Employee')],
+      ['Employment Status', fVal(emp.employmentStatus)],
+      [
+        'Candidate Onboarding Status',
+        emp.isCandidate ? fVal(emp.candidateStatus, 'Offer Accepted') : 'N/A (Active Employee)',
+      ],
+      ['Market Focus', fVal(emp.market)],
+      ['Reporting Manager', fVal(emp.reportingManager, 'Executive Management')],
+      ['', ''],
+      ['SECTION: TENURE & KEY DATES', ''],
+      ['Official / Expected Joining Date', fVal(emp.joiningDate)],
+      [
+        'Internship Completion Date',
+        isInternDept && emp.employmentCategory === 'Intern'
+          ? fVal(emp.internshipCompletionDate, 'Not Set')
+          : 'N/A (Not an Intern)',
+      ],
+      ['Job End Date / Exit Date', fVal(emp.jobEndDate, 'N/A (Active in Service)')],
+      ['', ''],
+      ['SECTION: WORKPLACE & DESK PLACEMENT', ''],
+      ['Designated Desk Slot', fVal(emp.desk, 'Unassigned')],
+      ['Office Bay Location', emp.desk ? getBayFromDesk(emp.desk) : 'Unassigned'],
+      ['Source Spreadsheet Seat Notation', fVal(emp.sourceSpreadsheetSeat, 'N/A')],
+      ['', ''],
+      ['SECTION: SYSTEM METADATA', ''],
+      ['Profile Readiness Score', `${emp.profileCompletion || 0}% Complete`],
+      ['System Database Identifier', fVal(emp.id)],
+      ['Record Created Timestamp', fVal(emp.createdAt)],
+      ['Record Last Updated Timestamp', fVal(emp.updatedAt)],
+    ];
+
+    const wsEmp = XLSX.utils.aoa_to_sheet([
+      ['Employment Field', 'Recorded Organizational Value'],
+      ...empRows,
+    ]);
+    wsEmp['!cols'] = [{ wch: 34 }, { wch: 72 }];
+    XLSX.utils.book_append_sheet(wb, wsEmp, 'Employment & Dept');
+
+    // ------------------------------------------------------------------------
+    // Sheet 3: Compensation & Experience
+    // ------------------------------------------------------------------------
+    const expRows: Array<[string, string]> = [
+      ['SECTION: PRIOR EXPERIENCE & CTC', ''],
+      ['Previous Employer / Company', fVal(emp.previousCompany, 'Fresher / First Professional Role')],
+      ['Previous Designation', fVal(emp.previousDesignation, 'Student / Trainee')],
+      ['Total Professional Experience', `${fVal(emp.totalExperienceYears, '0')} Year(s), ${fVal(emp.totalExperienceMonths, '0')} Month(s)`],
+      ['Gurgaon Market Real Estate Experience', fVal(emp.gurgaonMarketExperience, 'None / New to Micro-Market')],
+      ['Dubai Market Real Estate Experience', fVal(emp.dubaiMarketExperience, 'None / New to Region')],
+      ['Previous Verified CTC', fVal(emp.previousCTC, 'N/A (Fresher / Not Disclosed)')],
+      ['Current Offered CTC (White Collar Realty)', fVal(emp.offeredCTC, 'As per Company Structure')],
+      ['', ''],
+      ['SECTION: CAREER ASPIRATIONS & GOALS', ''],
+      ['Why White Collar Realty', fVal(emp.aspirations?.whyWhiteCollarRealty, 'Not Recorded')],
+      ['Association Duration Expectation', fVal(emp.aspirations?.associationDuration, 'Not Recorded')],
+      ['Short-Term Career Goal', fVal(emp.aspirations?.shortTermGoal, 'Not Recorded')],
+      ['Long-Term Career Goal', fVal(emp.aspirations?.longTermGoal, 'Not Recorded')],
+    ];
+
+    const educationTableData =
+      emp.education && emp.education.length > 0
+        ? emp.education.map(ed => ({
+            'Degree / Qualification': fVal(ed.degree),
+            'Institution': fVal(ed.institution),
+            'Board or University': fVal(ed.boardOrUniversity),
+            'Passing Year': fVal(ed.yearOfPassing),
+            'Grade or Percentage': fVal(ed.gradeOrPercentage),
+          }))
+        : [
+            {
+              'Degree / Qualification': 'None Registered',
+              'Institution': 'N/A',
+              'Board or University': 'N/A',
+              'Passing Year': 'N/A',
+              'Grade or Percentage': 'N/A',
+            },
+          ];
+
+    const referencesTableData =
+      emp.references && emp.references.length > 0
+        ? emp.references.map(r => ({
+            'Reference Name': fVal(r.name),
+            'Reference Type': fVal(r.type),
+            'Relationship / Title': fVal(r.relationshipOrTitle),
+            'Phone Number': fVal(r.phone),
+            'Email / Organization': fVal(r.company || r.email, 'N/A'),
+          }))
+        : [
+            {
+              'Reference Name': 'None Registered',
+              'Reference Type': 'N/A',
+              'Relationship / Title': 'N/A',
+              'Phone Number': 'N/A',
+              'Email / Organization': 'N/A',
+            },
+          ];
+
+    const wsCompAoa = [
+      ['Experience & Compensation Metric', 'Profile Value'],
+      ...expRows,
+      ['', ''],
+      ['ACADEMIC & EDUCATIONAL BACKGROUND', '', '', '', ''],
+      ['Degree / Qualification', 'Institution', 'Board / University', 'Passing Year', 'Grade / %'],
+      ...educationTableData.map(e => [
+        e['Degree / Qualification'],
+        e['Institution'],
+        e['Board or University'],
+        e['Passing Year'],
+        e['Grade or Percentage'],
+      ]),
+      ['', ''],
+      ['PROFESSIONAL & PERSONAL REFERENCES', '', '', '', ''],
+      ['Reference Name', 'Reference Type', 'Relationship / Title', 'Phone Number', 'Email / Organization'],
+      ...referencesTableData.map(r => [
+        r['Reference Name'],
+        r['Reference Type'],
+        r['Relationship / Title'],
+        r['Phone Number'],
+        r['Email / Organization'],
+      ]),
+    ];
+    const wsComp = XLSX.utils.aoa_to_sheet(wsCompAoa);
+    wsComp['!cols'] = [{ wch: 32 }, { wch: 32 }, { wch: 28 }, { wch: 18 }, { wch: 24 }];
+    XLSX.utils.book_append_sheet(wb, wsComp, 'Compensation & Exp');
+
+    // ------------------------------------------------------------------------
+    // Sheet 4: Documents & Verification
+    // ------------------------------------------------------------------------
+    const docEntries = Object.values(emp.documents || {});
+    const docTableRows = docEntries.map(d => ({
+      'Document Slot Key': d.key,
+      'Document Title': d.title,
+      'Category': d.category,
+      'Mandatory / Required': d.required ? 'Yes' : 'No',
+      'Verification Status': d.status,
+      'Uploaded File Name': fVal(d.fileName, 'Not Uploaded'),
+      'File Size': fVal(d.fileSize, '—'),
+      'File Type / MIME': fVal(d.mimeType, '—'),
+      'Uploaded Timestamp': fVal(d.uploadedAt, '—'),
+      'Uploaded Via': fVal(d.uploadedVia, d.fileName ? 'HR Admin / Portal' : '—'),
+      'Verified By': fVal(d.verifiedBy, 'Pending Verification'),
+      'Verified Timestamp': fVal(d.verifiedAt, '—'),
+      'HR Review Notes': fVal(d.reviewNotes, 'None'),
+      'File Stored on Server': d.storagePath || d.fileData ? 'Yes' : 'No',
+    }));
+
+    const wsDocs = XLSX.utils.json_to_sheet(
+      docTableRows.length > 0
+        ? docTableRows
+        : [
+            {
+              'Document Slot Key': 'N/A',
+              'Document Title': 'No checklist documents configured',
+              'Category': 'N/A',
+              'Mandatory / Required': 'N/A',
+              'Verification Status': 'N/A',
+              'Uploaded File Name': 'N/A',
+              'File Size': 'N/A',
+              'File Type / MIME': 'N/A',
+              'Uploaded Timestamp': 'N/A',
+              'Uploaded Via': 'N/A',
+              'Verified By': 'N/A',
+              'Verified Timestamp': 'N/A',
+              'HR Review Notes': 'N/A',
+              'File Stored on Server': 'N/A',
+            },
+          ]
+    );
+    wsDocs['!cols'] = [
+      { wch: 22 },
+      { wch: 32 },
+      { wch: 20 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 30 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 22 },
+      { wch: 16 },
+      { wch: 20 },
+      { wch: 22 },
+      { wch: 35 },
+      { wch: 18 },
+    ];
+    XLSX.utils.book_append_sheet(wb, wsDocs, 'Documents & Status');
+
+    // ------------------------------------------------------------------------
+    // Sheet 5: Offer Letter & Lifecycle
+    // ------------------------------------------------------------------------
+    const off = emp.offerLetter;
+    const grossVal = off?.salaryBreakup?.grossMonthly;
+    const offerSummaryRows: Array<[string, string]> = [
+      ['SECTION: EMPLOYMENT OFFER LETTER RECORD', ''],
+      ['Offer Reference Number', fVal(off?.refNo, 'Not Generated')],
+      ['Offer Lifecycle Status', fVal(off?.status, 'Draft / Not Generated')],
+      ['Designation in Offer', fVal(off?.designation, fVal(emp.designation))],
+      ['Department in Offer', fVal(off?.department, fVal(emp.department))],
+      ['Proposed Date of Joining', fVal(off?.joiningDate, fVal(emp.joiningDate))],
+      ['Offer Valid Till Date', fVal(off?.validTillDate, 'N/A')],
+      ['Annual CTC (LPA)', fVal(off?.ctcLpaFormatted, fVal(emp.offeredCTC))],
+      ['Monthly Gross CTC', grossVal ? `₹${grossVal.toLocaleString('en-IN')}` : 'N/A'],
+      ['Monthly Basic Salary', off?.basicMonthly ? `₹${off.basicMonthly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Annual Basic Salary', off?.basicYearly ? `₹${off.basicYearly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Monthly PBVP / Variable Pay', off?.pbvpMonthly ? `₹${off.pbvpMonthly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Annual PBVP / Variable Pay', off?.pbvpYearly ? `₹${off.pbvpYearly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Monthly Retention Bonus', off?.retentionBonusMonthly ? `₹${off.retentionBonusMonthly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Monthly Total Deductions', off?.totalDeductionsMonthly ? `₹${off.totalDeductionsMonthly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Estimated Net In-Hand Pay (Monthly)', off?.netPayMonthly ? `₹${off.netPayMonthly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Formally Approved By', fVal(off?.approvedBy, 'Pending HR Approval')],
+      ['Formally Issued Timestamp', fVal(off?.issuedAt, 'Not Yet Formally Issued')],
+      ['Candidate Acceptance Date', fVal(off?.acceptedAt, 'Pending Candidate Signature')],
+      ['Candidate Signatory Name', fVal(off?.candidateSignatureName, 'Pending Signature')],
+    ];
+
+    const interviewRows = (emp.interviews || []).map((iv, idx) => [
+      String(idx + 1),
+      fVal(iv.roundName),
+      fVal(iv.mode),
+      fVal(iv.scheduledDate),
+      fVal(iv.interviewer),
+      fVal(iv.status),
+      iv.rating ? `${iv.rating} / 5` : 'Not Rated',
+      fVal(iv.feedback, 'No notes recorded'),
+    ]);
+
+    const savedOfferRows = (emp.savedOfferLetters || []).map(f => [
+      fVal(f.id || f.refNo),
+      fVal(f.fileName),
+      fVal(f.generatedAt),
+      `${fVal(f.generatedBy)} (${fVal(f.generatedByRole)})`,
+    ]);
+
+    const wsLifecycleAoa = [
+      ['Offer Letter Attribute', 'Recorded Value'],
+      ...offerSummaryRows,
+      ['', ''],
+      ['INTERVIEW EVALUATION ROUNDS', '', '', '', '', '', '', ''],
+      ['Round #', 'Round Title', 'Format', 'Scheduled Date', 'Interviewer', 'Status', 'Rating', 'Feedback'],
+      ...(interviewRows.length > 0
+        ? interviewRows
+        : [['1', 'No interview rounds registered for this profile', '—', '—', '—', '—', '—', '—']]),
+      ['', ''],
+      ['SAVED WORD (.DOCX) OFFER LETTERS', '', '', ''],
+      ['File ID', 'Document File Name', 'Generated At', 'Generated By & Role'],
+      ...(savedOfferRows.length > 0
+        ? savedOfferRows
+        : [['N/A', 'No Word offer letter files generated yet', '—', '—']]),
+    ];
+
+    const wsLifecycle = XLSX.utils.aoa_to_sheet(wsLifecycleAoa);
+    wsLifecycle['!cols'] = [{ wch: 28 }, { wch: 34 }, { wch: 22 }, { wch: 22 }, { wch: 24 }, { wch: 18 }, { wch: 12 }, { wch: 35 }];
+    XLSX.utils.book_append_sheet(wb, wsLifecycle, 'Offer & Lifecycle');
+
+    // ------------------------------------------------------------------------
+    // Sheet 6: Asset History & Reminders
+    // ------------------------------------------------------------------------
+    const assignedAssets = this.data.assets.filter(
+      a =>
+        a.assignedEmployeeId === emp.id ||
+        (emp.employeeCode && a.assignedEmployeeCode === emp.employeeCode)
+    );
+    const assetTableRows = assignedAssets.map(a => ({
+      'Asset Tag': a.assetTag,
+      'Asset Model / Name': a.name,
+      'Category': a.type,
+      'Serial Number': fVal(a.serialNumber, 'N/A'),
+      'Status': a.status,
+      'Physical Condition': a.condition,
+      'Issue Date': fVal(a.issueDate, '—'),
+      'Expected Return Date': fVal(a.expectedReturnDate, 'Not Specified'),
+      'Actual Return Date': fVal(a.returnDate, 'Still in Possession'),
+      'Custody Notes': fVal(a.notes, 'None'),
+    }));
+
+    const assetReminders = (this.data.assetReturnReminders || []).filter(r => r.personId === emp.id);
+    const reminderTableRows = assetReminders.map(r => ({
+      'Reminder ID': r.id,
+      'Asset Tag': (r.unreturnedAssets || []).map(a => a.assetTag).join(', ') || 'N/A',
+      'Asset Name': (r.unreturnedAssets || []).map(a => a.name).join(', ') || 'N/A',
+      'Channel': `Email: ${r.emailStatus} | WA: ${r.whatsappStatus}`,
+      'Status': r.overallStatus,
+      'Sent At': fVal(r.emailSentAt || r.whatsappSentAt || r.createdAt),
+      'Next Retry At': fVal(r.nextRetryAt, '—'),
+      'Sent By': 'Automated Asset Scheduler',
+      'Delivery Notes': `Email err: ${r.emailError || 'None'} | WA err: ${r.whatsappError || 'None'}`,
+    }));
+
+    const wsAssetAoa = [
+      ['COMPANY ASSET CUSTODY & INVENTORY ASSIGNMENTS', '', '', '', '', '', '', '', '', ''],
+      ['Asset Tag', 'Asset Model / Name', 'Category', 'Serial Number', 'Status', 'Condition', 'Issue Date', 'Expected Return', 'Return Date', 'Notes'],
+      ...(assetTableRows.length > 0
+        ? assetTableRows.map(a => [
+            a['Asset Tag'],
+            a['Asset Model / Name'],
+            a['Category'],
+            a['Serial Number'],
+            a['Status'],
+            a['Physical Condition'],
+            a['Issue Date'],
+            a['Expected Return Date'],
+            a['Actual Return Date'],
+            a['Custody Notes'],
+          ])
+        : [['N/A', 'No assets currently or historically assigned to this person', '—', '—', '—', '—', '—', '—', '—', '—']]),
+      ['', ''],
+      ['ASSET RETURN AUTOMATED NOTIFICATION & REMINDER LOGS', '', '', '', '', '', '', '', ''],
+      ['Reminder ID', 'Asset Tag', 'Asset Name', 'Channel', 'Status', 'Sent At', 'Next Retry', 'Sent By', 'Notes'],
+      ...(reminderTableRows.length > 0
+        ? reminderTableRows.map(r => [
+            r['Reminder ID'],
+            r['Asset Tag'],
+            r['Asset Name'],
+            r['Channel'],
+            r['Status'],
+            r['Sent At'],
+            r['Next Retry At'],
+            r['Sent By'],
+            r['Delivery Notes'],
+          ])
+        : [['N/A', 'No automated asset reminders logged for this person', '—', '—', '—', '—', '—', '—', '—']]),
+    ];
+
+    const wsAssets = XLSX.utils.aoa_to_sheet(wsAssetAoa);
+    wsAssets['!cols'] = [{ wch: 18 }, { wch: 28 }, { wch: 18 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 30 }];
+    XLSX.utils.book_append_sheet(wb, wsAssets, 'Assets & Inventory');
+
+    // ------------------------------------------------------------------------
+    // Sheet 7: Audit Trail & Activity Log
+    // ------------------------------------------------------------------------
+    const relevantLogs = this.data.auditLogs.filter(
+      l =>
+        l.entityId === emp.id ||
+        (emp.employeeCode && (l.details?.includes(emp.employeeCode) || l.entityId?.includes(emp.employeeCode))) ||
+        (emp.fullName && l.entityName === emp.fullName)
+    );
+
+    const logTableRows = relevantLogs.map(l => ({
+      'Timestamp': l.timestamp,
+      'Action Taken': l.action,
+      'Actor Name': l.actor,
+      'Actor Role': l.actorRole,
+      'Entity Type': l.entityType,
+      'Entity Name': l.entityName,
+      'Detailed Log Message': l.details,
+    }));
+
+    const wsLogs = XLSX.utils.json_to_sheet(
+      logTableRows.length > 0
+        ? logTableRows
+        : [
+            {
+              'Timestamp': fVal(emp.createdAt),
+              'Action Taken': 'Profile Created',
+              'Actor Name': 'HR System',
+              'Actor Role': 'HR',
+              'Entity Type': 'Employee',
+              'Entity Name': emp.fullName,
+              'Detailed Log Message': 'Initial record seeded in White Collar Realty directory.',
+            },
+          ]
+    );
+    wsLogs['!cols'] = [
+      { wch: 24 },
+      { wch: 28 },
+      { wch: 20 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 24 },
+      { wch: 60 },
+    ];
+    XLSX.utils.book_append_sheet(wb, wsLogs, 'Audit Trail');
+
+    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  }
+
   // --- Desk Management ---
   public getDesks(): DeskSlot[] {
     const slots: DeskSlot[] = ALL_DESK_CODES.map(code => {
@@ -3221,6 +3800,7 @@ class DatabaseService {
   private inferLegacyDepartmentMigration(emp: Employee): { department: string; subDepartment?: string; category?: 'Employee' | 'Intern' | 'Consultant' | 'Contractor' } | null {
     const desig = (emp.designation || '').toLowerCase();
     const dept = (emp.department || '').toLowerCase();
+    const sub = (emp.subDepartment || '').toLowerCase();
     const isIntern =
       emp.employmentStatus === 'Intern' ||
       desig.includes('intern') ||
@@ -3242,32 +3822,63 @@ class DatabaseService {
     }
 
     if (
-      desig.includes('ai ') ||
-      desig.includes('artificial intelligence') ||
-      dept === 'ai intern' ||
-      dept === 'ai department' ||
-      (dept.includes('tech') && isIntern)
+      desig.includes('analytics') ||
+      desig.includes('da ') ||
+      dept === 'da' ||
+      dept === 'da department' ||
+      dept === 'data analytics' ||
+      sub.includes('da ')
     ) {
       return {
-        department: 'AI Department',
+        department: 'DA',
+        subDepartment: isIntern ? 'DA Interns' : 'DA Employees',
+        category: isIntern ? 'Intern' : 'Employee',
+      };
+    }
+
+    if (
+      desig.includes('ai ') ||
+      desig.includes('artificial intelligence') ||
+      dept === 'ai' ||
+      dept === 'ai intern' ||
+      dept === 'ai department' ||
+      (dept.includes('tech') && isIntern) ||
+      sub.includes('ai ')
+    ) {
+      return {
+        department: 'AI',
         subDepartment: isIntern ? 'AI Interns' : 'AI Employees',
         category: isIntern ? 'Intern' : 'Employee',
       };
     }
 
-    if (desig.includes('dm ') || dept.includes('dm') || dept.includes('marketing')) {
+    if (
+      desig.includes('dm ') ||
+      dept === 'dm' ||
+      dept === 'dm intern' ||
+      dept.includes('marketing') ||
+      sub.includes('dm ')
+    ) {
       return {
-        department: 'Digital Marketing Department',
+        department: 'DM',
         subDepartment: isIntern ? 'DM Interns' : 'DM Employees',
         category: isIntern ? 'Intern' : 'Employee',
       };
     }
 
-    if (desig.includes('dubai') || emp.market === 'Dubai' || dept.includes('dubai')) {
+    if (dept.includes('human resources') || dept === 'hr' || desig.includes('hr ')) {
+      return {
+        department: 'HR',
+        subDepartment: isIntern ? 'HR Interns' : 'HR Employees',
+        category: isIntern ? 'Intern' : 'Employee',
+      };
+    }
+
+    if (desig.includes('dubai') || emp.market === 'Dubai' || dept.includes('dubai') || dept.includes('nri')) {
       return {
         department: 'Dubai Market',
-        subDepartment: isIntern ? 'Dubai Interns' : 'Dubai Employees',
-        category: isIntern ? 'Intern' : 'Employee',
+        subDepartment: 'Dubai Employees',
+        category: 'Employee',
       };
     }
 
@@ -3279,31 +3890,23 @@ class DatabaseService {
     ) {
       return {
         department: 'Gurgaon Market',
-        subDepartment: isIntern ? 'Gurgaon Interns' : 'Gurgaon Employees',
-        category: isIntern ? 'Intern' : 'Employee',
+        subDepartment: 'Gurgaon Employees',
+        category: 'Employee',
       };
     }
 
     if (dept === 'administration & facilities' || dept === 'operations & pantry support' || dept.includes('admin') || dept.includes('operations')) {
       return {
-        department: 'Administration & IT',
-        subDepartment: isIntern ? 'Admin & IT Interns' : 'Admin & IT Employees',
-        category: isIntern ? 'Intern' : 'Employee',
-      };
-    }
-
-    if (dept.includes('human resources') || dept === 'hr') {
-      return {
-        department: 'Human Resources',
-        subDepartment: isIntern ? 'HR Interns' : 'HR Employees',
-        category: isIntern ? 'Intern' : 'Employee',
+        department: 'Administration & Operations',
+        subDepartment: 'Administration & Operations Employees',
+        category: 'Employee',
       };
     }
 
     if (dept.includes('executive') || dept.includes('founder') || dept.includes('leadership')) {
       return {
         department: 'Executive Leadership',
-        subDepartment: 'Executive Leadership',
+        subDepartment: 'Executive Leadership Employees',
         category: 'Employee',
       };
     }
@@ -3311,7 +3914,7 @@ class DatabaseService {
     return null;
   }
 
-  private ensureDepartmentsAndAssignmentsOnSchema(schema: DatabaseSchema, migrateLegacyLabels: boolean): boolean {
+  private ensureDepartmentsAndAssignmentsOnSchema(schema: DatabaseSchema, _migrateLegacyLabels: boolean): boolean {
     let changed = false;
     const nowIso = new Date().toISOString();
 
@@ -3330,180 +3933,168 @@ class DatabaseService {
       changed = true;
     }
 
-    // Ensure AI Department and DA Department exist and have proper sub-departments
-    let aiDept = schema.departments!.find(d => d.name === 'AI Department' || d.id === 'dept-ai' || d.name === 'AI Intern');
-    if (!aiDept) {
-      aiDept = {
-        id: 'dept-ai',
-        name: 'AI Department',
-        description: 'Artificial intelligence engineering, agentic automation, and LLM solutions.',
-        marketFocus: 'Gurgaon',
-        subDepartments: [
-          { id: 'sub-ai-emp', name: 'AI Employees', createdAt: nowIso, updatedAt: nowIso },
-          { id: 'sub-ai-intern', name: 'AI Interns', createdAt: nowIso, updatedAt: nowIso },
-        ],
-        createdAt: nowIso,
-        updatedAt: nowIso,
-      };
-      schema.departments!.unshift(aiDept);
-      changed = true;
-    } else {
-      if (aiDept.name !== 'AI Department') {
-        aiDept.name = 'AI Department';
-        changed = true;
-      }
-      if (!aiDept.subDepartments.some(s => s.name === 'AI Employees')) {
-        aiDept.subDepartments.unshift({ id: 'sub-ai-emp', name: 'AI Employees', createdAt: nowIso, updatedAt: nowIso });
-        changed = true;
-      }
-      if (!aiDept.subDepartments.some(s => s.name === 'AI Interns')) {
-        aiDept.subDepartments.push({ id: 'sub-ai-intern', name: 'AI Interns', createdAt: nowIso, updatedAt: nowIso });
-        changed = true;
-      }
-    }
+    // 1. Consolidate & Standardize the 4 Intern-allowed departments: HR, AI, DA, DM
+    const internDeptsConfig: { id: string; name: string; desc: string; market: MarketType; empSub: string; internSub: string }[] = [
+      { id: 'dept-hr', name: 'HR', desc: 'People operations, talent acquisition, onboarding compliance, and employee lifecycle.', market: 'Dual Market', empSub: 'HR Employees', internSub: 'HR Interns' },
+      { id: 'dept-ai', name: 'AI', desc: 'Artificial intelligence engineering, agentic automation, and LLM solutions.', market: 'Gurgaon', empSub: 'AI Employees', internSub: 'AI Interns' },
+      { id: 'dept-da', name: 'DA', desc: 'Data analytics, business intelligence, real estate metrics, and market forecasting.', market: 'Gurgaon', empSub: 'DA Employees', internSub: 'DA Interns' },
+      { id: 'dept-dm', name: 'DM', desc: 'Digital marketing, brand strategy, performance marketing, and creative lead generation.', market: 'Dual Market', empSub: 'DM Employees', internSub: 'DM Interns' },
+    ];
 
-    let daDept = schema.departments!.find(d => d.name === 'DA Department' || d.id === 'dept-da');
-    if (!daDept) {
-      daDept = {
-        id: 'dept-da',
-        name: 'DA Department',
-        description: 'Data analytics, business intelligence, real estate metrics, and market forecasting.',
-        marketFocus: 'Gurgaon',
-        subDepartments: [
-          { id: 'sub-da-emp', name: 'DA Employees', createdAt: nowIso, updatedAt: nowIso },
-          { id: 'sub-da-intern', name: 'DA Interns', createdAt: nowIso, updatedAt: nowIso },
-        ],
-        createdAt: nowIso,
-        updatedAt: nowIso,
-      };
-      const aiIdx = schema.departments!.findIndex(d => d.id === 'dept-ai');
-      schema.departments!.splice(aiIdx + 1, 0, daDept);
-      changed = true;
-    } else {
-      if (!daDept.subDepartments.some(s => s.name === 'DA Employees')) {
-        daDept.subDepartments.unshift({ id: 'sub-da-emp', name: 'DA Employees', createdAt: nowIso, updatedAt: nowIso });
-        changed = true;
-      }
-      if (!daDept.subDepartments.some(s => s.name === 'DA Interns')) {
-        daDept.subDepartments.push({ id: 'sub-da-intern', name: 'DA Interns', createdAt: nowIso, updatedAt: nowIso });
-        changed = true;
-      }
-    }
+    internDeptsConfig.forEach(cfg => {
+      let dept = schema.departments!.find(d => {
+        const n = d.name.toLowerCase();
+        if (cfg.name === 'HR') return n === 'hr' || n === 'human resources' || d.id === 'dept-hr';
+        if (cfg.name === 'AI') return n === 'ai' || n === 'ai department' || n === 'ai intern' || d.id === 'dept-ai';
+        if (cfg.name === 'DA') return n === 'da' || n === 'da department' || d.id === 'dept-da';
+        if (cfg.name === 'DM') return n === 'dm' || n === 'dm department' || n === 'dm intern' || n.includes('marketing') || d.id === 'dept-dm' || d.id === 'dept-marketing';
+        return false;
+      });
 
-    // Ensure all departments have Employees and Interns sub-departments
-    schema.departments!.forEach(dept => {
-      const baseName = dept.name.replace(/Department|Market/gi, '').trim();
-      const empSubName = `${baseName} Employees`;
-      const internSubName = `${baseName} Interns`;
-
-      if (dept.name !== 'Executive Leadership') {
-        if (!dept.subDepartments.some(s => s.name.toLowerCase().includes('employee') || s.name === empSubName)) {
-          dept.subDepartments.unshift({
-            id: `sub-${dept.id}-emp`,
-            name: empSubName,
-            createdAt: nowIso,
-            updatedAt: nowIso,
-          });
+      if (!dept) {
+        dept = {
+          id: cfg.id,
+          name: cfg.name,
+          description: cfg.desc,
+          marketFocus: cfg.market,
+          subDepartments: [
+            { id: `sub-${cfg.name.toLowerCase()}-emp`, name: cfg.empSub, createdAt: nowIso, updatedAt: nowIso },
+            { id: `sub-${cfg.name.toLowerCase()}-intern`, name: cfg.internSub, createdAt: nowIso, updatedAt: nowIso },
+          ],
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        };
+        schema.departments!.push(dept);
+        changed = true;
+      } else {
+        if (dept.name !== cfg.name) {
+          dept.name = cfg.name;
           changed = true;
         }
-        if (!dept.subDepartments.some(s => s.name.toLowerCase().includes('intern') || s.name === internSubName)) {
-          dept.subDepartments.push({
-            id: `sub-${dept.id}-intern`,
-            name: internSubName,
-            createdAt: nowIso,
-            updatedAt: nowIso,
-          });
+        if (dept.id !== cfg.id) {
+          dept.id = cfg.id;
           changed = true;
         }
+        // Ensure only Employees and Interns sub-departments exist
+        dept.subDepartments = [
+          { id: `sub-${cfg.name.toLowerCase()}-emp`, name: cfg.empSub, createdAt: nowIso, updatedAt: nowIso },
+          { id: `sub-${cfg.name.toLowerCase()}-intern`, name: cfg.internSub, createdAt: nowIso, updatedAt: nowIso },
+        ];
+        changed = true;
       }
     });
 
-    schema.employees.forEach(emp => {
-      const isIntern =
-        emp.employmentStatus === 'Intern' ||
-        (emp.designation || '').toLowerCase().includes('intern') ||
-        (emp.designation || '').toLowerCase().includes('trainee');
+    // Remove legacy duplicate departments like dept-dm-intern or dept-marketing if merged into DM
+    schema.departments = schema.departments!.filter(d => {
+      if (d.name === 'DM Intern' || d.id === 'dept-dm-intern') return false;
+      if (d.name === 'AI Intern' || d.id === 'dept-ai-intern') return false;
+      return true;
+    });
 
-      if (!emp.employmentCategory) {
-        emp.employmentCategory = isIntern ? 'Intern' : 'Employee';
+    // 2. Sanitize all other departments: MUST HAVE EMPLOYEES ONLY. Strip any intern sub-departments.
+    schema.departments!.forEach(dept => {
+      if (isInternAllowedDepartment(dept.name)) {
+        return; // Handled above
+      }
+
+      // Purge any sub-departments with 'intern' in name
+      const beforeCount = dept.subDepartments.length;
+      dept.subDepartments = dept.subDepartments.filter(s => !s.name.toLowerCase().includes('intern') && !s.id.toLowerCase().includes('intern'));
+      if (dept.subDepartments.length !== beforeCount) {
         changed = true;
       }
 
-      if (migrateLegacyLabels || emp.department === 'AI Intern' || (emp.department === 'AI Department' && !emp.subDepartment)) {
-        const mapped = this.inferLegacyDepartmentMigration(emp);
-        if (mapped) {
-          emp.department = mapped.department;
-          if (mapped.subDepartment) {
-            emp.subDepartment = mapped.subDepartment;
-          }
-          if (mapped.category) {
-            emp.employmentCategory = mapped.category;
-          }
+      // Ensure an Employee sub-department exists
+      const baseClean = dept.name.replace(/Department|Market/gi, '').trim() || dept.name;
+      const empSubName = `${baseClean} Employees`;
+      if (dept.subDepartments.length === 0) {
+        dept.subDepartments.push({
+          id: `sub-${dept.id}-emp`,
+          name: empSubName,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
+        changed = true;
+      } else if (!dept.subDepartments.some(s => s.name.toLowerCase().includes('employee'))) {
+        dept.subDepartments.unshift({
+          id: `sub-${dept.id}-emp`,
+          name: empSubName,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
+        changed = true;
+      }
+    });
+
+    // 3. Normalize all employees & candidates to obey the rule
+    schema.employees.forEach(emp => {
+      // First normalize legacy department names
+      const normDept = normalizeStandardDepartmentName(emp.department);
+      if (normDept !== emp.department) {
+        emp.department = normDept;
+        changed = true;
+      }
+
+      const isAllowedInternDept = isInternAllowedDepartment(emp.department);
+
+      // Check if employee designation or status is intern
+      const desigLower = (emp.designation || '').toLowerCase();
+      const statusLower = (emp.employmentStatus || '').toLowerCase();
+      const hasInternDesignation = desigLower.includes('intern') || desigLower.includes('trainee');
+
+      if (isAllowedInternDept) {
+        // Find standardized department config
+        const dObj = schema.departments!.find(d => d.name === emp.department);
+        if (dObj) emp.departmentId = dObj.id;
+
+        const isInternPerson =
+          emp.employmentCategory === 'Intern' ||
+          statusLower === 'intern' ||
+          hasInternDesignation;
+
+        if (isInternPerson) {
+          emp.employmentCategory = 'Intern';
+          emp.subDepartment = `${emp.department} Interns`;
           changed = true;
+        } else {
+          if (!emp.employmentCategory || emp.employmentCategory === 'Intern') {
+            emp.employmentCategory = 'Employee';
+            changed = true;
+          }
+          if (!emp.subDepartment || emp.subDepartment.toLowerCase().includes('intern')) {
+            emp.subDepartment = `${emp.department} Employees`;
+            changed = true;
+          }
+        }
+      } else {
+        // NON-INTERN DEPARTMENT: STRICTLY NO INTERN CATEGORIES ALLOWED
+        if (emp.employmentCategory === 'Intern') {
+          emp.employmentCategory = 'Employee';
+          changed = true;
+        }
+        if (statusLower === 'intern') {
+          emp.employmentStatus = emp.isCandidate ? 'Upcoming Joiner' : 'Full-Time';
+          changed = true;
+        }
+        if (emp.internshipCompletionDate) {
+          emp.internshipCompletionDate = '';
+          changed = true;
+        }
+
+        const dObj = schema.departments!.find(d => d.name.toLowerCase() === emp.department.toLowerCase());
+        if (dObj) {
+          emp.departmentId = dObj.id;
+          emp.department = dObj.name;
+          const empSub = dObj.subDepartments.find(s => s.name.toLowerCase().includes('employee'))?.name || dObj.subDepartments[0]?.name || `${dObj.name} Employees`;
+          if (!emp.subDepartment || emp.subDepartment.toLowerCase().includes('intern')) {
+            emp.subDepartment = empSub;
+            changed = true;
+          }
         }
       }
 
       if (!emp.documents || Object.keys(emp.documents).length === 0) {
         emp.documents = getDefaultDocumentChecklist(emp.market === 'Dubai' || emp.market === 'Dual Market');
-        changed = true;
-      }
-
-      let matchedDept =
-        (emp.departmentId ? schema.departments!.find(d => d.id === emp.departmentId) : undefined) ||
-        schema.departments!.find(d => d.name.toLowerCase() === (emp.department || '').trim().toLowerCase());
-
-      if (!matchedDept) {
-        const cleanName = (emp.department || '').trim() || (emp.market === 'Dubai' ? 'Dubai Market' : 'Gurgaon Market');
-        matchedDept = schema.departments!.find(d => d.name.toLowerCase() === cleanName.toLowerCase());
-        if (!matchedDept) {
-          const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `custom-${Date.now()}`;
-          matchedDept = {
-            id: `dept-${slug}`,
-            name: cleanName,
-            description: `${cleanName} team & profiles`,
-            marketFocus: emp.market || 'Gurgaon',
-            subDepartments: [
-              { id: `sub-${slug}-emp`, name: `${cleanName} Employees`, createdAt: nowIso, updatedAt: nowIso },
-              { id: `sub-${slug}-intern`, name: `${cleanName} Interns`, createdAt: nowIso, updatedAt: nowIso },
-            ],
-            createdAt: nowIso,
-            updatedAt: nowIso,
-          };
-          schema.departments!.push(matchedDept);
-          changed = true;
-        }
-      }
-
-      if (emp.departmentId !== matchedDept.id || emp.department !== matchedDept.name) {
-        emp.departmentId = matchedDept.id;
-        emp.department = matchedDept.name;
-        changed = true;
-      }
-
-      if (emp.subDepartment) {
-        const subTrimmed = emp.subDepartment.trim();
-        const existingSub = matchedDept.subDepartments.find(s => s.name.toLowerCase() === subTrimmed.toLowerCase());
-        if (existingSub) {
-          if (emp.subDepartment !== existingSub.name) {
-            emp.subDepartment = existingSub.name;
-            changed = true;
-          }
-        } else if (subTrimmed) {
-          const subSlug = subTrimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `sub-${Date.now()}`;
-          matchedDept.subDepartments.push({
-            id: `sub-${subSlug}-${Math.random().toString(36).slice(2, 5)}`,
-            name: subTrimmed,
-            createdAt: nowIso,
-            updatedAt: nowIso,
-          });
-          emp.subDepartment = subTrimmed;
-          changed = true;
-        }
-      } else {
-        // Assign default sub-department based on category
-        const subEmp = matchedDept.subDepartments.find(s => s.name.toLowerCase().includes('employee'))?.name;
-        const subInt = matchedDept.subDepartments.find(s => s.name.toLowerCase().includes('intern'))?.name;
-        emp.subDepartment = isIntern ? (subInt || matchedDept.subDepartments[0]?.name) : (subEmp || matchedDept.subDepartments[0]?.name);
         changed = true;
       }
     });
@@ -3547,7 +4138,12 @@ class DatabaseService {
 
     let resolvedSub: string | undefined = undefined;
     if (subDepartmentName && subDepartmentName.trim()) {
-      const cleanSub = subDepartmentName.trim();
+      let cleanSub = subDepartmentName.trim();
+      if (!isInternAllowedDepartment(dept.name) && cleanSub.toLowerCase().includes('intern')) {
+        cleanSub =
+          dept.subDepartments.find(s => s.name.toLowerCase().includes('employee'))?.name ||
+          `${dept.name.replace(/Department|Market/gi, '').trim()} Employees`;
+      }
       const foundSub = dept.subDepartments.find(s => s.name.toLowerCase() === cleanSub.toLowerCase());
       if (foundSub) {
         resolvedSub = foundSub.name;
@@ -3626,6 +4222,18 @@ class DatabaseService {
     const cleanName = (input.name || '').trim();
     if (!cleanName) {
       return { success: false, error: 'Department name is required.' };
+    }
+
+    const isInternDept = isInternAllowedDepartment(cleanName);
+    const rawSubs = input.subDepartments || [];
+    if (!isInternDept) {
+      const hasInternSub = rawSubs.some(s => s.toLowerCase().includes('intern'));
+      if (hasInternSub) {
+        return {
+          success: false,
+          error: 'Intern sub-departments are strictly restricted to HR, AI, DA, and DM departments only.',
+        };
+      }
     }
 
     const depts = this.getDepartments();
@@ -3822,6 +4430,13 @@ class DatabaseService {
     const cleanName = (input.name || '').trim();
     if (!cleanName) return { success: false, error: 'Sub-department name is required.' };
 
+    if (!isInternAllowedDepartment(dept.name) && cleanName.toLowerCase().includes('intern')) {
+      return {
+        success: false,
+        error: `Only HR, AI, DA, and DM departments are permitted to have Intern sub-departments. '${dept.name}' must have Employees only.`,
+      };
+    }
+
     if (dept.subDepartments.some(s => s.name.toLowerCase() === cleanName.toLowerCase())) {
       return { success: false, error: `Sub-department '${cleanName}' already exists in ${dept.name}.` };
     }
@@ -3870,6 +4485,12 @@ class DatabaseService {
     if (updates.name !== undefined) {
       const nextName = updates.name.trim();
       if (!nextName) return { success: false, error: 'Sub-department name cannot be empty.' };
+      if (!isInternAllowedDepartment(dept.name) && nextName.toLowerCase().includes('intern')) {
+        return {
+          success: false,
+          error: `Only HR, AI, DA, and DM departments are permitted to have Intern sub-departments. '${dept.name}' must have Employees only.`,
+        };
+      }
       if (dept.subDepartments.some(s => s.id !== subId && s.name.toLowerCase() === nextName.toLowerCase())) {
         return { success: false, error: `Sub-department '${nextName}' already exists in ${dept.name}.` };
       }
@@ -4123,10 +4744,7 @@ class DatabaseService {
     const qrStatus: DocumentQrStatusInfo = { ...meta };
 
     if (includeSecretShare && latest && meta.isActive && latest.token) {
-      let cleanOrigin = baseOrigin.replace(/\/+$/, '');
-      if (cleanOrigin.includes('169.254.') || cleanOrigin.includes('localhost') || cleanOrigin.includes('127.0.0.1')) {
-        cleanOrigin = 'https://ais-pre-7vffypp3ujgs3jlohgugve-77684867572.asia-southeast1.run.app';
-      }
+      const cleanOrigin = cleanPublicOrigin(baseOrigin);
       const shareUrl = `${cleanOrigin}/qr-upload/${latest.token}`;
       qrStatus.shareUrl = shareUrl;
       qrStatus.qrDataUrl = await QRCode.toDataURL(shareUrl, {
@@ -4226,10 +4844,7 @@ class DatabaseService {
     emp.updatedAt = nowIso;
     this.persist();
 
-    let cleanOrigin = baseOrigin.replace(/\/+$/, '');
-    if (cleanOrigin.includes('169.254.') || cleanOrigin.includes('localhost') || cleanOrigin.includes('127.0.0.1')) {
-      cleanOrigin = 'https://ais-pre-7vffypp3ujgs3jlohgugve-77684867572.asia-southeast1.run.app';
-    }
+    const cleanOrigin = cleanPublicOrigin(baseOrigin);
     const shareUrl = `${cleanOrigin}/qr-upload/${rawToken}`;
     const qrDataUrl = await QRCode.toDataURL(shareUrl, {
       width: 340,

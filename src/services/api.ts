@@ -155,6 +155,31 @@ class ApiService {
     return res.json();
   }
 
+  public async downloadEmployeeProfileExcel(id: string, fullName: string, code: string): Promise<void> {
+    const res = await fetch(`/api/employees/${encodeURIComponent(id)}/export/excel`, {
+      headers: this.getAuthOnlyHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to download profile Excel sheet' }));
+      throw new Error(err.error || 'Failed to download profile Excel sheet');
+    }
+
+    const blob = await res.blob();
+    const cleanName = (fullName || 'Profile').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanCode = (code || 'RECORD').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `WCR_Profile_${cleanName}_${cleanCode}_${dateStr}.xlsx`;
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
   public async createEmployee(emp: Partial<Employee>): Promise<Employee> {
     const res = await fetch('/api/employees', {
       method: 'POST',

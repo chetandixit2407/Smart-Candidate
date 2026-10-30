@@ -25,7 +25,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = Number(process.env.PORT) || 4000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Universal CORS & Security Headers
 app.use((req, res, next) => {
@@ -61,19 +61,34 @@ export function getLocalLanIpv4(): string | null {
 // Permanent public HTTPS application endpoint (deployed globally on Cloud Run)
 export const PERMANENT_PUBLIC_APP_URL =
   (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || '').trim() ||
-  'https://ais-pre-7vffypp3ujgs3jlohgugve-77684867572.asia-southeast1.run.app';
+  'https://ais-pre-vtqywkmlbp4hnugfkn6ztw-912480930497.asia-southeast1.run.app';
 
-// Configurable base origin resolver (prioritizes permanent public HTTPS; eliminates unroutable LAN/link-local 169.254 IPs)
+export function isInvalidHostOrIp(hostOrUrl: string): boolean {
+  if (!hostOrUrl) return true;
+  const lower = hostOrUrl.toLowerCase();
+  return (
+    lower.includes('localhost') ||
+    lower.includes('127.0.0.1') ||
+    lower.includes('0.0.0.0') ||
+    lower.includes('169.254.') ||
+    lower.startsWith('192.168.') ||
+    lower.includes('.192.168.') ||
+    lower.startsWith('10.') ||
+    lower.includes('.10.') ||
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(lower) ||
+    lower.includes('.local')
+  );
+}
+
+// Configurable base origin resolver (prioritizes permanent public HTTPS; strictly eliminates localhost, LAN IP, and 169.254 IPs)
 export function resolveBaseOrigin(req: Request, clientOriginCandidate?: string, _preferLan?: boolean): string {
-  // 1. Client-provided origin candidate from browser (if HTTPS and valid public origin)
+  // 1. Client-provided origin candidate from browser (if HTTPS and valid non-LAN/non-local public origin)
   if (clientOriginCandidate && typeof clientOriginCandidate === 'string') {
     try {
       const parsed = new URL(clientOriginCandidate.trim());
       if (
         (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
-        !parsed.hostname.includes('169.254.') &&
-        !parsed.hostname.startsWith('127.') &&
-        parsed.hostname !== 'localhost'
+        !isInvalidHostOrIp(parsed.hostname)
       ) {
         return parsed.origin;
       }
@@ -85,23 +100,13 @@ export function resolveBaseOrigin(req: Request, clientOriginCandidate?: string, 
   // 2. Incoming reverse proxy headers from Cloud Run / public hosting
   const forwardedHost = ((req.headers['x-forwarded-host'] as string) || '').split(',')[0].trim();
   const forwardedProto = ((req.headers['x-forwarded-proto'] as string) || 'https').split(',')[0].trim();
-  if (
-    forwardedHost &&
-    !forwardedHost.includes('169.254.') &&
-    !forwardedHost.startsWith('127.') &&
-    !forwardedHost.includes('localhost')
-  ) {
+  if (forwardedHost && !isInvalidHostOrIp(forwardedHost)) {
     return `${forwardedProto}://${forwardedHost}`;
   }
 
   // 3. Configured environment base URL (if valid public HTTPS)
   const envBaseUrl = (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || process.env.APP_URL || '').trim();
-  if (
-    envBaseUrl &&
-    !envBaseUrl.includes('169.254.') &&
-    !envBaseUrl.includes('localhost') &&
-    !envBaseUrl.includes('127.0.0.1')
-  ) {
+  if (envBaseUrl && !isInvalidHostOrIp(envBaseUrl)) {
     try {
       const parsed = new URL(envBaseUrl);
       if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
@@ -755,6 +760,39 @@ app.get('/api/employees/:id', (req: Request, res: Response) => {
     return;
   }
   res.json(emp);
+});
+
+app.get('/api/employees/:id/export/excel', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+
+  const emp = db.getEmployeeById(req.params.id, auth.role);
+  if (!emp) {
+    res.status(404).json({ error: 'Profile not found' });
+    return;
+  }
+
+  const excelBuffer = db.generateIndividualProfileExcel(req.params.id, auth.role);
+  if (!excelBuffer) {
+    res.status(404).json({ error: 'Failed to generate profile spreadsheet' });
+    return;
+  }
+
+  const cleanName = (emp.fullName || 'Profile').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const code = (emp.employeeCode || 'RECORD').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = `WCR_${emp.isCandidate ? 'Candidate' : 'Employee'}_Profile_${cleanName}_${code}_${dateStr}.xlsx`;
+
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${filename}"`
+  );
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.send(excelBuffer);
 });
 
 app.post('/api/employees', (req: Request, res: Response) => {
@@ -2236,24 +2274,9 @@ async function startServer() {
   const lanIp = getLocalLanIpv4();
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[SERVER] White Collar Realty HR System running at http://localhost:${PORT}`);
+    console.log(`[SERVER] White Collar Realty HR System running at http://0.0.0.0:${PORT}`);
     console.log(`[SERVER] Available on local network at http://${lanIp || '127.0.0.1'}:${PORT}`);
   });
-
-  // Secondary port listener on 3000: guarantees 100% compatibility with preview environments without port conflict
-  if (PORT !== 3000) {
-    try {
-      const secondaryServer = app.listen(3000, '0.0.0.0', () => {
-        console.log(`[SERVER] Preview compatibility listener active at http://0.0.0.0:3000`);
-      });
-      secondaryServer.on('error', (err: any) => {
-        // Port 3000 may be busy or skipped in local environments; ignore gracefully
-        console.log(`[SERVER] Port 3000 preview fallback skipped (${err.message})`);
-      });
-    } catch {
-      // Ignore
-    }
-  }
 }
 
 startServer().catch(err => {

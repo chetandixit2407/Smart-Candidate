@@ -22,6 +22,7 @@ import {
   Employee,
   MarketType,
   UserRole,
+  isInternAllowedDepartment,
 } from '../types/index.js';
 import { api } from '../services/api.js';
 
@@ -197,6 +198,14 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
         .split(',')
         .map(s => s.trim())
         .filter(Boolean);
+
+      const isInternAllowed = isInternAllowedDepartment(newDeptName.trim());
+      if (!isInternAllowed && subs.some(s => s.toLowerCase().includes('intern'))) {
+        setFeedbackError(`Only HR, AI, DA, and DM departments are permitted to have Intern sub-departments.`);
+        setBusy(false);
+        return;
+      }
+
       const res = await api.createDepartment({
         name: newDeptName.trim(),
         description: newDeptDesc.trim() || undefined,
@@ -270,6 +279,13 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
   const handleAddSubDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeDepartment || !newSubDeptName.trim()) return;
+
+    const isInternAllowed = isInternAllowedDepartment(activeDepartment.name);
+    if (!isInternAllowed && newSubDeptName.toLowerCase().includes('intern')) {
+      setFeedbackError(`Only HR, AI, DA, and DM departments are permitted to have Intern sub-departments. '${activeDepartment.name}' must have Employees only.`);
+      return;
+    }
+
     setBusy(true);
     setFeedbackError(null);
     try {
@@ -286,6 +302,13 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
 
   const handleSaveSubDeptRename = async (subId: string) => {
     if (!activeDepartment || !editSubName.trim()) return;
+
+    const isInternAllowed = isInternAllowedDepartment(activeDepartment.name);
+    if (!isInternAllowed && editSubName.toLowerCase().includes('intern')) {
+      setFeedbackError(`Only HR, AI, DA, and DM departments are permitted to have Intern sub-departments. '${activeDepartment.name}' must have Employees only.`);
+      return;
+    }
+
     setBusy(true);
     setFeedbackError(null);
     try {

@@ -22,8 +22,11 @@ import {
   FileText,
   Send,
   QrCode,
+  FileSpreadsheet,
+  Loader2,
 } from 'lucide-react';
 import { Employee, UserRole, UploadToken } from '../types/index.js';
+import { api } from '../services/api.js';
 
 interface CandidatesViewProps {
   candidates: Employee[];
@@ -61,6 +64,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
 
   // Quick 1-click copy toast
   const [copiedTokenCandId, setCopiedTokenCandId] = useState<string | null>(null);
+  const [exportingCandId, setExportingCandId] = useState<string | null>(null);
 
   // Link Management Modal State
   const [managingLinkCand, setManagingLinkCand] = useState<Employee | null>(null);
@@ -375,6 +379,32 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                 </span>
 
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  {/* Export Full Profile (Excel) Button */}
+                  <button
+                    type="button"
+                    onClick={async e => {
+                      e.stopPropagation();
+                      try {
+                        setExportingCandId(cand.id);
+                        await api.downloadEmployeeProfileExcel(cand.id, cand.fullName, cand.employeeCode);
+                      } catch (err: any) {
+                        console.error('Export Excel failed:', err);
+                      } finally {
+                        setExportingCandId(null);
+                      }
+                    }}
+                    disabled={exportingCandId === cand.id}
+                    className="px-2.5 py-1.5 text-xs text-white bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 rounded font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                    title="Export Full Candidate Profile (.xlsx) with all 7 sheets"
+                  >
+                    {exportingCandId === cand.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                    )}
+                    <span>{exportingCandId === cand.id ? 'Exporting...' : 'Export (Excel)'}</span>
+                  </button>
+
                   {/* Individual 24h Document QR Button */}
                   {onOpenQrModal && (
                     <button

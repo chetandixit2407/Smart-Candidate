@@ -39,6 +39,7 @@ import {
   Bell,
   Eye,
   QrCode,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   Employee,
@@ -55,6 +56,7 @@ import {
   AssetReturnReminderRecord,
   DepartmentWithCounts,
   LiveQrUploadEvent,
+  isInternAllowedDepartment,
 } from '../types/index.js';
 import { api } from '../services/api.js';
 import { LiveDocumentViewerModal } from './LiveDocumentViewerModal.js';
@@ -91,14 +93,14 @@ interface ProfileModalProps {
 }
 
 const FALLBACK_DEPARTMENT_NAMES = [
+  'HR',
+  'AI',
+  'DA',
+  'DM',
   'Gurgaon Market',
   'Dubai Market',
-  'AI Intern',
-  'DM Intern',
-  'Marketing & Digital Media',
-  'Human Resources',
-  'Executive Leadership',
   'Administration & Operations',
+  'Executive Leadership',
 ];
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -135,6 +137,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [linkExpiryDays, setLinkExpiryDays] = useState<number>(7);
   const [linkIsOneTime, setLinkIsOneTime] = useState<boolean>(true);
   const [showLinkConfig, setShowLinkConfig] = useState<boolean>(false);
+  const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
 
   // Compute audit logs associated with this personnel record
   const personAuditLogs = (auditLogs || []).filter(
@@ -255,6 +258,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     }
   };
 
+  const handleExportExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      setErrorMsg('');
+      await api.downloadEmployeeProfileExcel(employee.id, employee.fullName, employee.employeeCode);
+      setSuccessMsg('Profile spreadsheet (.xlsx) downloaded successfully.');
+      setTimeout(() => setSuccessMsg(''), 3500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to export profile Excel file';
+      setErrorMsg(msg);
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
   // Avatar resolution: If Chetan Sharma, use high-fidelity generated portrait
   const isChetan = employee.fullName.toLowerCase().includes('chetan');
   const avatarUrl = isChetan ? '/src/assets/images/avatar_chetan_sharma_1793257665587.jpg' : null;
@@ -332,6 +350,29 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <span className="sm:hidden">Doc QR</span>
               </button>
             )}
+
+            {/* Export Full Profile (Excel) Button */}
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              disabled={isExportingExcel}
+              className="px-2.5 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+              title="Download full candidate/employee profile (.xlsx) with all personal, employment, salary, document, asset, and audit sheets"
+            >
+              {isExportingExcel ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  <span className="hidden sm:inline">Exporting...</span>
+                  <span className="sm:hidden">...</span>
+                </>
+              ) : (
+                <>
+                  <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">Export Profile (Excel)</span>
+                  <span className="sm:hidden">Excel</span>
+                </>
+              )}
+            </button>
 
             {onOpenOfferLetter && ((employee.isCandidate && canManageOffer) || hasSavedOffer) && (
               <button
@@ -621,18 +662,30 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <div>
                   <label className="text-xs font-medium text-slate-500">Employment Status</label>
                   {isEditing ? (
-                    <select
-                      value={formData.employmentStatus || 'Full-Time'}
-                      onChange={e => setFormData({ ...formData, employmentStatus: e.target.value as Employee['employmentStatus'] })}
-                      className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
-                    >
-                      <option value="Full-Time">Full-Time</option>
-                      <option value="Intern">Intern</option>
-                      <option value="Probation">Probation</option>
-                      <option value="Notice Period">Notice Period</option>
-                      <option value="Upcoming Joiner">Upcoming Joiner</option>
-                      <option value="Ex-Employee">Ex-Employee</option>
-                    </select>
+                    (() => {
+                      const internAllowed = isInternAllowedDepartment(formData.department || employee.department);
+                      return (
+                        <select
+                          value={formData.employmentStatus || 'Full-Time'}
+                          onChange={e => {
+                            const val = e.target.value as Employee['employmentStatus'];
+                            setFormData({
+                              ...formData,
+                              employmentStatus: val,
+                              employmentCategory: val === 'Intern' ? 'Intern' : formData.employmentCategory,
+                            });
+                          }}
+                          className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
+                        >
+                          <option value="Full-Time">Full-Time</option>
+                          {internAllowed && <option value="Intern">Intern</option>}
+                          <option value="Probation">Probation</option>
+                          <option value="Notice Period">Notice Period</option>
+                          <option value="Upcoming Joiner">Upcoming Joiner</option>
+                          <option value="Ex-Employee">Ex-Employee</option>
+                        </select>
+                      );
+                    })()
                   ) : (
                     <p className="text-xs font-semibold text-slate-800 mt-1">{employee.employmentStatus}</p>
                   )}
@@ -653,7 +706,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         onChange={e => {
                           const nextDeptName = e.target.value;
                           const matchedDept = departments.find(d => d.name === nextDeptName);
-                          const validSubs = matchedDept?.subDepartments.map(s => s.name) || [];
+                          const isNextInternAllowed = isInternAllowedDepartment(nextDeptName);
+                          const rawSubs = matchedDept?.subDepartments || [];
+                          const validSubs = (isNextInternAllowed
+                            ? rawSubs
+                            : rawSubs.filter(s => !s.name.toLowerCase().includes('intern'))
+                          ).map(s => s.name);
+
                           setFormData({
                             ...formData,
                             department: nextDeptName,
@@ -662,6 +721,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                               formData.subDepartment && validSubs.includes(formData.subDepartment)
                                 ? formData.subDepartment
                                 : validSubs[0] || '',
+                            employmentCategory: isNextInternAllowed ? (formData.employmentCategory || 'Employee') : 'Employee',
+                            employmentStatus: (!isNextInternAllowed && formData.employmentStatus === 'Intern')
+                              ? (formData.isCandidate ? 'Offer Accepted' : 'Full-Time')
+                              : formData.employmentStatus,
+                            internshipCompletionDate: isNextInternAllowed ? formData.internshipCompletionDate : undefined,
                           });
                         }}
                         className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded bg-white"
@@ -690,10 +754,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     <label className="text-xs font-medium text-slate-500">Sub-Department / Unit</label>
                     {isEditing ? (
                       (() => {
+                        const isCurrentInternAllowed = isInternAllowedDepartment(formData.department || employee.department);
                         const matchedDept = departments.find(
                           d => d.id === formData.departmentId || d.name === formData.department
                         );
-                        const subs = matchedDept?.subDepartments || [];
+                        const allSubs = matchedDept?.subDepartments || [];
+                        const subs = isCurrentInternAllowed
+                          ? allSubs
+                          : allSubs.filter(s => !s.name.toLowerCase().includes('intern'));
+
                         return subs.length > 0 ? (
                           <select
                             value={formData.subDepartment || ''}
@@ -792,18 +861,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
                   <div>
                     <label className="text-xs font-medium text-slate-500">Internship Completion Date</label>
-                    {isEditing ? (
-                      <input
-                        type="date"
-                        value={formData.internshipCompletionDate || ''}
-                        onChange={e => setFormData({ ...formData, internshipCompletionDate: e.target.value })}
-                        className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
-                      />
-                    ) : (
-                      <p className="text-xs font-mono text-slate-800 mt-1">
-                        {employee.internshipCompletionDate || 'N/A (Regular Employee)'}
-                      </p>
-                    )}
+                    {(() => {
+                      const isCurrentInternAllowed = isInternAllowedDepartment(formData.department || employee.department);
+                      if (!isCurrentInternAllowed) {
+                        return (
+                          <p className="text-xs text-slate-400 bg-slate-50 px-2.5 py-1.5 rounded border border-slate-200 mt-1 italic">
+                            N/A (Employees Only)
+                          </p>
+                        );
+                      }
+                      return isEditing ? (
+                        <input
+                          type="date"
+                          value={formData.internshipCompletionDate || ''}
+                          onChange={e => setFormData({ ...formData, internshipCompletionDate: e.target.value })}
+                          className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
+                        />
+                      ) : (
+                        <p className="text-xs font-mono text-slate-800 mt-1">
+                          {employee.internshipCompletionDate || 'Not Set'}
+                        </p>
+                      );
+                    })()}
                   </div>
 
                   <div>

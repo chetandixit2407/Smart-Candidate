@@ -17,7 +17,10 @@ export type EmploymentStatus =
   | 'Probation'
   | 'Notice Period'
   | 'Upcoming Joiner'
-  | 'Ex-Employee';
+  | 'Ex-Employee'
+  | 'Offer Extended'
+  | 'Offer Accepted'
+  | 'Selected';
 
 export type EmploymentCategory = 'Employee' | 'Intern' | 'Consultant' | 'Contractor';
 
@@ -865,3 +868,29 @@ export const ALL_DESK_CODES: string[] = [
   'G1', 'G2', 'G3', 'G4', 'G5',
   'H1', 'H2', 'H3', 'H4', 'H5',
 ];
+
+// Exactly and ONLY these 4 departments can have Intern sub-departments or Intern categories: HR, AI, DA, DM
+export function isInternAllowedDepartment(deptNameOrId?: string): boolean {
+  if (!deptNameOrId) return false;
+  const s = deptNameOrId.trim().toLowerCase();
+  return (
+    s === 'hr' ||
+    s === 'dept-hr' ||
+    s === 'human resources' ||
+    s === 'human resources (hr)' ||
+    s === 'ai' ||
+    s === 'dept-ai' ||
+    s === 'ai department' ||
+    s === 'ai intern' ||
+    s === 'da' ||
+    s === 'dept-da' ||
+    s === 'da department' ||
+    s === 'dm' ||
+    s === 'dept-dm' ||
+    s === 'dm department' ||
+    s === 'dm intern' ||
+    s === 'digital marketing'
+  );
+}
+
+export const INTERN_ALLOWED_DEPARTMENTS = ['HR', 'AI', 'DA', 'DM'] as const;

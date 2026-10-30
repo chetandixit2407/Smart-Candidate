@@ -13,9 +13,12 @@ import {
   AlertCircle,
   Armchair,
   QrCode,
+  FileSpreadsheet,
+  Loader2,
 } from 'lucide-react';
 import { Employee, UserRole, DepartmentWithCounts } from '../types/index.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
+import { api } from '../services/api.js';
 
 interface EmployeesViewProps {
   employees: Employee[];
@@ -44,6 +47,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [pageSize, setPageSize] = useState<number>(15);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [exportingId, setExportingId] = useState<string | null>(null);
   const canEdit = userRole === 'HR' || userRole === 'Co-Founder';
 
   // Departments list
@@ -522,6 +526,28 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                             <QrCode className="w-4 h-4" />
                           </button>
                         )}
+                        <button
+                          onClick={async e => {
+                            e.stopPropagation();
+                            try {
+                              setExportingId(emp.id);
+                              await api.downloadEmployeeProfileExcel(emp.id, emp.fullName, emp.employeeCode);
+                            } catch (err: any) {
+                              console.error('Export Excel failed:', err);
+                            } finally {
+                              setExportingId(null);
+                            }
+                          }}
+                          disabled={exportingId === emp.id}
+                          title="Export Full Profile (Excel)"
+                          className="p-1 rounded text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          {exportingId === emp.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                          ) : (
+                            <FileSpreadsheet className="w-4 h-4" />
+                          )}
+                        </button>
                         <button
                           onClick={e => {
                             e.stopPropagation();
