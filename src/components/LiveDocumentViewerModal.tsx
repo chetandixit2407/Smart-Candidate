@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Download,
@@ -50,22 +50,66 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
   const [downloading, setDownloading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(100);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
 
-  if (!isOpen) return null;
-
-  const isViewer = userRole === 'DEPT_HEAD_VIEWER';
+  const canEdit = userRole === 'HR' || userRole === 'Co-Founder';
 
   // Check if document genuinely has an uploaded file (never show mock files)
   const hasGenuineFile = Boolean(document.fileName || document.fileData || (document as any).storagePath);
 
-  let fileUrl: string | null = null;
-  if (hasGenuineFile) {
-    if (document.fileData) {
-      fileUrl = document.fileData;
-    } else {
-      fileUrl = `/api/employees/${employeeId}/documents/${document.key}/file`;
+  useEffect(() => {
+    setSelectedStatus(document.status);
+    setReviewNotes(document.reviewNotes || '');
+  }, [document.key, document.status, document.reviewNotes]);
+
+  useEffect(() => {
+    let revokedUrl: string | null = null;
+    let cancelled = false;
+
+    if (!isOpen || !hasGenuineFile) {
+      setFileUrl(null);
+      return;
     }
-  }
+
+    if (document.fileData && document.fileData.startsWith('data:')) {
+      setFileUrl(document.fileData);
+      return;
+    }
+
+    setLoadingPreview(true);
+    api
+      .fetchDocumentObjectUrl(employeeId, document.key)
+      .then(objectUrl => {
+        if (cancelled) {
+          window.URL.revokeObjectURL(objectUrl);
+          return;
+        }
+        revokedUrl = objectUrl;
+        setFileUrl(objectUrl);
+      })
+      .catch(err => {
+        if (!cancelled) {
+          setFileUrl(null);
+          setMsg({
+            type: 'error',
+            text: err instanceof Error ? err.message : 'Unable to load protected document preview.',
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingPreview(false);
+      });
+
+    return () => {
+      cancelled = true;
+      if (revokedUrl) {
+        window.URL.revokeObjectURL(revokedUrl);
+      }
+    };
+  }, [isOpen, hasGenuineFile, employeeId, document.key, document.fileData, document.uploadedAt, userRole]);
+
+  if (!isOpen) return null;
 
   const isImage =
     Boolean(fileUrl) &&
@@ -188,7 +232,7 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
               </button>
             )}
 
-            {!isViewer && onUploadFile && (
+            {canEdit && onUploadFile && (
               <label className="cursor-pointer px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 border border-slate-700">
                 <UploadCloud className="w-3.5 h-3.5 text-amber-400" />
                 <span className="hidden sm:inline">{uploading ? 'Uploading...' : 'Replace'}</span>
@@ -233,7 +277,12 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
         <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden bg-slate-100">
           {/* Document Preview Stage */}
           <div className="flex-1 relative bg-slate-900 flex flex-col items-center justify-center p-2 sm:p-4 overflow-hidden min-h-[260px] sm:min-h-[380px]">
-            {fileUrl ? (
+            {loadingPreview ? (
+              <div className="p-8 text-center space-y-3 text-slate-300">
+                <Loader2 className="w-7 h-7 animate-spin text-amber-400 mx-auto" />
+                <p className="text-xs">Decrypting protected personnel document...</p>
+              </div>
+            ) : fileUrl ? (
               isImage ? (
                 <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
                   <img
@@ -315,13 +364,14 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
               <label className="text-xs font-semibold text-slate-700 block">
                 Verification Status
               </label>
-              {!isViewer ? (
+              {canEdit ? (
                 <select
                   value={selectedStatus}
                   onChange={e => setSelectedStatus(e.target.value as DocumentStatus)}
                   className="w-full px-3 py-2 text-xs font-medium border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:ring-1 focus:ring-slate-900"
                 >
                   <option value="Verified">Verified (Compliant)</option>
+                  <option value="Uploaded">Uploaded (Submitted via 24h QR — Needs Verification)</option>
                   <option value="Under Review">Under Review (Inspection in progress)</option>
                   <option value="Submitted">Submitted (Needs HR inspection)</option>
                   <option value="Not Submitted">Not Submitted</option>
@@ -341,7 +391,7 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
               <label className="text-xs font-semibold text-slate-700 block">
                 Reviewer / Compliance Notes
               </label>
-              {!isViewer ? (
+              {canEdit ? (
                 <textarea
                   rows={3}
                   value={reviewNotes}
@@ -374,10 +424,18 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
                   <strong className="text-slate-800">{new Date(document.uploadedAt).toLocaleDateString()}</strong>
                 </div>
               )}
+              {document.uploadedVia && (
+                <div className="flex items-center justify-between">
+                  <span>Upload Channel:</span>
+                  <strong className="text-indigo-700 font-sans">
+                    {document.uploadedVia === 'QR' ? '24h Individual QR' : document.uploadedVia}
+                  </strong>
+                </div>
+              )}
             </div>
 
             {/* Action Button */}
-            {!isViewer && (
+            {canEdit && (
               <button
                 type="button"
                 onClick={handleSaveStatus}

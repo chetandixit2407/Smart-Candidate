@@ -31,7 +31,7 @@
           "occupation": "Homemaker"
         }
       ],
-      "department": "Technology & AI Operations",
+      "department": "AI Intern",
       "designation": "AI Intern",
       "reportingManager": "Abhishek (VP Gurgoan)",
       "joiningDate": "2026-09-01",
@@ -301,7 +301,7 @@
           "title": "Exit Initiated: Voluntary Resignation",
           "description": "Resignation recorded on 2026-10-25. Notice period: 30 days. Calculated Last Working Day: 2026-11-24. Handover to: Pending.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270280594-0yfk",
@@ -310,7 +310,7 @@
           "title": "Exit Initiated: Voluntary Resignation",
           "description": "Resignation recorded on 2026-10-25. Notice period: 30 days. Calculated Last Working Day: 2026-11-24. Handover to: Pending.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270249975-2ulk",
@@ -319,10 +319,20 @@
           "title": "Exit Initiated: Voluntary Resignation",
           "description": "Resignation recorded on 2026-10-25. Notice period: 30 days. Calculated Last Working Day: 2026-11-24. Handover to: Pending.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         }
       ],
-      "lifecycleStage": "Notice Period"
+      "lifecycleStage": "Notice Period",
+      "subDepartment": "AI & ML Engineering",
+      "departmentId": "dept-ai-intern",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-lalit-sir",
@@ -455,7 +465,17 @@
       },
       "profileCompletion": 92,
       "createdAt": "2020-01-15T09:00:00Z",
-      "updatedAt": "2026-10-25T10:00:00Z"
+      "updatedAt": "2026-10-25T10:00:00Z",
+      "subDepartment": "Founder & C-Suite",
+      "departmentId": "dept-executive",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-kimmi-mam",
@@ -588,7 +608,17 @@
       },
       "profileCompletion": 90,
       "createdAt": "2020-01-15T09:00:00Z",
-      "updatedAt": "2026-10-25T10:00:00Z"
+      "updatedAt": "2026-10-25T10:00:00Z",
+      "subDepartment": "Founder & C-Suite",
+      "departmentId": "dept-executive",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-abhishek",
@@ -607,7 +637,7 @@
         "phone": "9643961108"
       },
       "familyDetails": [],
-      "department": "Sales & Leadership",
+      "department": "Gurgaon Market",
       "designation": "VP Gurgoan",
       "reportingManager": "Lalit Sir (CEO)",
       "joiningDate": "2026-10-07",
@@ -718,7 +748,17 @@
       },
       "profileCompletion": 88,
       "createdAt": "2026-10-07T09:00:00Z",
-      "updatedAt": "2026-10-25T10:00:00Z"
+      "updatedAt": "2026-10-25T10:00:00Z",
+      "subDepartment": "Golf Course Road Luxury",
+      "departmentId": "dept-gurgaon-market",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-nisha",
@@ -844,7 +884,17 @@
       },
       "profileCompletion": 92,
       "createdAt": "2026-05-07T09:00:00Z",
-      "updatedAt": "2026-10-26T12:00:00Z"
+      "updatedAt": "2026-10-26T12:00:00Z",
+      "subDepartment": "Talent & Onboarding",
+      "departmentId": "dept-hr",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-tanuj",
@@ -863,7 +913,7 @@
         "phone": "9821306009"
       },
       "familyDetails": [],
-      "department": "Sales & Investments",
+      "department": "Gurgaon Market",
       "designation": "Gurgoan Team Consultant",
       "reportingManager": "Abhishek (VP Gurgoan)",
       "joiningDate": "2025-03-20",
@@ -970,7 +1020,17 @@
       },
       "profileCompletion": 85,
       "createdAt": "2025-03-20T09:00:00Z",
-      "updatedAt": "2026-10-25T11:00:00Z"
+      "updatedAt": "2026-10-25T11:00:00Z",
+      "subDepartment": "Golf Course Road Luxury",
+      "departmentId": "dept-gurgaon-market",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-sameer",
@@ -989,7 +1049,7 @@
         "phone": "8010225221"
       },
       "familyDetails": [],
-      "department": "Administration & Facilities",
+      "department": "Administration & Operations",
       "designation": "Admin Manager",
       "reportingManager": "Lalit Sir (CEO)",
       "joiningDate": "2025-02-10",
@@ -1096,7 +1156,17 @@
       },
       "profileCompletion": 86,
       "createdAt": "2025-02-10T09:00:00Z",
-      "updatedAt": "2026-10-24T14:00:00Z"
+      "updatedAt": "2026-10-24T14:00:00Z",
+      "subDepartment": "Office Administration",
+      "departmentId": "dept-admin-ops",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-sandeep",
@@ -1115,7 +1185,7 @@
         "phone": "9717262947"
       },
       "familyDetails": [],
-      "department": "Operations & Pantry Support",
+      "department": "Administration & Operations",
       "designation": "Pantry Boy",
       "reportingManager": "Sameer (Admin)",
       "joiningDate": "2026-03-24",
@@ -1222,7 +1292,17 @@
       },
       "profileCompletion": 80,
       "createdAt": "2026-03-24T09:00:00Z",
-      "updatedAt": "2026-10-20T10:00:00Z"
+      "updatedAt": "2026-10-20T10:00:00Z",
+      "subDepartment": "Facility & Pantry Support",
+      "departmentId": "dept-admin-ops",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-ekansh",
@@ -1348,7 +1428,17 @@
       },
       "profileCompletion": 86,
       "createdAt": "2025-01-25T09:00:00Z",
-      "updatedAt": "2026-10-22T11:00:00Z"
+      "updatedAt": "2026-10-22T11:00:00Z",
+      "subDepartment": "Performance & Brand Media",
+      "departmentId": "dept-marketing",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-adil",
@@ -1367,7 +1457,7 @@
         "phone": "9315451082"
       },
       "familyDetails": [],
-      "department": "Sales & Investments",
+      "department": "Gurgaon Market",
       "designation": "Gurgoan Team Consultant",
       "reportingManager": "Abhishek (VP Gurgoan)",
       "joiningDate": "2026-07-16",
@@ -1474,7 +1564,17 @@
       },
       "profileCompletion": 82,
       "createdAt": "2026-07-16T09:00:00Z",
-      "updatedAt": "2026-10-23T15:00:00Z"
+      "updatedAt": "2026-10-23T15:00:00Z",
+      "subDepartment": "DLF & Micro-Markets",
+      "departmentId": "dept-gurgaon-market",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-shaquib",
@@ -1493,7 +1593,7 @@
         "phone": "9718258724"
       },
       "familyDetails": [],
-      "department": "Luxury Residential & Investments",
+      "department": "Dubai Market",
       "designation": "Dubai Team Consultant",
       "reportingManager": "Lalit Sir (CEO)",
       "joiningDate": "2026-09-01",
@@ -1607,7 +1707,17 @@
       },
       "profileCompletion": 87,
       "createdAt": "2026-09-01T09:00:00Z",
-      "updatedAt": "2026-10-24T16:00:00Z"
+      "updatedAt": "2026-10-24T16:00:00Z",
+      "subDepartment": "Downtown & Palm Jumeirah",
+      "departmentId": "dept-dubai-market",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-pooja",
@@ -1626,7 +1736,7 @@
         "phone": "9518413660"
       },
       "familyDetails": [],
-      "department": "Marketing & Digital Media",
+      "department": "DM Intern",
       "designation": "DM Intern",
       "reportingManager": "Ekansh (DM Lead)",
       "joiningDate": "2026-08-10",
@@ -1734,7 +1844,17 @@
       },
       "profileCompletion": 80,
       "createdAt": "2026-08-10T09:00:00Z",
-      "updatedAt": "2026-10-20T11:00:00Z"
+      "updatedAt": "2026-10-20T11:00:00Z",
+      "subDepartment": "Social Media & Content",
+      "departmentId": "dept-dm-intern",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-bharti",
@@ -1753,7 +1873,7 @@
         "phone": "8595854193"
       },
       "familyDetails": [],
-      "department": "Marketing & Digital Media",
+      "department": "DM Intern",
       "designation": "DM Intern",
       "reportingManager": "Ekansh (DM Lead)",
       "joiningDate": "2026-09-01",
@@ -1861,7 +1981,17 @@
       },
       "profileCompletion": 81,
       "createdAt": "2026-09-01T09:00:00Z",
-      "updatedAt": "2026-10-21T12:00:00Z"
+      "updatedAt": "2026-10-21T12:00:00Z",
+      "subDepartment": "Social Media & Content",
+      "departmentId": "dept-dm-intern",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-tanishq",
@@ -1880,7 +2010,7 @@
         "phone": "7404818491"
       },
       "familyDetails": [],
-      "department": "Marketing & Digital Media",
+      "department": "DM Intern",
       "designation": "DM Intern",
       "reportingManager": "Ekansh (DM Lead)",
       "joiningDate": "2026-07-24",
@@ -1988,7 +2118,17 @@
       },
       "profileCompletion": 80,
       "createdAt": "2026-07-24T09:00:00Z",
-      "updatedAt": "2026-10-20T10:00:00Z"
+      "updatedAt": "2026-10-20T10:00:00Z",
+      "subDepartment": "Performance Campaigns",
+      "departmentId": "dept-dm-intern",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-shriyanshi",
@@ -2115,7 +2255,17 @@
       },
       "profileCompletion": 83,
       "createdAt": "2026-08-10T09:00:00Z",
-      "updatedAt": "2026-10-22T09:00:00Z"
+      "updatedAt": "2026-10-22T09:00:00Z",
+      "subDepartment": "Talent & Onboarding",
+      "departmentId": "dept-hr",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-himanshu",
@@ -2134,7 +2284,7 @@
         "phone": "9729815828"
       },
       "familyDetails": [],
-      "department": "Technology & AI Operations",
+      "department": "AI Intern",
       "designation": "DA Intern",
       "reportingManager": "Kimmi Mam",
       "joiningDate": "2026-09-28",
@@ -2242,7 +2392,17 @@
       },
       "profileCompletion": 76,
       "createdAt": "2026-09-28T09:00:00Z",
-      "updatedAt": "2026-10-29T09:54:16.882Z"
+      "updatedAt": "2026-10-29T09:54:16.882Z",
+      "subDepartment": "Data Analytics & Insights",
+      "departmentId": "dept-ai-intern",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "emp-aryan-mehra",
@@ -2268,7 +2428,7 @@
           "occupation": "Architect"
         }
       ],
-      "department": "Luxury Residential & Investments",
+      "department": "Gurgaon Market",
       "designation": "Associate Director - Luxury Brokerage",
       "reportingManager": "Lalit Sir (CEO)",
       "joiningDate": "2024-04-10",
@@ -2399,7 +2559,17 @@
       "profileCompletion": 95,
       "notes": "Key producer for luxury high-ticket transactions in Gurgaon and Dubai.",
       "createdAt": "2024-04-10T09:00:00Z",
-      "updatedAt": "2026-10-28T15:00:00Z"
+      "updatedAt": "2026-10-28T15:00:00Z",
+      "subDepartment": "Golf Course Road Luxury",
+      "departmentId": "dept-gurgaon-market",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "cand-vikram-malhotra",
@@ -2425,7 +2595,7 @@
           "occupation": "Retired Bank Manager"
         }
       ],
-      "department": "Sales & Investments",
+      "department": "Gurgaon Market",
       "designation": "Senior Property Consultant - Golf Course Road",
       "reportingManager": "Abhishek (VP Gurgoan)",
       "joiningDate": "2026-11-15",
@@ -2649,7 +2819,7 @@
           "title": "Official Offer Letter Dispatched to vikram.m.candidate@gmail.com",
           "description": "Executive 10-page offer letter (Ref: WCR/HR/OL/2026/WCR-022 (Pending), CTC: ₹16,00,000 p.a. + Brokerage Incentive) emailed by Simran Kaur (HR Head) (HR_ADMIN). Candidate notified for e-signature.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270289704-a4ui",
@@ -2658,7 +2828,7 @@
           "title": "Offer Formally Accepted by Vikram Malhotra",
           "description": "Candidate confirmed acceptance of offer Ref WCR/HR/OL/2026/WCR-022 (Pending). Target joining date: 2026-11-15.",
           "actor": "Candidate Portal",
-          "actorRole": "HR_MANAGER"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270289695-o3pi",
@@ -2667,7 +2837,7 @@
           "title": "Offer Letter Issued to Candidate",
           "description": "Official White Collar Realty offer letter dispatched to vikram.m.candidate@gmail.com. Candidate acceptance deadline: 2026-11-12.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270289687-5lly",
@@ -2676,7 +2846,7 @@
           "title": "Offer Letter Approved by HR Leadership",
           "description": "Offer Ref WCR/HR/OL/2026/WCR-022 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270289677-w75p",
@@ -2685,7 +2855,7 @@
           "title": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
           "description": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270289660-nv2a",
@@ -2694,7 +2864,7 @@
           "title": "Interview Scheduled: Round 1: Technical & Market Knowledge",
           "description": "Round 5 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person).",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270280583-pryq",
@@ -2703,7 +2873,7 @@
           "title": "Offer Formally Accepted by Vikram Malhotra",
           "description": "Candidate confirmed acceptance of offer Ref WCR/HR/OL/2026/WCR-022 (Pending). Target joining date: 2026-11-15.",
           "actor": "Candidate Portal",
-          "actorRole": "HR_MANAGER"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270280573-1kqn",
@@ -2712,7 +2882,7 @@
           "title": "Offer Letter Issued to Candidate",
           "description": "Official White Collar Realty offer letter dispatched to vikram.m.candidate@gmail.com. Candidate acceptance deadline: 2026-11-12.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270280566-zsgy",
@@ -2721,7 +2891,7 @@
           "title": "Offer Letter Approved by HR Leadership",
           "description": "Offer Ref WCR/HR/OL/2026/WCR-022 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270280558-3rb1",
@@ -2730,7 +2900,7 @@
           "title": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
           "description": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270280550-jc6l",
@@ -2739,7 +2909,7 @@
           "title": "Interview Scheduled: Round 1: Technical & Market Knowledge",
           "description": "Round 4 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person).",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270249966-jucl",
@@ -2748,7 +2918,7 @@
           "title": "Offer Formally Accepted by Vikram Malhotra",
           "description": "Candidate confirmed acceptance of offer Ref WCR/HR/OL/2026/WCR-022 (Pending). Target joining date: 2026-11-15.",
           "actor": "Candidate Portal",
-          "actorRole": "HR_MANAGER"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270249955-njxc",
@@ -2757,7 +2927,7 @@
           "title": "Offer Letter Issued to Candidate",
           "description": "Official White Collar Realty offer letter dispatched to vikram.m.candidate@gmail.com. Candidate acceptance deadline: 2026-11-12.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270249948-9pcv",
@@ -2766,7 +2936,7 @@
           "title": "Offer Letter Approved by HR Leadership",
           "description": "Offer Ref WCR/HR/OL/2026/WCR-022 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270249940-e5lu",
@@ -2775,7 +2945,7 @@
           "title": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
           "description": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270249932-t8l8",
@@ -2784,7 +2954,7 @@
           "title": "Interview Scheduled: Round 1: Technical & Market Knowledge",
           "description": "Round 3 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person).",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270235540-4hq0",
@@ -2793,7 +2963,7 @@
           "title": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
           "description": "Prepared offer letter for Senior Property Consultant - Golf Course Road (Sales & Investments) with Annual CTC of INR 1,600,000. Status: Draft.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270235523-726z",
@@ -2802,7 +2972,7 @@
           "title": "Interview Scheduled: Round 1: Technical & Market Knowledge",
           "description": "Round 2 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person).",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793270223663-rat8",
@@ -2811,7 +2981,7 @@
           "title": "Interview Scheduled: Round 1: Technical & Market Knowledge",
           "description": "Round 1 scheduled with Simran Kaur on 2026-11-02 at 11:00 AM (In-Person).",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         }
       ],
       "lifecycleStage": "Offer Extended",
@@ -2881,7 +3051,7 @@
           "id": "rem-1793272238287-3e6i",
           "sentAt": "2026-10-29T11:10:38.287Z",
           "sentBy": "Simran Kaur (HR Head)",
-          "sentByRole": "HR_ADMIN",
+          "sentByRole": "HR",
           "channel": "BOTH",
           "recipientEmail": "vikram.m.candidate@gmail.com",
           "recipientPhone": "9811999887",
@@ -2910,7 +3080,17 @@
       "lastReminderSentAt": "2026-10-29T11:10:38.287Z",
       "lastReminderChannel": "BOTH",
       "reminderDeadline": "2026-10-30T11:10:38.287Z",
-      "isOverdueForDocuments": false
+      "isOverdueForDocuments": false,
+      "subDepartment": "Golf Course Road Luxury",
+      "departmentId": "dept-gurgaon-market",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "cand-aanya-kapoor",
@@ -2935,7 +3115,7 @@
           "phone": "9811200113"
         }
       ],
-      "department": "Luxury Residential & Investments",
+      "department": "AI Intern",
       "designation": "Luxury Portfolio Advisor - Dubai International Desk",
       "reportingManager": "Shaquib (Dubai Team)",
       "joiningDate": "2026-11-20",
@@ -3203,7 +3383,7 @@
           "title": "Official Offer Letter Dispatched to aanya.kapoor97@gmail.com",
           "description": "Executive 10-page offer letter (Ref: WCR/HR/OL/2026/WCR-023 (Pending), CTC: Rs. 12 LPA) emailed by Simran Kaur (HR Head) (HR_ADMIN). Candidate notified for e-signature.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793272305429-icvl",
@@ -3212,7 +3392,7 @@
           "title": "Offer Letter Approved by HR Leadership",
           "description": "Offer Ref WCR/HR/OL/2026/WCR-023 (Pending) officially approved by Simran Kaur (HR Head) (HR_ADMIN). Ready for issuance to candidate.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         },
         {
           "id": "evt-1793272298852-nf59",
@@ -3221,10 +3401,20 @@
           "title": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-023 (Pending)",
           "description": "Prepared offer letter for Luxury Portfolio Advisor - Dubai International Desk (Luxury Residential & Investments) with Annual CTC of INR 1,200,000. Status: Draft.",
           "actor": "Simran Kaur (HR Head)",
-          "actorRole": "HR_ADMIN"
+          "actorRole": "HR"
         }
       ],
-      "lifecycleStage": "Offer Extended"
+      "lifecycleStage": "Offer Extended",
+      "subDepartment": "AI & ML Engineering",
+      "departmentId": "dept-ai-intern",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "cand-rohan-verma",
@@ -3249,7 +3439,7 @@
           "phone": "9871044553"
         }
       ],
-      "department": "Sales & Investments",
+      "department": "Gurgaon Market",
       "designation": "Property Advisor Trainee",
       "reportingManager": "Tanuj (Gurgoan Team)",
       "joiningDate": "2026-11-25",
@@ -3361,7 +3551,17 @@
       "profileCompletion": 55,
       "notes": "Final semester college clearance obtained.",
       "createdAt": "2026-10-25T09:00:00Z",
-      "updatedAt": "2026-10-28T11:00:00Z"
+      "updatedAt": "2026-10-28T11:00:00Z",
+      "subDepartment": "Trainee Desk",
+      "departmentId": "dept-gurgaon-market",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
     },
     {
       "id": "cand-simran-kaur",
@@ -3387,7 +3587,7 @@
           "occupation": "Teacher"
         }
       ],
-      "department": "Technology & AI Operations",
+      "department": "AI Intern",
       "designation": "AI Data Research Intern",
       "reportingManager": "Abhishek (VP Gurgoan)",
       "joiningDate": "2026-08-01",
@@ -3508,7 +3708,163 @@
       "profileCompletion": 90,
       "notes": "Internship evaluation meeting scheduled for full-time conversion.",
       "createdAt": "2026-08-01T09:00:00Z",
-      "updatedAt": "2026-10-28T10:00:00Z"
+      "updatedAt": "2026-10-28T10:00:00Z",
+      "subDepartment": "AI & ML Engineering",
+      "departmentId": "dept-ai-intern",
+      "documentQrMeta": {
+        "hasToken": false,
+        "isActive": false,
+        "isExpired": false,
+        "isRevoked": false,
+        "targetDocKeys": [],
+        "uploadedDocKeys": []
+      }
+    },
+    {
+      "id": "cand-1793341095977-37ex",
+      "employeeCode": "WCR-026 (Pending)",
+      "fullName": "Zoya Al-Mansoor",
+      "email": "",
+      "phone": "",
+      "dateOfBirth": "",
+      "gender": "Male",
+      "nationality": "Indian",
+      "currentAddress": "",
+      "permanentAddress": "",
+      "emergencyContact": {
+        "name": "",
+        "relation": "",
+        "phone": ""
+      },
+      "familyDetails": [],
+      "departmentId": "dept-uae-luxury-advisory-9atn",
+      "department": "Global NRI Desk",
+      "subDepartment": "Dubai Marina",
+      "designation": "Portfolio Consultant",
+      "reportingManager": "Management",
+      "joiningDate": "2026-11-15",
+      "employmentStatus": "Upcoming Joiner",
+      "isCandidate": true,
+      "candidateStatus": "Offer Accepted",
+      "market": "Gurgaon",
+      "desk": "",
+      "sourceSpreadsheetSeat": "",
+      "totalExperienceYears": 0,
+      "totalExperienceMonths": 0,
+      "education": [],
+      "references": [],
+      "documents": {
+        "aadhaar_card": {
+          "key": "aadhaar_card",
+          "title": "Aadhaar Card / National ID",
+          "category": "Identity",
+          "status": "Missing",
+          "required": true
+        },
+        "pan_card": {
+          "key": "pan_card",
+          "title": "PAN Card",
+          "category": "Financial & Tax",
+          "status": "Missing",
+          "required": true
+        },
+        "passport": {
+          "key": "passport",
+          "title": "Passport Copy (First & Last Page)",
+          "category": "Identity",
+          "status": "Missing",
+          "required": false
+        },
+        "edu_10th": {
+          "key": "edu_10th",
+          "title": "10th Marksheet & Passing Certificate",
+          "category": "Education",
+          "status": "Missing",
+          "required": true
+        },
+        "edu_12th": {
+          "key": "edu_12th",
+          "title": "12th / Intermediate Marksheet",
+          "category": "Education",
+          "status": "Missing",
+          "required": true
+        },
+        "edu_graduation": {
+          "key": "edu_graduation",
+          "title": "Graduation Degree & Final Marksheet",
+          "category": "Education",
+          "status": "Missing",
+          "required": true
+        },
+        "prev_offer": {
+          "key": "prev_offer",
+          "title": "Previous Company Appointment / Offer Letter",
+          "category": "Previous Employment",
+          "status": "Missing",
+          "required": false
+        },
+        "prev_relieving": {
+          "key": "prev_relieving",
+          "title": "Relieving & Experience Certificate",
+          "category": "Previous Employment",
+          "status": "Missing",
+          "required": false
+        },
+        "salary_slips": {
+          "key": "salary_slips",
+          "title": "Last 3 Months Salary Slips & Bank Statement",
+          "category": "Financial & Tax",
+          "status": "Missing",
+          "required": false
+        },
+        "photograph": {
+          "key": "photograph",
+          "title": "Passport Size Photograph (Hard Copy)",
+          "category": "Photos & General",
+          "status": "Missing",
+          "required": true
+        },
+        "appraisal_letter": {
+          "key": "appraisal_letter",
+          "title": "Last Appraisal / Increment Letter",
+          "category": "Previous Employment",
+          "status": "Not Applicable",
+          "required": false
+        },
+        "google_drive_dossier": {
+          "key": "google_drive_dossier",
+          "title": "Google Drive Document Folder Archive",
+          "category": "Photos & General",
+          "status": "Missing",
+          "required": false
+        }
+      },
+      "savedOfferLetters": [],
+      "documentQrMeta": {
+        "hasToken": true,
+        "isActive": true,
+        "isExpired": false,
+        "isRevoked": false,
+        "createdAt": "2026-10-30T06:18:16.004Z",
+        "expiresAt": "2026-10-31T06:18:16.004Z",
+        "remainingMs": 86399975,
+        "createdBy": "Neha Kapoor",
+        "createdByRole": "HR",
+        "targetDocKeys": [
+          "aadhaar_card",
+          "pan_card",
+          "edu_10th",
+          "edu_12th",
+          "edu_graduation",
+          "photograph"
+        ],
+        "uploadedDocKeys": [],
+        "openCount": 1,
+        "lastOpenedAt": "2026-10-30T06:18:16.028Z"
+      },
+      "profileCompletion": 16,
+      "createdAt": "2026-10-30T06:18:15.977Z",
+      "updatedAt": "2026-10-30T06:18:16.004Z"
     }
   ],
   "assets": [
@@ -3869,10 +4225,593 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1793341096023-dcir5",
+      "timestamp": "2026-10-30T06:18:16.023Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Document QR Generated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-1793341095977-37ex",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Generated candidate-specific 24-hour Document QR (6 missing required doc(s) detected; expires 10/31/2026, 6:18:16 AM)."
+    },
+    {
+      "id": "log-1793341095989-q8zm0",
+      "timestamp": "2026-10-30T06:18:15.989Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Renamed",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-9atn",
+      "entityName": "Global NRI Desk",
+      "details": "Renamed department from 'UAE Luxury Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+    },
+    {
+      "id": "log-1793341095980-68mfp",
+      "timestamp": "2026-10-30T06:18:15.980Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793341095977-37ex",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Created candidate profile (WCR-026 (Pending)) in UAE Luxury Advisory / Dubai Marina. Seat: None."
+    },
+    {
+      "id": "log-1793341095969-wjjxd",
+      "timestamp": "2026-10-30T06:18:15.969Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Sub-Department Created",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-9atn",
+      "entityName": "UAE Luxury Advisory / Dubai Marina",
+      "details": "Added sub-department 'Dubai Marina' under 'UAE Luxury Advisory'."
+    },
+    {
+      "id": "log-1793341095959-zx67h",
+      "timestamp": "2026-10-30T06:18:15.959Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Created",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-9atn",
+      "entityName": "UAE Luxury Advisory",
+      "details": "Created department 'UAE Luxury Advisory' with 2 sub-department(s)."
+    },
+    {
+      "id": "log-1793341095684-qsd1k",
+      "timestamp": "2026-10-30T06:18:15.685Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Deleted",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-0fc7",
+      "entityName": "Global NRI Desk",
+      "details": "Deleted empty department 'Global NRI Desk'."
+    },
+    {
+      "id": "log-1793341095670-11yf3",
+      "timestamp": "2026-10-30T06:18:15.670Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Record Deleted",
+      "entityType": "Candidate",
+      "entityId": "cand-1793341009119-jaq0",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Deleted record for Zoya Al-Mansoor (WCR-026 (Pending))."
+    },
+    {
+      "id": "log-1793341009192-1h5n8",
+      "timestamp": "2026-10-30T06:16:49.192Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Document QR Generated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-1793341009119-jaq0",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Generated candidate-specific 24-hour Document QR (6 missing required doc(s) detected; expires 10/31/2026, 6:16:49 AM)."
+    },
+    {
+      "id": "log-1793341009142-38ilq",
+      "timestamp": "2026-10-30T06:16:49.142Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Renamed",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-0fc7",
+      "entityName": "Global NRI Desk",
+      "details": "Renamed department from 'UAE Luxury Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+    },
+    {
+      "id": "log-1793341009123-q5l4r",
+      "timestamp": "2026-10-30T06:16:49.124Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793341009119-jaq0",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Created candidate profile (WCR-026 (Pending)) in UAE Luxury Advisory / Dubai Marina. Seat: None."
+    },
+    {
+      "id": "log-1793341009107-5s6j7",
+      "timestamp": "2026-10-30T06:16:49.107Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Sub-Department Created",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-0fc7",
+      "entityName": "UAE Luxury Advisory / Dubai Marina",
+      "details": "Added sub-department 'Dubai Marina' under 'UAE Luxury Advisory'."
+    },
+    {
+      "id": "log-1793341009094-9682s",
+      "timestamp": "2026-10-30T06:16:49.094Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Created",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-0fc7",
+      "entityName": "UAE Luxury Advisory",
+      "details": "Created department 'UAE Luxury Advisory' with 2 sub-department(s)."
+    },
+    {
+      "id": "log-1793341008808-bv1cc",
+      "timestamp": "2026-10-30T06:16:48.808Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Deleted",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-9ma1",
+      "entityName": "Global NRI Desk",
+      "details": "Deleted empty department 'Global NRI Desk'."
+    },
+    {
+      "id": "log-1793341008792-1bofz",
+      "timestamp": "2026-10-30T06:16:48.792Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Record Deleted",
+      "entityType": "Candidate",
+      "entityId": "cand-1793340967159-djps",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Deleted record for Zoya Al-Mansoor (WCR-026 (Pending))."
+    },
+    {
+      "id": "log-1793340967223-zu8q9",
+      "timestamp": "2026-10-30T06:16:07.223Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Document QR Generated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-1793340967159-djps",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Generated candidate-specific 24-hour Document QR (6 missing required doc(s) detected; expires 10/31/2026, 6:16:07 AM)."
+    },
+    {
+      "id": "log-1793340967173-gr5tt",
+      "timestamp": "2026-10-30T06:16:07.173Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Renamed",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-9ma1",
+      "entityName": "Global NRI Desk",
+      "details": "Renamed department from 'UAE Luxury Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+    },
+    {
+      "id": "log-1793340967162-txp4n",
+      "timestamp": "2026-10-30T06:16:07.162Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793340967159-djps",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Created candidate profile (WCR-026 (Pending)) in UAE Luxury Advisory / Dubai Marina. Seat: None."
+    },
+    {
+      "id": "log-1793340967152-3unua",
+      "timestamp": "2026-10-30T06:16:07.152Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Sub-Department Created",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-9ma1",
+      "entityName": "UAE Luxury Advisory / Dubai Marina",
+      "details": "Added sub-department 'Dubai Marina' under 'UAE Luxury Advisory'."
+    },
+    {
+      "id": "log-1793340967143-zhznb",
+      "timestamp": "2026-10-30T06:16:07.143Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Created",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-9ma1",
+      "entityName": "UAE Luxury Advisory",
+      "details": "Created department 'UAE Luxury Advisory' with 2 sub-department(s)."
+    },
+    {
+      "id": "log-1793340966870-9mmt2",
+      "timestamp": "2026-10-30T06:16:06.870Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Deleted",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-vxc2",
+      "entityName": "Global NRI Desk",
+      "details": "Deleted empty department 'Global NRI Desk'."
+    },
+    {
+      "id": "log-1793340966857-rfmfr",
+      "timestamp": "2026-10-30T06:16:06.857Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Record Deleted",
+      "entityType": "Candidate",
+      "entityId": "cand-1793340903710-mbvk",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Deleted record for Zoya Al-Mansoor (WCR-026 (Pending))."
+    },
+    {
+      "id": "log-1793340903727-cff7z",
+      "timestamp": "2026-10-30T06:15:03.727Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Renamed",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-vxc2",
+      "entityName": "Global NRI Desk",
+      "details": "Renamed department from 'UAE Luxury Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+    },
+    {
+      "id": "log-1793340903715-1chq5",
+      "timestamp": "2026-10-30T06:15:03.715Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793340903710-mbvk",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Created candidate profile (WCR-026 (Pending)) in UAE Luxury Advisory / Dubai Marina. Seat: None."
+    },
+    {
+      "id": "log-1793340903702-st0et",
+      "timestamp": "2026-10-30T06:15:03.702Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Sub-Department Created",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-vxc2",
+      "entityName": "UAE Luxury Advisory / Dubai Marina",
+      "details": "Added sub-department 'Dubai Marina' under 'UAE Luxury Advisory'."
+    },
+    {
+      "id": "log-1793340903692-75bb7",
+      "timestamp": "2026-10-30T06:15:03.692Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Created",
+      "entityType": "Department",
+      "entityId": "dept-uae-luxury-advisory-vxc2",
+      "entityName": "UAE Luxury Advisory",
+      "details": "Created department 'UAE Luxury Advisory' with 2 sub-department(s)."
+    },
+    {
+      "id": "log-1793340903411-443kz",
+      "timestamp": "2026-10-30T06:15:03.411Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Department Deleted",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-i8n7",
+      "entityName": "Global NRI Desk",
+      "details": "Deleted empty department 'Global NRI Desk'."
+    },
+    {
+      "id": "log-1793340903392-qz0dw",
+      "timestamp": "2026-10-30T06:15:03.392Z",
+      "actor": "Neha Kapoor",
+      "actorRole": "HR",
+      "action": "Record Deleted",
+      "entityType": "Candidate",
+      "entityId": "cand-1793340779476-2wcy",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Deleted record for Zoya Al-Mansoor (WCR-026 (Pending))."
+    },
+    {
+      "id": "log-1793340779606-tigpl",
+      "timestamp": "2026-10-30T06:12:59.606Z",
+      "actor": "Zoya Al-Mansoor (QR Upload)",
+      "actorRole": "HR",
+      "action": "Document Uploaded via 24h QR",
+      "entityType": "DocumentQR",
+      "entityId": "cand-1793340779476-2wcy-passport",
+      "entityName": "Zoya Al-Mansoor - Passport Copy (First & Last Page)",
+      "details": "Uploaded 'Zoya_ID.png' (1.0 KB, image/png) via candidate-specific QR. Status automatically updated: Missing -> Uploaded."
+    },
+    {
+      "id": "log-1793340779598-nzbv7",
+      "timestamp": "2026-10-30T06:12:59.598Z",
+      "actor": "Zoya Al-Mansoor (QR Upload)",
+      "actorRole": "HR",
+      "action": "Document Uploaded via 24h QR",
+      "entityType": "DocumentQR",
+      "entityId": "cand-1793340779476-2wcy-pan_card",
+      "entityName": "Zoya Al-Mansoor - PAN Card",
+      "details": "Uploaded 'Zoya_Photo.jpg' (1.0 KB, image/jpeg) via candidate-specific QR. Status automatically updated: Missing -> Uploaded."
+    },
+    {
+      "id": "log-1793340779589-3oiyv",
+      "timestamp": "2026-10-30T06:12:59.589Z",
+      "actor": "Zoya Al-Mansoor (QR Upload)",
+      "actorRole": "HR",
+      "action": "Document Uploaded via 24h QR",
+      "entityType": "DocumentQR",
+      "entityId": "cand-1793340779476-2wcy-aadhaar_card",
+      "entityName": "Zoya Al-Mansoor - Aadhaar Card / National ID",
+      "details": "Uploaded 'Zoya_Passport.pdf' (2.0 KB, application/pdf) via candidate-specific QR. Status automatically updated: Missing -> Uploaded."
+    },
+    {
+      "id": "log-1793340779522-177b5",
+      "timestamp": "2026-10-30T06:12:59.522Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Document QR Generated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-1793340779476-2wcy",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Generated candidate-specific 24-hour Document QR (8 missing required doc(s) detected; expires 10/31/2026, 6:12:59 AM)."
+    },
+    {
+      "id": "log-1793340779485-w75x7",
+      "timestamp": "2026-10-30T06:12:59.485Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Department Renamed",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-i8n7",
+      "entityName": "Global NRI Desk",
+      "details": "Renamed department from 'Global NRI Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+    },
+    {
+      "id": "log-1793340779479-xhke0",
+      "timestamp": "2026-10-30T06:12:59.479Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793340779476-2wcy",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Created candidate profile (WCR-026 (Pending)) in Global NRI Advisory / GCC Investors. Seat: None."
+    },
+    {
+      "id": "log-1793340779471-0m0d0",
+      "timestamp": "2026-10-30T06:12:59.471Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Department Renamed",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-i8n7",
+      "entityName": "Global NRI Advisory",
+      "details": "Renamed department from 'NRI Advisory Desk' to 'Global NRI Advisory' (0 profile(s) synchronized)."
+    },
+    {
+      "id": "log-1793340779462-rn734",
+      "timestamp": "2026-10-30T06:12:59.462Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Sub-Department Created",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-i8n7",
+      "entityName": "NRI Advisory Desk / UK & Europe Desk",
+      "details": "Added sub-department 'UK & Europe Desk' under 'NRI Advisory Desk'."
+    },
+    {
+      "id": "log-1793340779454-8xpxp",
+      "timestamp": "2026-10-30T06:12:59.454Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Department Created",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-i8n7",
+      "entityName": "NRI Advisory Desk",
+      "details": "Created department 'NRI Advisory Desk' with 1 sub-department(s)."
+    },
+    {
+      "id": "log-1793340779173-10g76",
+      "timestamp": "2026-10-30T06:12:59.173Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Department Deleted",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-u6yg",
+      "entityName": "Global NRI Desk",
+      "details": "Deleted empty department 'Global NRI Desk'."
+    },
+    {
+      "id": "log-1793340779158-kce5g",
+      "timestamp": "2026-10-30T06:12:59.158Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Record Deleted",
+      "entityType": "Candidate",
+      "entityId": "cand-1793340716588-oshr",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Deleted record for Zoya Al-Mansoor (WCR-026 (Pending))."
+    },
+    {
+      "id": "log-1793340716736-3qum3",
+      "timestamp": "2026-10-30T06:11:56.736Z",
+      "actor": "Zoya Al-Mansoor (QR Upload)",
+      "actorRole": "HR",
+      "action": "Document Uploaded via 24h QR",
+      "entityType": "DocumentQR",
+      "entityId": "cand-1793340716588-oshr-aadhaar_card",
+      "entityName": "Zoya Al-Mansoor - Aadhaar Card / National ID",
+      "details": "Uploaded 'Zoya_Passport.pdf' (2.0 KB, application/pdf) via candidate-specific QR. Status automatically updated: Missing -> Uploaded."
+    },
+    {
+      "id": "log-1793340716644-3srma",
+      "timestamp": "2026-10-30T06:11:56.645Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Document QR Generated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-1793340716588-oshr",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Generated candidate-specific 24-hour Document QR (8 missing required doc(s) detected; expires 10/31/2026, 6:11:56 AM)."
+    },
+    {
+      "id": "log-1793340716600-i0w15",
+      "timestamp": "2026-10-30T06:11:56.600Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Department Renamed",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-u6yg",
+      "entityName": "Global NRI Desk",
+      "details": "Renamed department from 'Global NRI Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+    },
+    {
+      "id": "log-1793340716592-htbn7",
+      "timestamp": "2026-10-30T06:11:56.592Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793340716588-oshr",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Created candidate profile (WCR-026 (Pending)) in Global NRI Advisory / GCC Investors. Seat: None."
+    },
+    {
+      "id": "log-1793340716580-3rmr9",
+      "timestamp": "2026-10-30T06:11:56.581Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Department Renamed",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-u6yg",
+      "entityName": "Global NRI Advisory",
+      "details": "Renamed department from 'NRI Advisory Desk' to 'Global NRI Advisory' (0 profile(s) synchronized)."
+    },
+    {
+      "id": "log-1793340716570-gc5by",
+      "timestamp": "2026-10-30T06:11:56.570Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Sub-Department Created",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-u6yg",
+      "entityName": "NRI Advisory Desk / UK & Europe Desk",
+      "details": "Added sub-department 'UK & Europe Desk' under 'NRI Advisory Desk'."
+    },
+    {
+      "id": "log-1793340716560-ujy6a",
+      "timestamp": "2026-10-30T06:11:56.560Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Department Created",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-u6yg",
+      "entityName": "NRI Advisory Desk",
+      "details": "Created department 'NRI Advisory Desk' with 1 sub-department(s)."
+    },
+    {
+      "id": "log-1793340716273-2baei",
+      "timestamp": "2026-10-30T06:11:56.273Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Department Deleted",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-o1qy",
+      "entityName": "Global NRI Desk",
+      "details": "Deleted empty department 'Global NRI Desk'."
+    },
+    {
+      "id": "log-1793340716258-bhru4",
+      "timestamp": "2026-10-30T06:11:56.258Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Record Deleted",
+      "entityType": "Candidate",
+      "entityId": "cand-1793340654060-8q0r",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Deleted record for Zoya Al-Mansoor (WCR-026 (Pending))."
+    },
+    {
+      "id": "log-1793340654150-niaou",
+      "timestamp": "2026-10-30T06:10:54.150Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Document QR Generated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-1793340654060-8q0r",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Generated candidate-specific 24-hour Document QR (8 missing required doc(s) detected; expires 10/31/2026, 6:10:54 AM)."
+    },
+    {
+      "id": "log-1793340654075-g7c4y",
+      "timestamp": "2026-10-30T06:10:54.075Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Department Renamed",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-o1qy",
+      "entityName": "Global NRI Desk",
+      "details": "Renamed department from 'Global NRI Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+    },
+    {
+      "id": "log-1793340654065-6bo7d",
+      "timestamp": "2026-10-30T06:10:54.065Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Candidate Created",
+      "entityType": "Candidate",
+      "entityId": "cand-1793340654060-8q0r",
+      "entityName": "Zoya Al-Mansoor",
+      "details": "Created candidate profile (WCR-026 (Pending)) in Global NRI Advisory / GCC Investors. Seat: None."
+    },
+    {
+      "id": "log-1793340654053-smh27",
+      "timestamp": "2026-10-30T06:10:54.053Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Department Renamed",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-o1qy",
+      "entityName": "Global NRI Advisory",
+      "details": "Renamed department from 'NRI Advisory Desk' to 'Global NRI Advisory' (0 profile(s) synchronized)."
+    },
+    {
+      "id": "log-1793340654040-hczvk",
+      "timestamp": "2026-10-30T06:10:54.041Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Sub-Department Created",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-o1qy",
+      "entityName": "NRI Advisory Desk / UK & Europe Desk",
+      "details": "Added sub-department 'UK & Europe Desk' under 'NRI Advisory Desk'."
+    },
+    {
+      "id": "log-1793340654030-jvtzp",
+      "timestamp": "2026-10-30T06:10:54.030Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Department Created",
+      "entityType": "Department",
+      "entityId": "dept-nri-advisory-desk-o1qy",
+      "entityName": "NRI Advisory Desk",
+      "details": "Created department 'NRI Advisory Desk' with 1 sub-department(s)."
+    },
+    {
       "id": "log-1793278295580-ef81x",
       "timestamp": "2026-10-29T12:51:35.580Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Deleted Role Salary Structure",
       "entityType": "SalaryStructure",
       "entityId": "struct-test-avp",
@@ -3883,7 +4822,7 @@
       "id": "log-1793278295570-6ujul",
       "timestamp": "2026-10-29T12:51:35.570Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Record Deleted",
       "entityType": "Candidate",
       "entityId": "cand-1793278295422-vnu3",
@@ -3894,7 +4833,7 @@
       "id": "log-1793278295441-mvn68",
       "timestamp": "2026-10-29T12:51:35.441Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-1793278295422-vnu3",
@@ -3905,7 +4844,7 @@
       "id": "log-1793278295429-66e49",
       "timestamp": "2026-10-29T12:51:35.429Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-1793278295422-vnu3",
@@ -3916,7 +4855,7 @@
       "id": "log-1793278295424-89kcw",
       "timestamp": "2026-10-29T12:51:35.424Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Candidate Created",
       "entityType": "Candidate",
       "entityId": "cand-1793278295422-vnu3",
@@ -3927,7 +4866,7 @@
       "id": "log-1793278295216-h0qv9",
       "timestamp": "2026-10-29T12:51:35.216Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Created Role Salary Structure",
       "entityType": "SalaryStructure",
       "entityId": "struct-test-avp",
@@ -3938,7 +4877,7 @@
       "id": "log-1793278098808-6yq6q",
       "timestamp": "2026-10-29T12:48:18.808Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Deleted Role Salary Structure",
       "entityType": "SalaryStructure",
       "entityId": "struct-test-avp",
@@ -3949,7 +4888,7 @@
       "id": "log-1793278098804-73lal",
       "timestamp": "2026-10-29T12:48:18.804Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Record Deleted",
       "entityType": "Candidate",
       "entityId": "cand-1793278098651-2tuq",
@@ -3960,7 +4899,7 @@
       "id": "log-1793278098670-z2pfh",
       "timestamp": "2026-10-29T12:48:18.670Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-1793278098651-2tuq",
@@ -3971,7 +4910,7 @@
       "id": "log-1793278098658-rrq39",
       "timestamp": "2026-10-29T12:48:18.658Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-1793278098651-2tuq",
@@ -3982,7 +4921,7 @@
       "id": "log-1793278098653-vrpxi",
       "timestamp": "2026-10-29T12:48:18.653Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Candidate Created",
       "entityType": "Candidate",
       "entityId": "cand-1793278098651-2tuq",
@@ -3993,7 +4932,7 @@
       "id": "log-1793278098389-4xu9l",
       "timestamp": "2026-10-29T12:48:18.389Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Created Role Salary Structure",
       "entityType": "SalaryStructure",
       "entityId": "struct-test-avp",
@@ -4004,7 +4943,7 @@
       "id": "log-1793278031935-g4g5e",
       "timestamp": "2026-10-29T12:47:11.935Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Deleted Role Salary Structure",
       "entityType": "SalaryStructure",
       "entityId": "struct-test-avp",
@@ -4015,7 +4954,7 @@
       "id": "log-1793278031931-oxzdv",
       "timestamp": "2026-10-29T12:47:11.931Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Record Deleted",
       "entityType": "Candidate",
       "entityId": "cand-1793278031880-d3lq",
@@ -4026,7 +4965,7 @@
       "id": "log-1793278031914-gq401",
       "timestamp": "2026-10-29T12:47:11.914Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-1793278031880-d3lq",
@@ -4037,7 +4976,7 @@
       "id": "log-1793278031890-f802c",
       "timestamp": "2026-10-29T12:47:11.890Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-1793278031880-d3lq",
@@ -4048,7 +4987,7 @@
       "id": "log-1793278031883-7y5gg",
       "timestamp": "2026-10-29T12:47:11.883Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Candidate Created",
       "entityType": "Candidate",
       "entityId": "cand-1793278031880-d3lq",
@@ -4059,7 +4998,7 @@
       "id": "log-1793278031759-lxy8j",
       "timestamp": "2026-10-29T12:47:11.759Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Created Role Salary Structure",
       "entityType": "SalaryStructure",
       "entityId": "struct-test-avp",
@@ -4070,7 +5009,7 @@
       "id": "log-1793277990690-d1i7q",
       "timestamp": "2026-10-29T12:46:30.690Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Deleted Role Salary Structure",
       "entityType": "SalaryStructure",
       "entityId": "struct-test-avp",
@@ -4081,7 +5020,7 @@
       "id": "log-1793277990686-ztfca",
       "timestamp": "2026-10-29T12:46:30.687Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Record Deleted",
       "entityType": "Candidate",
       "entityId": "cand-1793277990650-pvt8",
@@ -4092,7 +5031,7 @@
       "id": "log-1793277990666-ke5re",
       "timestamp": "2026-10-29T12:46:30.666Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-1793277990650-pvt8",
@@ -4103,7 +5042,7 @@
       "id": "log-1793277990656-ipidb",
       "timestamp": "2026-10-29T12:46:30.656Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-1793277990650-pvt8",
@@ -4114,7 +5053,7 @@
       "id": "log-1793277990652-r2pbw",
       "timestamp": "2026-10-29T12:46:30.652Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Candidate Created",
       "entityType": "Candidate",
       "entityId": "cand-1793277990650-pvt8",
@@ -4125,7 +5064,7 @@
       "id": "log-1793277990534-5clhv",
       "timestamp": "2026-10-29T12:46:30.534Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Created Role Salary Structure",
       "entityType": "SalaryStructure",
       "entityId": "struct-test-avp",
@@ -4136,7 +5075,7 @@
       "id": "log-1793277945596-z7hvd",
       "timestamp": "2026-10-29T12:45:45.596Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Deleted Role Salary Structure",
       "entityType": "SalaryStructure",
       "entityId": "struct-test-avp",
@@ -4147,7 +5086,7 @@
       "id": "log-1793277945591-djwuv",
       "timestamp": "2026-10-29T12:45:45.591Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Record Deleted",
       "entityType": "Candidate",
       "entityId": "cand-1793277945569-qs0h",
@@ -4158,7 +5097,7 @@
       "id": "log-1793277945577-oface",
       "timestamp": "2026-10-29T12:45:45.577Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Saved: Ref WCR/HR/OL/2026/WCR-026 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-1793277945569-qs0h",
@@ -4169,7 +5108,7 @@
       "id": "log-1793277945572-xm3rn",
       "timestamp": "2026-10-29T12:45:45.572Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Candidate Created",
       "entityType": "Candidate",
       "entityId": "cand-1793277945569-qs0h",
@@ -4180,7 +5119,7 @@
       "id": "log-1793277945310-196vb",
       "timestamp": "2026-10-29T12:45:45.310Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Created Role Salary Structure",
       "entityType": "SalaryStructure",
       "entityId": "struct-test-avp",
@@ -4191,7 +5130,7 @@
       "id": "log-1793272305447-3dn04",
       "timestamp": "2026-10-29T11:11:45.447Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Official Offer Letter Dispatched to aanya.kapoor97@gmail.com",
       "entityType": "Lifecycle",
       "entityId": "cand-aanya-kapoor",
@@ -4202,7 +5141,7 @@
       "id": "log-1793272305429-dckey",
       "timestamp": "2026-10-29T11:11:45.429Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Offer Letter Approved by HR Leadership",
       "entityType": "Lifecycle",
       "entityId": "cand-aanya-kapoor",
@@ -4213,7 +5152,7 @@
       "id": "log-1793272298852-nb91f",
       "timestamp": "2026-10-29T11:11:38.852Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-023 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-aanya-kapoor",
@@ -4224,7 +5163,7 @@
       "id": "log-1793272244267-m89fj",
       "timestamp": "2026-10-29T11:10:44.267Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Official Offer Letter Dispatched to vikram.m.candidate@gmail.com",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4235,7 +5174,7 @@
       "id": "log-1793272238288-cq1xq",
       "timestamp": "2026-10-29T11:10:38.288Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Document Reminder Dispatched (BOTH)",
       "entityType": "Candidate",
       "entityId": "cand-vikram-malhotra",
@@ -4246,7 +5185,7 @@
       "id": "log-1793272238285-p6tek",
       "timestamp": "2026-10-29T11:10:38.285Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Upload Link Generated",
       "entityType": "Candidate",
       "entityId": "cand-vikram-malhotra",
@@ -4257,7 +5196,7 @@
       "id": "log-1793270289727-6yqsk",
       "timestamp": "2026-10-29T10:38:09.727Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Exit Clearance Signed: IT & Systems",
       "entityType": "ExitClearance",
       "entityId": "emp-chetan-dixit",
@@ -4268,7 +5207,7 @@
       "id": "log-1793270289715-5pdgs",
       "timestamp": "2026-10-29T10:38:09.715Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Exit Initiated: Voluntary Resignation",
       "entityType": "Lifecycle",
       "entityId": "emp-chetan-dixit",
@@ -4279,7 +5218,7 @@
       "id": "log-1793270289704-jqw4q",
       "timestamp": "2026-10-29T10:38:09.704Z",
       "actor": "Candidate Portal",
-      "actorRole": "HR_MANAGER",
+      "actorRole": "HR",
       "action": "Offer Formally Accepted by Vikram Malhotra",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4290,7 +5229,7 @@
       "id": "log-1793270289695-tjvtl",
       "timestamp": "2026-10-29T10:38:09.695Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Offer Letter Issued to Candidate",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4301,7 +5240,7 @@
       "id": "log-1793270289687-3ntgu",
       "timestamp": "2026-10-29T10:38:09.687Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Offer Letter Approved by HR Leadership",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4312,7 +5251,7 @@
       "id": "log-1793270289677-y6gk8",
       "timestamp": "2026-10-29T10:38:09.677Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4323,7 +5262,7 @@
       "id": "log-1793270289660-iknr1",
       "timestamp": "2026-10-29T10:38:09.660Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Interview Scheduled: Round 1: Technical & Market Knowledge",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4334,7 +5273,7 @@
       "id": "log-1793270280594-ubc8a",
       "timestamp": "2026-10-29T10:38:00.594Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Exit Initiated: Voluntary Resignation",
       "entityType": "Lifecycle",
       "entityId": "emp-chetan-dixit",
@@ -4345,7 +5284,7 @@
       "id": "log-1793270280583-lfzun",
       "timestamp": "2026-10-29T10:38:00.583Z",
       "actor": "Candidate Portal",
-      "actorRole": "HR_MANAGER",
+      "actorRole": "HR",
       "action": "Offer Formally Accepted by Vikram Malhotra",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4356,7 +5295,7 @@
       "id": "log-1793270280573-8dwgh",
       "timestamp": "2026-10-29T10:38:00.573Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Offer Letter Issued to Candidate",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4367,7 +5306,7 @@
       "id": "log-1793270280566-t12kc",
       "timestamp": "2026-10-29T10:38:00.566Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Offer Letter Approved by HR Leadership",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4378,7 +5317,7 @@
       "id": "log-1793270280558-libwz",
       "timestamp": "2026-10-29T10:38:00.558Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4389,7 +5328,7 @@
       "id": "log-1793270280550-0mcmn",
       "timestamp": "2026-10-29T10:38:00.550Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Interview Scheduled: Round 1: Technical & Market Knowledge",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4400,7 +5339,7 @@
       "id": "log-1793270249975-uqcaj",
       "timestamp": "2026-10-29T10:37:29.975Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Exit Initiated: Voluntary Resignation",
       "entityType": "Lifecycle",
       "entityId": "emp-chetan-dixit",
@@ -4411,7 +5350,7 @@
       "id": "log-1793270249966-3dcx2",
       "timestamp": "2026-10-29T10:37:29.966Z",
       "actor": "Candidate Portal",
-      "actorRole": "HR_MANAGER",
+      "actorRole": "HR",
       "action": "Offer Formally Accepted by Vikram Malhotra",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4422,7 +5361,7 @@
       "id": "log-1793270249955-shwzq",
       "timestamp": "2026-10-29T10:37:29.955Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Offer Letter Issued to Candidate",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4433,7 +5372,7 @@
       "id": "log-1793270249948-s4qp2",
       "timestamp": "2026-10-29T10:37:29.948Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Offer Letter Approved by HR Leadership",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4444,7 +5383,7 @@
       "id": "log-1793270249940-134ld",
       "timestamp": "2026-10-29T10:37:29.940Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4455,7 +5394,7 @@
       "id": "log-1793270249932-4pi6n",
       "timestamp": "2026-10-29T10:37:29.932Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Interview Scheduled: Round 1: Technical & Market Knowledge",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4466,7 +5405,7 @@
       "id": "log-1793270235540-g8h0y",
       "timestamp": "2026-10-29T10:37:15.540Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Executive Offer Letter Prepared: Ref WCR/HR/OL/2026/WCR-022 (Pending)",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4477,7 +5416,7 @@
       "id": "log-1793270235523-up2o9",
       "timestamp": "2026-10-29T10:37:15.523Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Interview Scheduled: Round 1: Technical & Market Knowledge",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4488,7 +5427,7 @@
       "id": "log-1793270223663-tc7iw",
       "timestamp": "2026-10-29T10:37:03.663Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Interview Scheduled: Round 1: Technical & Market Knowledge",
       "entityType": "Lifecycle",
       "entityId": "cand-vikram-malhotra",
@@ -4499,7 +5438,7 @@
       "id": "log-1793268367759-dphnm",
       "timestamp": "2026-10-29T10:06:07.759Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Upload Link Revoked",
       "entityType": "Candidate",
       "entityId": "cand-aanya-kapoor",
@@ -4510,7 +5449,7 @@
       "id": "log-1793268367749-doisy",
       "timestamp": "2026-10-29T10:06:07.749Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Upload Link Generated",
       "entityType": "Candidate",
       "entityId": "cand-aanya-kapoor",
@@ -4521,7 +5460,7 @@
       "id": "log-1793268367728-6kgdp",
       "timestamp": "2026-10-29T10:06:07.728Z",
       "actor": "Candidate Portal",
-      "actorRole": "HR_MANAGER",
+      "actorRole": "HR",
       "action": "Candidate Documents Uploaded via Secure Link",
       "entityType": "Candidate",
       "entityId": "cand-aanya-kapoor",
@@ -4532,7 +5471,7 @@
       "id": "log-1793268367703-4hv49",
       "timestamp": "2026-10-29T10:06:07.703Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Upload Link Generated",
       "entityType": "Candidate",
       "entityId": "cand-aanya-kapoor",
@@ -4543,7 +5482,7 @@
       "id": "log-1793268334693-m4of8",
       "timestamp": "2026-10-29T10:05:34.693Z",
       "actor": "Candidate Portal",
-      "actorRole": "HR_MANAGER",
+      "actorRole": "HR",
       "action": "Candidate Documents Uploaded via One-Time Link",
       "entityType": "Candidate",
       "entityId": "cand-aanya-kapoor",
@@ -4554,7 +5493,7 @@
       "id": "log-1793268334664-nc5h2",
       "timestamp": "2026-10-29T10:05:34.664Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "One-Time Upload Link Generated",
       "entityType": "Candidate",
       "entityId": "cand-aanya-kapoor",
@@ -4565,7 +5504,7 @@
       "id": "log-1793268280846-3cnee",
       "timestamp": "2026-10-29T10:04:40.846Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "One-Time Upload Link Generated",
       "entityType": "Candidate",
       "entityId": "cand-aanya-kapoor",
@@ -4576,7 +5515,7 @@
       "id": "log-1793268265313-qapx7",
       "timestamp": "2026-10-29T10:04:25.313Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "One-Time Upload Link Revoked",
       "entityType": "Candidate",
       "entityId": "cand-aanya-kapoor",
@@ -4587,7 +5526,7 @@
       "id": "log-1793268265306-dixv6",
       "timestamp": "2026-10-29T10:04:25.306Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "One-Time Upload Link Generated",
       "entityType": "Candidate",
       "entityId": "cand-aanya-kapoor",
@@ -4598,7 +5537,7 @@
       "id": "log-1793268265271-fpkyk",
       "timestamp": "2026-10-29T10:04:25.271Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "One-Time Upload Link Generated",
       "entityType": "Candidate",
       "entityId": "cand-aanya-kapoor",
@@ -4609,7 +5548,7 @@
       "id": "log-1793268216483-glgwe",
       "timestamp": "2026-10-29T10:03:36.484Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Desk Released",
       "entityType": "Desk",
       "entityId": "F1",
@@ -4620,7 +5559,7 @@
       "id": "log-1793267656883-otmc1",
       "timestamp": "2026-10-29T09:54:16.883Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Profile Updated",
       "entityType": "Employee",
       "entityId": "emp-himanshu",
@@ -4631,7 +5570,7 @@
       "id": "log-1793262946589-fikiq",
       "timestamp": "2026-10-29T08:35:46.589Z",
       "actor": "Candidate Portal",
-      "actorRole": "HR_MANAGER",
+      "actorRole": "HR",
       "action": "Candidate Documents Uploaded via One-Time Link",
       "entityType": "Candidate",
       "entityId": "cand-vikram-malhotra",
@@ -4642,7 +5581,7 @@
       "id": "log-1793262931123-jigvu",
       "timestamp": "2026-10-29T08:35:31.123Z",
       "actor": "Simran Kaur (HR Head)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "One-Time Upload Link Generated",
       "entityType": "Candidate",
       "entityId": "cand-vikram-malhotra",
@@ -4653,7 +5592,7 @@
       "id": "log-001",
       "timestamp": "2026-10-28T16:00:00Z",
       "actor": "Nisha (HR)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Spreadsheet Synchronized",
       "entityType": "Import",
       "entityId": "import-seed",
@@ -4664,7 +5603,7 @@
       "id": "log-002",
       "timestamp": "2026-10-27T14:30:00Z",
       "actor": "Sameer (Admin)",
-      "actorRole": "HR_MANAGER",
+      "actorRole": "HR",
       "action": "Desk Allocation Verified",
       "entityType": "Desk",
       "entityId": "C2",
@@ -4675,7 +5614,7 @@
       "id": "log-003",
       "timestamp": "2026-10-26T11:20:00Z",
       "actor": "Nisha (HR)",
-      "actorRole": "HR_ADMIN",
+      "actorRole": "HR",
       "action": "Document Verification",
       "entityType": "Document",
       "entityId": "emp-chetan-dixit",
@@ -4686,7 +5625,7 @@
       "id": "log-004",
       "timestamp": "2026-10-25T10:00:00Z",
       "actor": "Sameer (Admin)",
-      "actorRole": "HR_MANAGER",
+      "actorRole": "HR",
       "action": "Asset Issued",
       "entityType": "Asset",
       "entityId": "ast-001",
@@ -4696,7 +5635,7 @@
   ],
   "acknowledgedAlerts": {},
   "version": 3,
-  "lastUpdated": "2026-10-29T12:51:35.602Z",
+  "lastUpdated": "2026-10-30T06:18:16.029Z",
   "salaryStructures": [
     {
       "id": "role-bde",
@@ -5423,6 +6362,383 @@
           "enabled": false
         }
       ]
+    }
+  ],
+  "assetReturnReminders": [],
+  "notificationDeliveryLogs": [],
+  "qrDocumentTokens": [
+    {
+      "id": "qrt-1793341096004-68c07b",
+      "token": "0220912994f6b0b8643d6cfae3fc3ba3f76e31077725cba05094a77a63bfa289",
+      "tokenHash": "43a1adf1262a84ffa6ca7e975a232235454c66adc7cb00f5f96716714a90525d",
+      "employeeId": "cand-1793341095977-37ex",
+      "createdAt": "2026-10-30T06:18:16.004Z",
+      "expiresAt": "2026-10-31T06:18:16.004Z",
+      "createdBy": "Neha Kapoor",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "aadhaar_card",
+        "pan_card",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 1,
+      "lastOpenedAt": "2026-10-30T06:18:16.028Z"
+    },
+    {
+      "id": "qrt-1793341009166-183b92",
+      "token": "5d85c5fe2ddf7f6301d474713c17e6e8750dd0219e5c3e788afd88fa29215dea",
+      "tokenHash": "c0cb2b1821c8afea9db267b9bc4a4d44a4e579042fb2c0f0f30d7910d2326aa0",
+      "employeeId": "cand-1793341009119-jaq0",
+      "createdAt": "2026-10-30T06:16:49.166Z",
+      "expiresAt": "2026-10-31T06:16:49.166Z",
+      "createdBy": "Neha Kapoor",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "aadhaar_card",
+        "pan_card",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 1,
+      "lastOpenedAt": "2026-10-30T06:16:49.208Z",
+      "revokedAt": "2026-10-30T06:18:15.667Z",
+      "revokedBy": "Neha Kapoor",
+      "revokeReason": "Profile deleted"
+    },
+    {
+      "id": "qrt-1793340967186-e5f0b5",
+      "token": "065bd7c1b8958dd2dda55becc844f443601401a20bddd1be53e048789add2318",
+      "tokenHash": "c39ea1de9db6237339435fbef0e48d37b774879fabf4d875f7d770807d07c390",
+      "employeeId": "cand-1793340967159-djps",
+      "createdAt": "2026-10-30T06:16:07.186Z",
+      "expiresAt": "2026-10-31T06:16:07.186Z",
+      "createdBy": "Neha Kapoor",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "aadhaar_card",
+        "pan_card",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 0,
+      "revokedAt": "2026-10-30T06:16:48.790Z",
+      "revokedBy": "Neha Kapoor",
+      "revokeReason": "Profile deleted"
+    },
+    {
+      "id": "qrt-1793340779496-5128b9",
+      "token": "355c04a662128bba5a13bef0f66fb69cb1930daa7ed8445659a075759b7d6825",
+      "tokenHash": "7184c7eadac56e85b463f93049b809b7ed033b49bc215255a716f6e2dd6b771e",
+      "employeeId": "cand-1793340779476-2wcy",
+      "createdAt": "2026-10-30T06:12:59.496Z",
+      "expiresAt": "2026-10-31T06:12:59.496Z",
+      "createdBy": "Nisha (HR)",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "aadhaar_card",
+        "pan_card",
+        "passport",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph",
+        "dubai_visa_eid"
+      ],
+      "uploadedDocKeys": [
+        "aadhaar_card",
+        "pan_card",
+        "passport"
+      ],
+      "openCount": 1,
+      "lastOpenedAt": "2026-10-30T06:12:59.528Z",
+      "revokedAt": "2026-10-30T06:15:03.389Z",
+      "revokedBy": "Neha Kapoor",
+      "revokeReason": "Profile deleted"
+    },
+    {
+      "id": "qrt-1793340716616-5bf73f",
+      "token": "a06f3f8029dcd148c442c0c1b20f8fdadce42998a394e06c57646f8a7ce53c0b",
+      "tokenHash": "4ea3fe0c1fb370309931245a4b5914fc1d8f89bbefaf04e223f50dcb97cc54b5",
+      "employeeId": "cand-1793340716588-oshr",
+      "createdAt": "2026-10-30T06:11:56.616Z",
+      "expiresAt": "2026-10-31T06:11:56.616Z",
+      "createdBy": "Nisha (HR)",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "aadhaar_card",
+        "pan_card",
+        "passport",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph",
+        "dubai_visa_eid"
+      ],
+      "uploadedDocKeys": [
+        "aadhaar_card"
+      ],
+      "openCount": 1,
+      "lastOpenedAt": "2026-10-30T06:11:56.650Z",
+      "revokedAt": "2026-10-30T06:12:59.156Z",
+      "revokedBy": "Nisha (HR)",
+      "revokeReason": "Profile deleted"
+    },
+    {
+      "id": "qrt-1793340654099-ef5afe",
+      "token": "0d655506d75791f0116ce4d9938e981a7f967c3ff1054fd988ec0d445f87ce26",
+      "tokenHash": "35905214778091f6344bd06df4faea4e075621d599ea7e3d03892ac01a11eca2",
+      "employeeId": "cand-1793340654060-8q0r",
+      "createdAt": "2026-10-30T06:10:54.099Z",
+      "expiresAt": "2026-10-31T06:10:54.099Z",
+      "createdBy": "Nisha (HR)",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "aadhaar_card",
+        "pan_card",
+        "passport",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph",
+        "dubai_visa_eid"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 0,
+      "revokedAt": "2026-10-30T06:11:56.256Z",
+      "revokedBy": "Nisha (HR)",
+      "revokeReason": "Profile deleted"
+    }
+  ],
+  "departments": [
+    {
+      "id": "dept-gurgaon-market",
+      "name": "Gurgaon Market",
+      "description": "Golf Course Road, DLF Camellias/Magnolias, and Gurgaon micro-market advisory teams.",
+      "marketFocus": "Gurgaon",
+      "subDepartments": [
+        {
+          "id": "sub-ggn-luxury",
+          "name": "Golf Course Road Luxury",
+          "description": "High-ticket luxury residential brokerage & leadership",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        },
+        {
+          "id": "sub-ggn-dlf",
+          "name": "DLF & Micro-Markets",
+          "description": "DLF Phase 1-5 & Golf Course Extension consultants",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        },
+        {
+          "id": "sub-ggn-trainee",
+          "name": "Trainee Desk",
+          "description": "Associate & trainee property advisors",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        }
+      ],
+      "createdAt": "2026-01-01T09:00:00Z",
+      "updatedAt": "2026-01-01T09:00:00Z"
+    },
+    {
+      "id": "dept-dubai-market",
+      "name": "Dubai Market",
+      "description": "Downtown Dubai, Palm Jumeirah, and cross-border international property advisory.",
+      "marketFocus": "Dubai",
+      "subDepartments": [
+        {
+          "id": "sub-dxb-downtown",
+          "name": "Downtown & Palm Jumeirah",
+          "description": "UAE primary & luxury residential consultants",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        },
+        {
+          "id": "sub-dxb-intl",
+          "name": "International Advisory Desk",
+          "description": "Cross-border HNI portfolio & relocation desk",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        }
+      ],
+      "createdAt": "2026-01-01T09:00:00Z",
+      "updatedAt": "2026-01-01T09:00:00Z"
+    },
+    {
+      "id": "dept-ai-intern",
+      "name": "AI Intern",
+      "description": "AI engineering, automated lead intelligence, and data analytics internship cohort.",
+      "marketFocus": "Gurgaon",
+      "subDepartments": [
+        {
+          "id": "sub-ai-ml",
+          "name": "AI & ML Engineering",
+          "description": "Lead scoring, recommendation engines, and AI automation",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        },
+        {
+          "id": "sub-ai-da",
+          "name": "Data Analytics & Insights",
+          "description": "Market intelligence & real estate analytics",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        }
+      ],
+      "createdAt": "2026-01-01T09:00:00Z",
+      "updatedAt": "2026-01-01T09:00:00Z"
+    },
+    {
+      "id": "dept-dm-intern",
+      "name": "DM Intern",
+      "description": "Digital marketing, social media campaigns, and content creation internship cohort.",
+      "marketFocus": "Gurgaon",
+      "subDepartments": [
+        {
+          "id": "sub-dm-social",
+          "name": "Social Media & Content",
+          "description": "Reels, organic social growth, and property showcases",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        },
+        {
+          "id": "sub-dm-perf",
+          "name": "Performance Campaigns",
+          "description": "Paid lead acquisition & ad operations",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        }
+      ],
+      "createdAt": "2026-01-01T09:00:00Z",
+      "updatedAt": "2026-01-01T09:00:00Z"
+    },
+    {
+      "id": "dept-marketing",
+      "name": "Marketing & Digital Media",
+      "description": "Full-time brand strategy, digital lead generation, and media leadership.",
+      "marketFocus": "Dual Market",
+      "subDepartments": [
+        {
+          "id": "sub-mkt-perf",
+          "name": "Performance & Brand Media",
+          "description": "Digital marketing leadership & campaign strategy",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        },
+        {
+          "id": "sub-mkt-studio",
+          "name": "Creative Studio",
+          "description": "Design, collateral, and video production",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        }
+      ],
+      "createdAt": "2026-01-01T09:00:00Z",
+      "updatedAt": "2026-01-01T09:00:00Z"
+    },
+    {
+      "id": "dept-hr",
+      "name": "Human Resources",
+      "description": "People operations, talent acquisition, onboarding compliance, and employee lifecycle.",
+      "marketFocus": "Dual Market",
+      "subDepartments": [
+        {
+          "id": "sub-hr-talent",
+          "name": "Talent & Onboarding",
+          "description": "Recruitment, offer letters, and document verification",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        },
+        {
+          "id": "sub-hr-ops",
+          "name": "HR Operations & Compliance",
+          "description": "Policies, payroll coordination, and exit clearances",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        }
+      ],
+      "createdAt": "2026-01-01T09:00:00Z",
+      "updatedAt": "2026-01-01T09:00:00Z"
+    },
+    {
+      "id": "dept-executive",
+      "name": "Executive Leadership",
+      "description": "Founders, CEO office, and corporate governance.",
+      "marketFocus": "Dual Market",
+      "subDepartments": [
+        {
+          "id": "sub-exec-csuite",
+          "name": "Founder & C-Suite",
+          "description": "Executive direction & strategic partnerships",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        }
+      ],
+      "createdAt": "2026-01-01T09:00:00Z",
+      "updatedAt": "2026-01-01T09:00:00Z"
+    },
+    {
+      "id": "dept-admin-ops",
+      "name": "Administration & Operations",
+      "description": "Workplace facilities, IT asset custody, desk management, and hospitality.",
+      "marketFocus": "Gurgaon",
+      "subDepartments": [
+        {
+          "id": "sub-adm-office",
+          "name": "Office Administration",
+          "description": "IT hardware, access badges, and workplace operations",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        },
+        {
+          "id": "sub-adm-pantry",
+          "name": "Facility & Pantry Support",
+          "description": "Hospitality & office upkeep",
+          "createdAt": "2026-01-01T09:00:00Z",
+          "updatedAt": "2026-01-01T09:00:00Z"
+        }
+      ],
+      "createdAt": "2026-01-01T09:00:00Z",
+      "updatedAt": "2026-01-01T09:00:00Z"
+    },
+    {
+      "id": "dept-uae-luxury-advisory-9atn",
+      "name": "Global NRI Desk",
+      "description": "Dubai off-plan portfolio desk",
+      "marketFocus": "Gurgaon",
+      "subDepartments": [
+        {
+          "id": "sub-downtown-dubai-8eh",
+          "name": "Downtown Dubai",
+          "createdAt": "2026-10-30T06:18:15.957Z",
+          "updatedAt": "2026-10-30T06:18:15.957Z"
+        },
+        {
+          "id": "sub-palm-jumeirah-o3i",
+          "name": "Palm Jumeirah",
+          "createdAt": "2026-10-30T06:18:15.957Z",
+          "updatedAt": "2026-10-30T06:18:15.957Z"
+        },
+        {
+          "id": "sub-dubai-marina-gnan",
+          "name": "Dubai Marina",
+          "createdAt": "2026-10-30T06:18:15.966Z",
+          "updatedAt": "2026-10-30T06:18:15.966Z"
+        }
+      ],
+      "createdAt": "2026-10-30T06:18:15.957Z",
+      "updatedAt": "2026-10-30T06:18:15.987Z"
     }
   ]
 }

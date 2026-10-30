@@ -6,7 +6,6 @@ import { OverviewView } from './components/OverviewView.js';
 import { EmployeesView } from './components/EmployeesView.js';
 import { CandidatesView } from './components/CandidatesView.js';
 import { DeskAllocationView } from './components/DeskAllocationView.js';
-import { AssetsView } from './components/AssetsView.js';
 import { SpreadsheetImportView } from './components/SpreadsheetImportView.js';
 import { AuditTrailView } from './components/AuditTrailView.js';
 import { ProfileModal } from './components/ProfileModal.js';
@@ -19,6 +18,9 @@ import { ExitManagementView } from './components/ExitManagementView.js';
 import { OfferLetterModal } from './components/OfferLetterModal.js';
 import { CandidateReminderModal } from './components/CandidateReminderModal.js';
 import { HRAlertsFloatingBanner } from './components/HRAlertsFloatingBanner.js';
+import { DepartmentsView } from './components/DepartmentsView.js';
+import { QrCodeModal } from './components/QrCodeModal.js';
+import { QrDocumentUploadPage } from './components/QrDocumentUploadPage.js';
 import {
   Employee,
   CompanyAsset,
@@ -31,25 +33,52 @@ import {
   UploadToken,
   OfferLetterData,
   InterviewRound,
+  DepartmentWithCounts,
+  LiveQrUploadEvent,
 } from './types/index.js';
 
+function detectPublicQrTokenFromLocation(): string | null {
+  if (typeof window === 'undefined') return null;
+  const pathMatch = window.location.pathname.match(/^\/qr-upload\/([a-fA-F0-9]{64})\/?$/);
+  if (pathMatch && pathMatch[1]) {
+    return pathMatch[1];
+  }
+  const searchParams = new URLSearchParams(window.location.search);
+  const queryQr = searchParams.get('qr');
+  if (queryQr && /^[a-fA-F0-9]{64}$/.test(queryQr.trim())) {
+    return queryQr.trim();
+  }
+  return null;
+}
+
 export default function App() {
+  // Public unauthenticated 24-Hour QR Document Upload route (does NOT require HR login)
+  const [publicQrToken] = useState<string | null>(() => detectPublicQrTokenFromLocation());
+
   const [currentTab, setCurrentTab] = useState<string>('overview');
-  const [userRole, setUserRole] = useState<UserRole>('HR_ADMIN');
-  const [userName, setUserName] = useState<string>('Simran Kaur (HR Head)');
+  const [userRole, setUserRole] = useState<UserRole>('HR');
+  const [userName, setUserName] = useState<string>('Nisha (HR)');
   const [sseConnected, setSseConnected] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Core data states
   const [stats, setStats] = useState<any>(null);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<DepartmentWithCounts[]>([]);
   const [desks, setDesks] = useState<DeskSlot[]>([]);
   const [assets, setAssets] = useState<CompanyAsset[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Candidate Self-Service Upload Portal Mode
-  const [candidatePortalToken, setCandidatePortalToken] = useState<string | null>(null);
+  // Live QR upload progress & dashboard feed
+  const [liveQrUploads, setLiveQrUploads] = useState<Record<string, LiveQrUploadEvent>>({});
+  const [liveQrFeed, setLiveQrFeed] = useState<LiveQrUploadEvent[]>([]);
+
+  // Candidate Self-Service Upload Portal Mode (legacy ?uploadToken=...)
+  const [candidatePortalToken, setCandidatePortalToken] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('uploadToken');
+  });
 
   // Reset database confirmation modal
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
@@ -63,23 +92,34 @@ export default function App() {
 
   // Modals
   const [selectedPerson, setSelectedPerson] = useState<Employee | null>(null);
+  const [qrModalPerson, setQrModalPerson] = useState<Employee | null>(null);
   const [offerModalCandidate, setOfferModalCandidate] = useState<Employee | null>(null);
+  const [offerPreviewSnapshot, setOfferPreviewSnapshot] = useState<OfferLetterData | null>(null);
   const [reminderCandidate, setReminderCandidate] = useState<Employee | null>(null);
   const [reminderInitialChannel, setReminderInitialChannel] = useState<'EMAIL' | 'WHATSAPP' | 'BOTH'>('BOTH');
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [addModalIsCandidate, setAddModalIsCandidate] = useState<boolean>(false);
+  const [addModalDefaultDept, setAddModalDefaultDept] = useState<string | undefined>(undefined);
+  const [addModalDefaultSubDept, setAddModalDefaultSubDept] = useState<string | undefined>(undefined);
   const [liveToast, setLiveToast] = useState<{ text: string; time: number } | null>(null);
 
   // Split into active employees and upcoming joiners (candidates)
   const activeEmployees = allEmployees.filter(e => !e.isCandidate);
   const candidates = allEmployees.filter(e => e.isCandidate);
 
-  // Calculate pending doc count
+  // Calculate pending doc count (Missing / Not Submitted / Uploaded awaiting HR verification)
   let pendingDocCount = 0;
   allEmployees.forEach(e => {
     if (e.documents) {
       Object.values(e.documents).forEach(d => {
-        if (d.required && (d.status === 'Not Submitted' || d.status === 'Under Review' || d.status === 'Rejected')) {
+        if (
+          d.status === 'Uploaded' ||
+          (d.required &&
+            (d.status === 'Missing' ||
+              d.status === 'Not Submitted' ||
+              d.status === 'Under Review' ||
+              d.status === 'Rejected'))
+        ) {
           pendingDocCount++;
         }
       });
@@ -90,15 +130,17 @@ export default function App() {
     setLiveToast({ text, time: Date.now() });
     setTimeout(() => {
       setLiveToast(prev => (prev?.text === text ? null : prev));
-    }, 4000);
+    }, 4500);
   };
 
   // Load all data
   const refreshAllData = useCallback(async () => {
+    if (publicQrToken || candidatePortalToken) return;
     try {
-      const [statsData, empData, desksData, assetsData, logsData] = await Promise.all([
+      const [statsData, empData, deptsData, desksData, assetsData, logsData] = await Promise.all([
         api.getStats(),
         api.getEmployees(),
+        api.getDepartments(),
         api.getDesks(),
         api.getAssets(),
         api.getAuditLogs(),
@@ -106,6 +148,7 @@ export default function App() {
 
       setStats(statsData);
       setAllEmployees(empData);
+      setDepartments(deptsData || []);
       setDesks(desksData.desks);
       setAssets(assetsData);
       setAuditLogs(logsData);
@@ -114,10 +157,11 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [publicQrToken, candidatePortalToken]);
 
   // Fetch upcoming alerts (Internship Completion & Birthdays within 2 days)
   const refreshAlerts = useCallback(async (refDate?: string) => {
+    if (publicQrToken || candidatePortalToken) return [];
     try {
       const res = await api.getAlerts({
         refDate: refDate || referenceDate,
@@ -130,18 +174,10 @@ export default function App() {
       console.error('Failed to load upcoming alerts:', err);
       return [];
     }
-  }, [referenceDate]);
+  }, [referenceDate, publicQrToken, candidatePortalToken]);
 
   useEffect(() => {
-    // Check URL query parameters for direct one-time candidate portal access
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('uploadToken');
-    if (token) {
-      setCandidatePortalToken(token);
-    }
-  }, []);
-
-  useEffect(() => {
+    if (publicQrToken || candidatePortalToken) return;
     refreshAllData();
     refreshAlerts('2026-10-29').then(initialAlerts => {
       // Automatically trigger on-screen popup notification if there are upcoming 2-day alerts
@@ -150,14 +186,16 @@ export default function App() {
         setHasAutoOpenedAlerts(true);
       }
     });
-  }, [refreshAllData, refreshAlerts, hasAutoOpenedAlerts]);
+  }, [refreshAllData, refreshAlerts, hasAutoOpenedAlerts, publicQrToken, candidatePortalToken]);
 
   useEffect(() => {
+    if (publicQrToken || candidatePortalToken) return;
     refreshAlerts(referenceDate);
-  }, [referenceDate, refreshAlerts]);
+  }, [referenceDate, refreshAlerts, publicQrToken, candidatePortalToken]);
 
   // Subscribe to real-time events via SSE
   useEffect(() => {
+    if (publicQrToken || candidatePortalToken) return;
     const unsubscribe = api.subscribeToEvents((type, data: any) => {
       setSseConnected(true);
 
@@ -167,16 +205,19 @@ export default function App() {
           break;
 
         case 'EMPLOYEE_CREATED':
-          setAllEmployees(prev => [...prev, data]);
-          showToast(`New ${data.isCandidate ? 'candidate' : 'employee'} registered: ${data.fullName}`);
+          setAllEmployees(prev => (prev.some(e => e.id === data.id) ? prev : [...prev, data]));
+          showToast(`New ${data.isCandidate ? 'candidate' : 'employee'} registered: ${data.fullName} (${data.department})`);
           api.getStats().then(setStats);
+          api.getDepartments().then(setDepartments);
           api.getDesks().then(d => setDesks(d.desks));
           break;
 
         case 'EMPLOYEE_UPDATED':
           setAllEmployees(prev => prev.map(e => (e.id === data.id ? data : e)));
           setSelectedPerson(prev => (prev?.id === data.id ? data : prev));
+          setQrModalPerson(prev => (prev?.id === data.id ? data : prev));
           api.getStats().then(setStats);
+          api.getDepartments().then(setDepartments);
           api.getAuditLogs().then(setAuditLogs);
           api.getDesks().then(d => setDesks(d.desks));
           break;
@@ -359,6 +400,107 @@ export default function App() {
           api.getAuditLogs().then(setAuditLogs);
           break;
 
+        case 'ASSET_REMINDER_UPDATED':
+        case 'NOTIFICATION_LOG_ADDED':
+          api.getAuditLogs().then(setAuditLogs);
+          break;
+
+        case 'DEPARTMENTS_UPDATED':
+          if (Array.isArray(data)) {
+            setDepartments(data);
+          } else if (data?.departments) {
+            setDepartments(data.departments);
+          } else {
+            api.getDepartments().then(setDepartments);
+          }
+          api.getEmployees().then(empList => {
+            setAllEmployees(empList);
+            setSelectedPerson(prev => (prev ? empList.find(e => e.id === prev.id) || prev : null));
+            setQrModalPerson(prev => (prev ? empList.find(e => e.id === prev.id) || prev : null));
+          });
+          api.getAuditLogs().then(setAuditLogs);
+          break;
+
+        case 'EMPLOYEES_BULK_UPDATED':
+          api.getEmployees().then(empList => {
+            setAllEmployees(empList);
+            setSelectedPerson(prev => (prev ? empList.find(e => e.id === prev.id) || prev : null));
+          });
+          api.getDepartments().then(setDepartments);
+          api.getStats().then(setStats);
+          break;
+
+        case 'DOCUMENT_QR_GENERATED':
+        case 'DOCUMENT_QR_REVOKED':
+          api.getEmployees().then(empList => {
+            setAllEmployees(empList);
+            setSelectedPerson(prev => (prev ? empList.find(e => e.id === prev.id) || prev : null));
+            setQrModalPerson(prev => (prev ? empList.find(e => e.id === prev.id) || prev : null));
+          });
+          api.getAuditLogs().then(setAuditLogs);
+          break;
+
+        case 'QR_UPLOAD_PROGRESS': {
+          const ev = data as LiveQrUploadEvent;
+          if (ev.docKey) {
+            setLiveQrUploads(prev => ({
+              ...prev,
+              [`${ev.employeeId}:${ev.docKey}`]: ev,
+            }));
+          }
+          setLiveQrFeed(prev => {
+            const filtered = prev.filter(
+              item => !(item.employeeId === ev.employeeId && item.docKey === ev.docKey)
+            );
+            return [ev, ...filtered].slice(0, 8);
+          });
+          if (ev.status === 'OPENED') {
+            showToast(`📲 ${ev.employeeName} opened their 24h Document QR upload link`);
+          }
+          break;
+        }
+
+        case 'QR_UPLOAD_COMPLETED': {
+          const updatedEmp = data.employee as Employee | undefined;
+          if (updatedEmp) {
+            setAllEmployees(prev => prev.map(e => (e.id === updatedEmp.id ? updatedEmp : e)));
+            setSelectedPerson(prev => (prev?.id === updatedEmp.id ? updatedEmp : prev));
+            setQrModalPerson(prev => (prev?.id === updatedEmp.id ? updatedEmp : prev));
+          } else {
+            api.getEmployees().then(setAllEmployees);
+          }
+          const completedEvent: LiveQrUploadEvent = {
+            uploadId: `qrdone-${Date.now()}`,
+            employeeId: data.employeeId,
+            employeeName: data.employeeName,
+            department: data.department,
+            docKey: data.docKey,
+            docTitle: data.docTitle,
+            fileName: data.fileName,
+            progress: 100,
+            status: 'COMPLETED',
+            timestamp: data.uploadedAt || new Date().toISOString(),
+          };
+          setLiveQrUploads(prev => ({
+            ...prev,
+            [`${data.employeeId}:${data.docKey}`]: completedEvent,
+          }));
+          setLiveQrFeed(prev => {
+            const filtered = prev.filter(
+              item => !(item.employeeId === data.employeeId && item.docKey === data.docKey)
+            );
+            return [completedEvent, ...filtered].slice(0, 8);
+          });
+          showToast(
+            `✅ QR Upload: ${data.employeeName} uploaded "${data.docTitle}" (Missing → Uploaded)`
+          );
+          api.getStats().then(setStats);
+          api.getDepartments().then(setDepartments);
+          refreshAlerts();
+          api.getAuditLogs().then(setAuditLogs);
+          break;
+        }
+
         default:
           break;
       }
@@ -367,15 +509,18 @@ export default function App() {
     return () => {
       unsubscribe();
     };
-  }, [refreshAllData]);
+  }, [refreshAllData, refreshAlerts, userRole, publicQrToken, candidatePortalToken]);
 
   // Role change handler
   const handleChangeRole = (newRole: UserRole) => {
-    setUserRole(newRole);
     api.setRole(newRole);
+    setUserRole(newRole);
     setUserName(api.getUserName());
-    // Refresh employees to apply backend redactions
+    // Refresh data under active role permissions
     api.getEmployees().then(setAllEmployees);
+    api.getDepartments().then(setDepartments);
+    api.getStats().then(setStats);
+    refreshAlerts();
   };
 
   // Actions
@@ -417,8 +562,14 @@ export default function App() {
     showToast(`Asset registered: ${asset.name}`);
   };
 
-  const handleIssueAsset = async (assetId: string, employeeId: string, issueDate: string, notes: string) => {
-    await api.issueAsset(assetId, employeeId, issueDate, notes);
+  const handleIssueAsset = async (
+    assetId: string,
+    employeeId: string,
+    issueDate: string,
+    notes: string,
+    expectedReturnDate?: string | null
+  ) => {
+    await api.issueAsset(assetId, employeeId, issueDate, notes, expectedReturnDate);
     showToast('Asset issued successfully');
   };
 
@@ -427,9 +578,14 @@ export default function App() {
     showToast('Asset returned to stock');
   };
 
-  const handleTransferAsset = async (assetId: string, newEmployeeId: string, notes: string) => {
-    await api.transferAsset(assetId, newEmployeeId, notes);
-    showToast('Asset transferred');
+  const handleDismissAllMissingDocs = async () => {
+    const res = await api.dismissMissingDocAlerts();
+    await refreshAlerts();
+    showToast(
+      res.dismissedCount > 0
+        ? `HR Alert: Candidate Missing Documents hidden (${res.dismissedCount} item${res.dismissedCount === 1 ? '' : 's'} dismissed)`
+        : 'HR Alert: Candidate Missing Documents hidden'
+    );
   };
 
   const handleUploadDocumentFile = async (
@@ -633,6 +789,11 @@ export default function App() {
     api.getDesks().then(d => setDesks(d.desks));
   };
 
+  // If candidate scanned a 24-hour Document QR code (/qr-upload/:token or ?qr=:token), render mobile upload page directly without HR login
+  if (publicQrToken) {
+    return <QrDocumentUploadPage token={publicQrToken} />;
+  }
+
   // If candidate accessed with ?uploadToken=..., render dedicated Candidate Upload Portal
   if (candidatePortalToken) {
     return (
@@ -658,6 +819,7 @@ export default function App() {
         onChangeRole={handleChangeRole}
         pendingDocCount={pendingDocCount}
         upcomingCount={candidates.length}
+        departmentsCount={departments.length}
         sseConnected={sseConnected}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
@@ -670,12 +832,17 @@ export default function App() {
           currentTab={currentTab}
           userRole={userRole}
           onOpenAddModal={isCand => {
+            setAddModalDefaultDept(undefined);
+            setAddModalDefaultSubDept(undefined);
             setAddModalIsCandidate(isCand);
             setShowAddModal(true);
           }}
           onOpenOfferGenerator={
-            candidates.length > 0 || allEmployees.length > 0
-              ? () => setOfferModalCandidate(candidates[0] || allEmployees[0])
+            userRole !== 'CEO' && (candidates.length > 0 || allEmployees.length > 0)
+              ? () => {
+                  setOfferPreviewSnapshot(null);
+                  setOfferModalCandidate(candidates[0] || allEmployees[0]);
+                }
               : undefined
           }
           onResetDatabase={handleResetDatabase}
@@ -697,6 +864,32 @@ export default function App() {
                 onNavigateTab={setCurrentTab}
                 alerts={alerts}
                 onOpenAlertsModal={() => setShowAlertsPopup(true)}
+                onDismissMissingDocAlerts={handleDismissAllMissingDocs}
+                departments={departments}
+                liveQrFeed={liveQrFeed}
+                onOpenQrModal={setQrModalPerson}
+              />
+            )}
+
+            {currentTab === 'departments' && (
+              <DepartmentsView
+                departments={departments}
+                employees={allEmployees}
+                userRole={userRole}
+                onSelectPerson={setSelectedPerson}
+                onOpenQrModal={setQrModalPerson}
+                onOpenAddPersonInDepartment={(isCand, deptName, subDeptName) => {
+                  setAddModalIsCandidate(isCand);
+                  setAddModalDefaultDept(deptName);
+                  setAddModalDefaultSubDept(subDeptName);
+                  setShowAddModal(true);
+                }}
+                onDepartmentsChanged={updated => setDepartments(updated)}
+                onEmployeesRefresh={() => {
+                  api.getEmployees().then(setAllEmployees);
+                  api.getDepartments().then(setDepartments);
+                  api.getStats().then(setStats);
+                }}
               />
             )}
 
@@ -705,11 +898,15 @@ export default function App() {
                 employees={activeEmployees}
                 onSelectEmployee={setSelectedPerson}
                 onOpenAddModal={() => {
+                  setAddModalDefaultDept(undefined);
+                  setAddModalDefaultSubDept(undefined);
                   setAddModalIsCandidate(false);
                   setShowAddModal(true);
                 }}
                 onDeleteEmployee={handleDeleteEmployee}
                 userRole={userRole}
+                departmentsList={departments}
+                onOpenQrModal={setQrModalPerson}
               />
             )}
 
@@ -719,11 +916,13 @@ export default function App() {
                 userRole={userRole}
                 onSelectCandidate={setSelectedPerson}
                 onOpenAddModal={() => {
+                  setAddModalDefaultDept(undefined);
+                  setAddModalDefaultSubDept(undefined);
                   setAddModalIsCandidate(true);
                   setShowAddModal(true);
                 }}
                 onOpenOfferModal={candidate => setOfferModalCandidate(candidate)}
-                onOpenUploadLinkModal={candidate => setSelectedPerson(candidate)}
+                onOpenUploadLinkModal={candidate => setQrModalPerson(candidate)}
                 onConvertCandidate={handleConvertCandidate}
                 onScheduleInterview={handleScheduleInterview}
                 onUpdateInterview={handleUpdateInterview}
@@ -735,6 +934,8 @@ export default function App() {
                 candidates={candidates}
                 onSelectCandidate={setSelectedPerson}
                 onOpenAddModal={() => {
+                  setAddModalDefaultDept(undefined);
+                  setAddModalDefaultSubDept(undefined);
                   setAddModalIsCandidate(true);
                   setShowAddModal(true);
                 }}
@@ -745,6 +946,7 @@ export default function App() {
                 onOpenCandidatePortal={token => setCandidatePortalToken(token)}
                 onOpenOfferLetter={candidate => setOfferModalCandidate(candidate)}
                 onSendReminder={(candId, channel) => handleOpenReminderModal(candId, channel || 'BOTH')}
+                onOpenQrModal={setQrModalPerson}
               />
             )}
 
@@ -774,18 +976,6 @@ export default function App() {
               />
             )}
 
-            {currentTab === 'assets' && (
-              <AssetsView
-                assets={assets}
-                employees={activeEmployees}
-                onCreateAsset={handleCreateAsset}
-                onIssueAsset={handleIssueAsset}
-                onReturnAsset={handleReturnAsset}
-                onTransferAsset={handleTransferAsset}
-                userRole={userRole}
-              />
-            )}
-
             {currentTab === 'import' && (
               <SpreadsheetImportView
                 onPreviewImport={api.previewImport.bind(api)}
@@ -795,7 +985,7 @@ export default function App() {
             )}
 
             {currentTab === 'audit' && (
-              <AuditTrailView logs={auditLogs} />
+              <AuditTrailView logs={auditLogs} userRole={userRole} />
             )}
           </div>
         </main>
@@ -813,8 +1003,8 @@ export default function App() {
           auditLogs={auditLogs}
           userRole={userRole}
           currentUserName={userName}
-          onIssueAsset={async (assetId, employeeId, issueDate, notes) => {
-            await handleIssueAsset(assetId, employeeId, issueDate, notes);
+          onIssueAsset={async (assetId, employeeId, issueDate, notes, expectedReturnDate) => {
+            await handleIssueAsset(assetId, employeeId, issueDate, notes, expectedReturnDate);
             const updatedAssets = await api.getAssets();
             setAssets(updatedAssets);
           }}
@@ -838,9 +1028,30 @@ export default function App() {
           onGenerateUploadLink={handleGenerateUploadLink}
           onRevokeUploadLink={handleRevokeUploadLink}
           onOpenCandidatePortal={token => setCandidatePortalToken(token)}
-          onOpenOfferLetter={emp => {
+          onOpenOfferLetter={(emp, snapshot) => {
             setSelectedPerson(null);
+            setOfferPreviewSnapshot(snapshot || null);
             setOfferModalCandidate(emp);
+          }}
+          departments={departments}
+          onOpenQrModal={person => setQrModalPerson(person)}
+          liveQrUploads={liveQrUploads}
+        />
+      )}
+
+      {/* Individual 24-Hour Document QR Generation & Missing Document Inspection Modal */}
+      {qrModalPerson && (
+        <QrCodeModal
+          person={qrModalPerson}
+          userRole={userRole}
+          onClose={() => setQrModalPerson(null)}
+          onQrUpdated={() => {
+            api.getEmployees().then(empList => {
+              setAllEmployees(empList);
+              setSelectedPerson(prev => (prev ? empList.find(e => e.id === prev.id) || prev : null));
+              setQrModalPerson(prev => (prev ? empList.find(e => e.id === prev.id) || prev : null));
+            });
+            api.getAuditLogs().then(setAuditLogs);
           }}
         />
       )}
@@ -850,10 +1061,17 @@ export default function App() {
         <OfferLetterModal
           candidate={offerModalCandidate}
           allCandidates={allEmployees}
-          onSelectCandidate={cand => setOfferModalCandidate(cand)}
+          onSelectCandidate={cand => {
+            setOfferPreviewSnapshot(null);
+            setOfferModalCandidate(cand);
+          }}
           isOpen={!!offerModalCandidate}
-          onClose={() => setOfferModalCandidate(null)}
+          onClose={() => {
+            setOfferPreviewSnapshot(null);
+            setOfferModalCandidate(null);
+          }}
           userRole={userRole}
+          initialPreviewSnapshot={offerPreviewSnapshot}
           onSaveOffer={async offerData => {
             await handleUpdateOffer(offerModalCandidate.id, offerData);
           }}
@@ -899,6 +1117,7 @@ export default function App() {
           showToast('All dismissed alerts have been reset');
         }}
         userRole={userRole}
+        onDismissAllMissingDocs={handleDismissAllMissingDocs}
         onSendReminder={(candId, channel) => {
           handleOpenReminderModal(candId, channel);
           setShowAlertsPopup(false);
@@ -939,6 +1158,7 @@ export default function App() {
           await refreshAlerts();
           showToast('Alert dismissed');
         }}
+        onDismissAllMissingDocs={handleDismissAllMissingDocs}
         userRole={userRole}
         onOpenFullModal={() => setShowAlertsPopup(true)}
       />
@@ -948,9 +1168,28 @@ export default function App() {
         <AddPersonModal
           isOpen={showAddModal}
           isCandidateDefault={addModalIsCandidate}
-          onClose={() => setShowAddModal(false)}
-          onCreate={async data => {
-            await api.createEmployee(data);
+          departments={departments}
+          defaultDepartment={addModalDefaultDept}
+          defaultSubDepartment={addModalDefaultSubDept}
+          onClose={() => {
+            setShowAddModal(false);
+            setAddModalDefaultDept(undefined);
+            setAddModalDefaultSubDept(undefined);
+          }}
+          onCreate={async (data, options) => {
+            const created = await api.createEmployee(data);
+            const [empList, deptRes, statsData] = await Promise.all([
+              api.getEmployees(),
+              api.getDepartments(),
+              api.getStats(),
+            ]);
+            setAllEmployees(empList);
+            setDepartments(deptRes || []);
+            setStats(statsData);
+            if (created && options?.openQrAfterCreate) {
+              setQrModalPerson(created);
+            }
+            return created;
           }}
           userRole={userRole}
         />

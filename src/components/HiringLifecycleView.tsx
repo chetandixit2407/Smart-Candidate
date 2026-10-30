@@ -73,6 +73,8 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
   const [evalFeedback, setEvalFeedback] = useState('Excellent domain knowledge of Gurgaon luxury real estate.');
   const [evalRecommendation, setEvalRecommendation] = useState<'Strong Hire' | 'Hire' | 'Hold' | 'Reject' | 'Proceed to Next Round'>('Hire');
 
+  const canEdit = userRole === 'HR' || userRole === 'Co-Founder';
+
   const departments = ['All', 'Sales', 'Business Development', 'Operations', 'Marketing', 'Legal & Compliance', 'Finance'];
   const stages = ['All', 'Screening', 'Interviewing', 'Selected', 'Offer Extended', 'Offer Accepted', 'Joining Confirmed'];
 
@@ -209,7 +211,7 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          {candidates.length > 0 && (
+          {canEdit && candidates.length > 0 && (
             <button
               type="button"
               onClick={() => onOpenOfferModal(candidates[0])}
@@ -219,7 +221,7 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
               Generate Offer Letter
             </button>
           )}
-          {userRole !== 'DEPT_HEAD_VIEWER' && (
+          {canEdit && (
             <button
               type="button"
               onClick={onOpenAddModal}
@@ -327,7 +329,9 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
         {filteredCandidates.map(candidate => {
           const stage = getCandidateStage(candidate);
           const interviews = candidate.interviews || [];
-          const hasOffer = Boolean(candidate.offerLetter);
+          const hasOffer = Boolean(
+            candidate.offerLetter || (candidate.savedOfferLetters && candidate.savedOfferLetters.length > 0)
+          );
           const docsCount = Object.keys(candidate.documents || {}).length;
           const verifiedDocs = Object.values(candidate.documents || {}).filter(d => d.status === 'Verified').length;
 
@@ -400,7 +404,7 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="font-semibold text-slate-700">Interview Rounds ({interviews.length}):</span>
-                    {userRole !== 'DEPT_HEAD_VIEWER' && (
+                    {canEdit && (
                       <button
                         type="button"
                         onClick={() => handleOpenSchedule(candidate)}
@@ -438,7 +442,7 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
                           </div>
 
                           <div className="flex items-center gap-1 shrink-0">
-                            {rnd.status === 'Scheduled' && userRole !== 'DEPT_HEAD_VIEWER' && (
+                            {rnd.status === 'Scheduled' && canEdit && (
                               <button
                                 type="button"
                                 onClick={() => handleOpenEval(candidate, rnd)}
@@ -470,7 +474,7 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
                     <div className="flex items-center gap-1.5 min-w-0">
                       <FileText className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span className="font-semibold text-slate-800 truncate">
-                        Offer: {candidate.offerLetter?.status}
+                        Offer: {candidate.offerLetter?.status || 'Saved (.docx)'}
                       </span>
                     </div>
                     <button
@@ -478,7 +482,7 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
                       onClick={() => onOpenOfferModal(candidate)}
                       className="text-[11px] font-bold text-amber-800 hover:underline shrink-0"
                     >
-                      View / Edit
+                      {canEdit ? 'View / Edit' : 'Preview / Download'}
                     </button>
                   </div>
                 )}
@@ -496,25 +500,29 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
 
                 <div className="flex items-center gap-1.5">
                   {/* Create Upload Link Button */}
-                  <button
-                    type="button"
-                    onClick={() => onOpenUploadLinkModal(candidate)}
-                    className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded text-xs font-medium flex items-center gap-1 shadow-2xs transition-colors"
-                    title="Generate or manage candidate document upload link"
-                  >
-                    <Share2 className="w-3 h-3 text-amber-600" />
-                    <span>Upload Link</span>
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenUploadLinkModal(candidate)}
+                      className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded text-xs font-medium flex items-center gap-1 shadow-2xs transition-colors"
+                      title="Generate or manage candidate document upload link"
+                    >
+                      <Share2 className="w-3 h-3 text-amber-600" />
+                      <span>Upload Link</span>
+                    </button>
+                  )}
 
                   {/* Generate / Preview Offer Letter Button */}
-                  <button
-                    type="button"
-                    onClick={() => onOpenOfferModal(candidate)}
-                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-semibold rounded text-xs flex items-center gap-1 shadow-2xs transition-colors"
-                  >
-                    <FileText className="w-3 h-3" />
-                    <span>Offer Letter</span>
-                  </button>
+                  {(canEdit || hasOffer) && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenOfferModal(candidate)}
+                      className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-semibold rounded text-xs flex items-center gap-1 shadow-2xs transition-colors"
+                    >
+                      <FileText className="w-3 h-3" />
+                      <span>{canEdit ? 'Offer Letter' : 'Preview Offer'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

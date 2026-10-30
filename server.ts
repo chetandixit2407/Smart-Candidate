@@ -1,13 +1,23 @@
+import 'dotenv/config';
 import express from 'express';
 import type { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as XLSX from 'xlsx';
-import { db } from './server/database.ts';
+import { db, QR_MAX_FILE_SIZE_BYTES } from './server/database.ts';
 import { ALL_DESK_CODES, mapSpreadsheetSeatToStandardDesk } from './server/seedData.ts';
 import { WCR_ORIGINAL_OFFER_SECTIONS, buildOfferLetterData } from './server/lifecycleEngine.ts';
 import { generateWcrOfferLetterDocx } from './server/wordGenerator.ts';
+import {
+  sendEmailNotification,
+  sendWhatsAppNotification,
+} from './server/notificationService.ts';
+import {
+  startAutomationScheduler,
+  runAssetReturnReminderSweep,
+  getSchedulerRuntimeStatus,
+} from './server/scheduler.ts';
 import type { UserRole, Employee, OfferLetterData, RoleSalaryStructure } from './src/types/index.ts';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,31 +26,338 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+function resolveBaseOrigin(req: Request, clientOriginCandidate?: string): string {
+  if (clientOriginCandidate && typeof clientOriginCandidate === 'string') {
+    try {
+      const parsed = new URL(clientOriginCandidate);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed.origin;
+      }
+    } catch {
+      // Fall back to request headers / APP_URL
+    }
+  }
+  const envUrl = (process.env.APP_URL || '').trim();
+  if (envUrl) {
+    try {
+      return new URL(envUrl).origin;
+    } catch {
+      // Ignore malformed APP_URL
+    }
+  }
+  const proto = ((req.headers['x-forwarded-proto'] as string) || req.protocol || 'http').split(',')[0].trim();
+  const host = ((req.headers['x-forwarded-host'] as string) || req.get('host') || `localhost:${PORT}`).split(',')[0].trim();
+  return `${proto}://${host}`;
+}
+
+// --------------------------------------------------------------------------
+// Public Streaming Binary QR Upload Endpoint (Registered BEFORE express.json)
+// Allows candidates to upload PDF, JPG, and PNG files without HR login,
+// enforcing 24-hour expiry, magic-byte validation, duplicate & cross-candidate
+// guards, and broadcasting live upload progress to HR via SSE.
+// --------------------------------------------------------------------------
+app.post('/api/public/document-qr/:token/upload/:docKey', (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+
+  const rawToken = req.params.token;
+  const docKey = req.params.docKey;
+
+  // Immediate pre-stream token & expiry validation
+  const tokenCheck = db.validatePublicQrToken(rawToken);
+  if (!tokenCheck.ok || !tokenCheck.employee || !tokenCheck.tokenRecord) {
+    res.status(tokenCheck.httpStatus).json({
+      success: false,
+      code: tokenCheck.code,
+      error: tokenCheck.error,
+    });
+    return;
+  }
+
+  const { employee, tokenRecord } = tokenCheck;
+  const targetDoc = employee.documents?.[docKey];
+
+  if (!targetDoc || targetDoc.status === 'Not Applicable') {
+    res.status(403).json({
+      success: false,
+      code: 'UNAUTHORIZED_DOCUMENT_SLOT',
+      error: 'This document type is not part of your onboarding checklist.',
+    });
+    return;
+  }
+
+  if (
+    targetDoc.status === 'Uploaded' ||
+    targetDoc.status === 'Submitted' ||
+    targetDoc.status === 'Under Review' ||
+    targetDoc.status === 'Verified'
+  ) {
+    res.status(409).json({
+      success: false,
+      code: 'DUPLICATE_UPLOAD',
+      error: `Duplicate upload prevented: '${targetDoc.title}' has already been ${targetDoc.status === 'Verified' ? 'verified' : 'uploaded'}.`,
+    });
+    return;
+  }
+
+  if (tokenRecord.targetDocKeys.length > 0 && !tokenRecord.targetDocKeys.includes(docKey)) {
+    res.status(403).json({
+      success: false,
+      code: 'DOCUMENT_NOT_REQUESTED',
+      error: 'This document was not requested on your QR checklist.',
+    });
+    return;
+  }
+
+  const declaredLength = Number(req.headers['content-length'] || 0);
+  if (declaredLength > QR_MAX_FILE_SIZE_BYTES) {
+    res.status(413).json({
+      success: false,
+      code: 'FILE_TOO_LARGE',
+      error: 'File exceeds the maximum allowed size of 10 MB.',
+    });
+    return;
+  }
+
+  const rawHeaderFileName = (req.headers['x-file-name'] as string) || (req.query.fileName as string) || `${docKey}.pdf`;
+  let originalFileName = rawHeaderFileName;
+  try {
+    originalFileName = decodeURIComponent(rawHeaderFileName);
+  } catch {
+    originalFileName = rawHeaderFileName;
+  }
+
+  const contentTypeHeader = ((req.headers['x-mime-type'] as string) || (req.headers['content-type'] as string) || '')
+    .split(';')[0]
+    .trim();
+
+  const uploadId = `qrupl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const chunks: Buffer[] = [];
+  let receivedBytes = 0;
+  let abortedForSize = false;
+  let lastBroadcastMs = 0;
+  let lastBroadcastPct = 0;
+
+  // Broadcast initial upload start to HR dashboard
+  db.broadcastQrUploadProgress({
+    uploadId,
+    employeeId: employee.id,
+    employeeName: employee.fullName,
+    department: employee.department,
+    subDepartment: employee.subDepartment,
+    docKey,
+    docTitle: targetDoc.title,
+    fileName: originalFileName,
+    progress: 5,
+    status: 'UPLOADING',
+    timestamp: new Date().toISOString(),
+  });
+
+  req.on('data', (chunk: Buffer) => {
+    if (abortedForSize) return;
+    receivedBytes += chunk.length;
+    if (receivedBytes > QR_MAX_FILE_SIZE_BYTES) {
+      abortedForSize = true;
+      db.broadcastQrUploadProgress({
+        uploadId,
+        employeeId: employee.id,
+        employeeName: employee.fullName,
+        department: employee.department,
+        subDepartment: employee.subDepartment,
+        docKey,
+        docTitle: targetDoc.title,
+        fileName: originalFileName,
+        progress: 0,
+        status: 'FAILED',
+        error: 'Exceeded 10 MB size limit',
+        timestamp: new Date().toISOString(),
+      });
+      res.status(413).json({
+        success: false,
+        code: 'FILE_TOO_LARGE',
+        error: 'File exceeds the maximum allowed size of 10 MB.',
+      });
+      req.destroy();
+      return;
+    }
+
+    chunks.push(chunk);
+
+    if (declaredLength > 0) {
+      const pct = Math.min(95, Math.max(8, Math.round((receivedBytes / declaredLength) * 95)));
+      const now = Date.now();
+      if (pct - lastBroadcastPct >= 10 || now - lastBroadcastMs >= 120) {
+        lastBroadcastPct = pct;
+        lastBroadcastMs = now;
+        db.broadcastQrUploadProgress({
+          uploadId,
+          employeeId: employee.id,
+          employeeName: employee.fullName,
+          department: employee.department,
+          subDepartment: employee.subDepartment,
+          docKey,
+          docTitle: targetDoc.title,
+          fileName: originalFileName,
+          progress: pct,
+          status: 'UPLOADING',
+          timestamp: new Date(now).toISOString(),
+        });
+      }
+    }
+  });
+
+  req.on('error', () => {
+    if (!res.headersSent) {
+      res.status(400).json({ success: false, code: 'UPLOAD_STREAM_ERROR', error: 'Upload stream interrupted.' });
+    }
+  });
+
+  req.on('end', () => {
+    if (abortedForSize || res.headersSent) return;
+
+    let fileBuffer = Buffer.concat(chunks);
+    let finalFileName = originalFileName;
+    let finalMime = contentTypeHeader;
+
+    // Support JSON base64 payload fallback if client sent application/json
+    if (contentTypeHeader.toLowerCase() === 'application/json') {
+      try {
+        const parsedJson = JSON.parse(fileBuffer.toString('utf-8'));
+        if (parsedJson.fileName) finalFileName = String(parsedJson.fileName);
+        if (parsedJson.mimeType) finalMime = String(parsedJson.mimeType);
+        if (typeof parsedJson.fileData === 'string') {
+          const b64Match = parsedJson.fileData.match(/^data:([^;]+);base64,(.+)$/);
+          if (b64Match) {
+            finalMime = finalMime || b64Match[1];
+            fileBuffer = Buffer.from(b64Match[2], 'base64');
+          } else {
+            fileBuffer = Buffer.from(parsedJson.fileData, 'base64');
+          }
+        }
+      } catch {
+        res.status(400).json({ success: false, code: 'INVALID_JSON', error: 'Malformed upload payload.' });
+        return;
+      }
+    }
+
+    const result = db.savePublicQrDocumentUpload(
+      rawToken,
+      docKey,
+      fileBuffer,
+      finalFileName,
+      finalMime,
+      uploadId
+    );
+
+    if (!result.ok) {
+      db.broadcastQrUploadProgress({
+        uploadId,
+        employeeId: employee.id,
+        employeeName: employee.fullName,
+        department: employee.department,
+        subDepartment: employee.subDepartment,
+        docKey,
+        docTitle: targetDoc.title,
+        fileName: finalFileName,
+        progress: 0,
+        status: 'FAILED',
+        error: result.error || 'Validation failed',
+        timestamp: new Date().toISOString(),
+      });
+      res.status(result.httpStatus).json({
+        success: false,
+        code: result.code,
+        error: result.error,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      code: result.code,
+      slot: result.slot,
+      session: result.session,
+    });
+  });
+});
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Helper to extract actor and role from headers
-function getAuthContext(req: Request): { actor: string; role: UserRole } {
-  const roleHeader = (req.headers['x-user-role'] as string) || 'HR_ADMIN';
-  const nameHeader = (req.headers['x-user-name'] as string) || 'Simran Kaur (HR Head)';
+const VALID_ROLES: UserRole[] = ['HR', 'Co-Founder', 'CEO'];
+const ALL_ROLES: UserRole[] = ['HR', 'Co-Founder', 'CEO'];
+const OPERATIONAL_ROLES: UserRole[] = ['HR', 'Co-Founder'];
 
-  const allowedRoles: UserRole[] = [
-    'HR_ADMIN',
-    'HR_MANAGER',
-    'HR_EXECUTIVE',
-    'DEPT_HEAD_VIEWER',
-    'FINANCE_ADMIN',
-  ];
-  const validRole: UserRole = allowedRoles.includes(roleHeader as UserRole)
-    ? (roleHeader as UserRole)
-    : 'HR_ADMIN';
-  return { actor: nameHeader, role: validRole };
+function authenticateRequest(
+  req: Request,
+  res: Response,
+  allowedRoles: UserRole[] = ALL_ROLES,
+  options?: { allowQueryRole?: boolean }
+): { actor: string; role: UserRole } | null {
+  const configuredSecret = (process.env.HR_API_SECRET || '').trim();
+  if (configuredSecret) {
+    const headerKey = (req.headers['x-api-key'] as string) || '';
+    const bearer = ((req.headers['authorization'] as string) || '').replace(/^Bearer\s+/i, '');
+    const queryKey = options?.allowQueryRole ? ((req.query.apiKey as string) || '') : '';
+    const provided = headerKey || bearer || queryKey;
+    if (provided !== configuredSecret) {
+      res.status(401).json({ error: 'Unauthorized: Invalid or missing API secret credential.' });
+      return null;
+    }
+  }
+
+  const rawRole = (
+    (req.headers['x-user-role'] as string) ||
+    (options?.allowQueryRole ? (req.query.role as string) : '') ||
+    ''
+  ).trim();
+
+  if (!rawRole) {
+    res.status(401).json({
+      error: 'Authentication required: Provide a valid x-user-role header (HR, Co-Founder, or CEO).',
+    });
+    return null;
+  }
+
+  if (!VALID_ROLES.includes(rawRole as UserRole)) {
+    res.status(403).json({
+      error: `Invalid role '${rawRole}'. Only 3 roles exist: HR, Co-Founder, CEO.`,
+    });
+    return null;
+  }
+
+  const role = rawRole as UserRole;
+  if (!allowedRoles.includes(role)) {
+    res.status(403).json({
+      error: `Permission denied: Role '${role}' cannot perform this action. Authorized role(s): ${allowedRoles.join(', ')}.`,
+    });
+    return null;
+  }
+
+  const rawName = (
+    (req.headers['x-user-name'] as string) ||
+    (options?.allowQueryRole ? (req.query.name as string) : '') ||
+    `${role} User`
+  )
+    .trim()
+    .slice(0, 120);
+
+  return { actor: rawName || `${role} User`, role };
 }
 
 // --------------------------------------------------------------------------
 // Real-Time Server-Sent Events (SSE) Bus
 // --------------------------------------------------------------------------
 app.get('/api/events', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES, { allowQueryRole: true });
+  if (!auth) return;
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -49,21 +366,28 @@ app.get('/api/events', (req: Request, res: Response) => {
   db.addSSEClient(res);
 
   // Send initial connection packet
-  res.write(`event: CONNECTED\ndata: ${JSON.stringify({ status: 'connected', time: new Date().toISOString() })}\n\n`);
+  res.write(`event: CONNECTED\ndata: ${JSON.stringify({ status: 'connected', role: auth.role, time: new Date().toISOString() })}\n\n`);
 });
 
 // --------------------------------------------------------------------------
 // Current User / Auth Status
 // --------------------------------------------------------------------------
 app.get('/api/auth/me', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const { actor, role } = auth;
   res.json({
     user: {
       id: 'usr-current',
       name: actor,
-      email: role === 'DEPT_HEAD_VIEWER' ? 'viewer@whitecollarrealty.com' : 'hr@whitecollarrealty.com',
+      email:
+        role === 'CEO'
+          ? 'ceo@whitecollarrealty.com'
+          : role === 'Co-Founder'
+          ? 'cofounder@whitecollarrealty.com'
+          : 'hr@whitecollarrealty.com',
       role,
-      department: role === 'DEPT_HEAD_VIEWER' ? 'Sales Management' : 'People Operations & HR',
+      department: role === 'HR' ? 'People Operations & HR' : 'Executive Leadership',
     },
   });
 });
@@ -72,19 +396,33 @@ app.get('/api/auth/me', (req: Request, res: Response) => {
 // Dashboard Statistics & KPI Metrics
 // --------------------------------------------------------------------------
 app.get('/api/stats', (req: Request, res: Response) => {
-  const { role } = getAuthContext(req);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const { role } = auth;
   const allEmployees = db.getEmployees(role);
   const activeEmployees = allEmployees.filter(e => !e.isCandidate);
   const candidates = allEmployees.filter(e => e.isCandidate);
   const desks = db.getDesks();
   const assets = db.getAssets();
 
-  // Calculate pending documents
+  // Calculate pending documents & uploaded awaiting verification
   let pendingDocsCount = 0;
+  let uploadedAwaitingVerificationCount = 0;
   allEmployees.forEach(e => {
     if (e.documents) {
       Object.values(e.documents).forEach(d => {
-        if (d.required && (d.status === 'Not Submitted' || d.status === 'Under Review' || d.status === 'Rejected')) {
+        if (d.status === 'Uploaded' || d.status === 'Submitted' || d.status === 'Under Review') {
+          uploadedAwaitingVerificationCount++;
+        }
+        if (
+          d.required &&
+          (d.status === 'Missing' ||
+            d.status === 'Not Submitted' ||
+            d.status === 'Uploaded' ||
+            d.status === 'Submitted' ||
+            d.status === 'Under Review' ||
+            d.status === 'Rejected')
+        ) {
           pendingDocsCount++;
         }
       });
@@ -96,11 +434,14 @@ app.get('/api/stats', (req: Request, res: Response) => {
   const occupiedDesksCount = desks.filter(d => d.status === 'Occupied').length;
   const reservedDesksCount = desks.filter(d => d.status === 'Reserved').length;
   const availableDesksCount = desks.filter(d => d.status === 'Available').length;
+  const departments = db.getDepartmentsWithCounts();
 
   res.json({
     totalEmployees: activeEmployees.length,
     upcomingJoiners: candidates.length,
     pendingDocuments: pendingDocsCount,
+    uploadedAwaitingVerification: uploadedAwaitingVerificationCount,
+    totalDepartments: departments.length,
     incompleteProfiles: incompleteProfilesCount,
     assetsIssued: assetsIssuedCount,
     totalAssets: assets.length,
@@ -116,25 +457,179 @@ app.get('/api/stats', (req: Request, res: Response) => {
 });
 
 // --------------------------------------------------------------------------
+// Configurable Departments & Sub-Departments Endpoints
+// --------------------------------------------------------------------------
+app.get('/api/departments', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  res.json({ departments: db.getDepartmentsWithCounts() });
+});
+
+app.post('/api/departments', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const result = db.createDepartment(req.body || {}, auth.actor, auth.role);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.status(201).json({ department: result.department, departments: db.getDepartmentsWithCounts() });
+});
+
+app.put('/api/departments/:id', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const result = db.updateDepartment(req.params.id, req.body || {}, auth.actor, auth.role);
+  if (!result.success) {
+    res.status(result.error === 'Department not found.' ? 404 : 400).json({ error: result.error });
+    return;
+  }
+  res.json({ department: result.department, departments: db.getDepartmentsWithCounts() });
+});
+
+app.delete('/api/departments/:id', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const reassignTo =
+    (req.query.reassignToDepartmentId as string) ||
+    (req.body && req.body.reassignToDepartmentId) ||
+    undefined;
+  const result = db.deleteDepartment(req.params.id, reassignTo, auth.actor, auth.role);
+  if (!result.success) {
+    res.status(result.error === 'Department not found.' ? 404 : 400).json({ error: result.error });
+    return;
+  }
+  res.json({ success: true, departments: db.getDepartmentsWithCounts() });
+});
+
+app.post('/api/departments/:id/sub-departments', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const result = db.addSubDepartment(req.params.id, req.body || {}, auth.actor, auth.role);
+  if (!result.success) {
+    res.status(result.error === 'Department not found.' ? 404 : 400).json({ error: result.error });
+    return;
+  }
+  res.status(201).json({ department: result.department, departments: db.getDepartmentsWithCounts() });
+});
+
+app.put('/api/departments/:id/sub-departments/:subId', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const result = db.updateSubDepartment(req.params.id, req.params.subId, req.body || {}, auth.actor, auth.role);
+  if (!result.success) {
+    res.status(result.error?.includes('not found') ? 404 : 400).json({ error: result.error });
+    return;
+  }
+  res.json({ department: result.department, departments: db.getDepartmentsWithCounts() });
+});
+
+app.delete('/api/departments/:id/sub-departments/:subId', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const result = db.deleteSubDepartment(req.params.id, req.params.subId, auth.actor, auth.role);
+  if (!result.success) {
+    res.status(result.error?.includes('not found') ? 404 : 400).json({ error: result.error });
+    return;
+  }
+  res.json({ department: result.department, departments: db.getDepartmentsWithCounts() });
+});
+
+// --------------------------------------------------------------------------
+// Individual 24-Hour Document QR Endpoints (Protected HR + Public Candidate)
+// --------------------------------------------------------------------------
+app.get('/api/public/document-qr/:token', (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+
+  const recordOpen = req.query.silent !== 'true';
+  const result = db.getPublicQrUploadSession(req.params.token, recordOpen);
+  if (!result.ok || !result.session) {
+    res.status(result.httpStatus).json({
+      valid: false,
+      code: result.code,
+      error: result.error,
+    });
+    return;
+  }
+  res.json(result.session);
+});
+
+app.get('/api/employees/:id/document-qr', async (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+
+  const baseOrigin = resolveBaseOrigin(req, req.query.clientOrigin as string | undefined);
+  const canViewSecret = auth.role === 'HR' || auth.role === 'Co-Founder';
+  const status = await db.getEmployeeDocumentQrStatus(req.params.id, baseOrigin, canViewSecret);
+  if (!status) {
+    res.status(404).json({ error: 'Employee or candidate profile not found.' });
+    return;
+  }
+  res.json(status);
+});
+
+app.post('/api/employees/:id/document-qr', async (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+
+  const baseOrigin = resolveBaseOrigin(req, req.body?.clientOrigin);
+  const result = await db.generateEmployeeDocumentQr(
+    req.params.id,
+    baseOrigin,
+    auth.actor,
+    auth.role,
+    {
+      includeOptionalMissing: Boolean(req.body?.includeOptionalMissing),
+      customDocKeys: Array.isArray(req.body?.customDocKeys) ? req.body.customDocKeys : undefined,
+    }
+  );
+
+  if (!result.success) {
+    res.status(404).json({ error: result.message });
+    return;
+  }
+
+  res.status(201).json(result);
+});
+
+app.post('/api/employees/:id/document-qr/revoke', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+
+  const result = db.revokeEmployeeDocumentQr(req.params.id, auth.actor, auth.role);
+  if (!result.success) {
+    res.status(400).json({ error: result.message });
+    return;
+  }
+  res.json(result);
+});
+
+// --------------------------------------------------------------------------
 // Employees & Candidates Endpoints
 // --------------------------------------------------------------------------
 app.get('/api/employees', (req: Request, res: Response) => {
-  const { role } = getAuthContext(req);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const { role } = auth;
   const isCandidateQuery = req.query.isCandidate;
   const search = req.query.search as string;
   const department = req.query.department as string;
+  const departmentId = req.query.departmentId as string;
+  const subDepartment = req.query.subDepartment as string;
 
   let isCandidate: boolean | undefined = undefined;
   if (isCandidateQuery === 'true') isCandidate = true;
   if (isCandidateQuery === 'false') isCandidate = false;
 
-  const list = db.getEmployees(role, { isCandidate, search, department });
+  const list = db.getEmployees(role, { isCandidate, search, department, departmentId, subDepartment });
   res.json({ employees: list, total: list.length });
 });
 
 app.get('/api/employees/:id', (req: Request, res: Response) => {
-  const { role } = getAuthContext(req);
-  const emp = db.getEmployeeById(req.params.id, role);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const emp = db.getEmployeeById(req.params.id, auth.role);
   if (!emp) {
     res.status(404).json({ error: 'Employee not found' });
     return;
@@ -143,24 +638,16 @@ app.get('/api/employees/:id', (req: Request, res: Response) => {
 });
 
 app.post('/api/employees', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot create records.' });
-    return;
-  }
-
-  const created = db.createEmployee(req.body, actor, role);
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const created = db.createEmployee(req.body, auth.actor, auth.role);
   res.status(201).json(created);
 });
 
 app.put('/api/employees/:id', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot modify records.' });
-    return;
-  }
-
-  const updated = db.updateEmployee(req.params.id, req.body, actor, role);
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const updated = db.updateEmployee(req.params.id, req.body, auth.actor, auth.role);
   if (!updated) {
     res.status(404).json({ error: 'Employee not found' });
     return;
@@ -169,13 +656,9 @@ app.put('/api/employees/:id', (req: Request, res: Response) => {
 });
 
 app.delete('/api/employees/:id', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role !== 'HR_ADMIN') {
-    res.status(403).json({ error: 'Permission denied: Only HR Admin can delete records.' });
-    return;
-  }
-
-  const deleted = db.deleteEmployee(req.params.id, actor, role);
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const deleted = db.deleteEmployee(req.params.id, auth.actor, auth.role);
   if (!deleted) {
     res.status(404).json({ error: 'Employee not found' });
     return;
@@ -184,13 +667,9 @@ app.delete('/api/employees/:id', (req: Request, res: Response) => {
 });
 
 app.post('/api/candidates/:id/convert', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot convert candidates.' });
-    return;
-  }
-
-  const converted = db.convertCandidateToEmployee(req.params.id, req.body, actor, role);
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const converted = db.convertCandidateToEmployee(req.params.id, req.body, auth.actor, auth.role);
   if (!converted) {
     res.status(404).json({ error: 'Candidate not found' });
     return;
@@ -200,11 +679,8 @@ app.post('/api/candidates/:id/convert', (req: Request, res: Response) => {
 
 // Document verification status endpoint
 app.put('/api/employees/:id/documents/:docKey', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot verify documents.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
   const { status, reviewNotes, verifiedBy, fileName, fileSize, fileData, mimeType } = req.body;
   if (!status) {
@@ -216,8 +692,8 @@ app.put('/api/employees/:id/documents/:docKey', (req: Request, res: Response) =>
     req.params.id,
     req.params.docKey,
     { status, reviewNotes, verifiedBy, fileName, fileSize, fileData, mimeType },
-    actor,
-    role
+    auth.actor,
+    auth.role
   );
 
   if (!updated) {
@@ -229,11 +705,8 @@ app.put('/api/employees/:id/documents/:docKey', (req: Request, res: Response) =>
 
 // Direct file upload for document
 app.post('/api/employees/:id/documents/:docKey/upload', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot upload documents.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
   const { fileData, fileName, fileSize, mimeType, status, reviewNotes } = req.body;
   if (!fileData) {
@@ -252,8 +725,8 @@ app.post('/api/employees/:id/documents/:docKey/upload', (req: Request, res: Resp
       fileData,
       mimeType: mimeType || 'application/pdf',
     },
-    actor,
-    role
+    auth.actor,
+    auth.role
   );
 
   if (!updated) {
@@ -269,11 +742,9 @@ function handleDocumentStreaming(req: Request, res: Response, isDownload: boolea
   const docKey = req.params.docKey;
   const queryToken = req.query.token as string | undefined;
 
-  // Authorization check: Either authorized staff role OR candidate with valid token matching this employeeId
-  const { role } = getAuthContext(req);
-  let isAuthorized = role === 'HR_ADMIN' || role === 'HR_MANAGER' || role === 'DEPT_HEAD_VIEWER';
+  let isAuthorized = false;
 
-  if (!isAuthorized && queryToken) {
+  if (queryToken) {
     const publicCand = db.getPublicCandidateByToken(queryToken);
     if (publicCand.valid && publicCand.candidate?.id === employeeId) {
       isAuthorized = true;
@@ -281,8 +752,9 @@ function handleDocumentStreaming(req: Request, res: Response, isDownload: boolea
   }
 
   if (!isAuthorized) {
-    res.status(403).json({ error: 'Unauthorized: Access to private personnel documents is restricted.' });
-    return;
+    const auth = authenticateRequest(req, res, ALL_ROLES);
+    if (!auth) return;
+    isAuthorized = true;
   }
 
   const fileInfo = db.getSecureDocumentFile(employeeId, docKey);
@@ -330,14 +802,11 @@ app.get('/api/employees/:id/documents/:docKey/download', (req: Request, res: Res
 
 // Candidate document upload link management with configurable expiry and single/multi use
 app.post('/api/candidates/:id/upload-link/generate', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot generate upload links.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
   const { expiryDays, isOneTime } = req.body || {};
-  const result = db.generateUploadToken(req.params.id, actor, role, {
+  const result = db.generateUploadToken(req.params.id, auth.actor, auth.role, {
     expiryDays: typeof expiryDays === 'number' ? expiryDays : undefined,
     isOneTime: typeof isOneTime === 'boolean' ? isOneTime : undefined,
   });
@@ -350,13 +819,10 @@ app.post('/api/candidates/:id/upload-link/generate', (req: Request, res: Respons
 });
 
 app.post('/api/candidates/:id/upload-link/revoke', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot revoke upload links.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
-  const result = db.revokeUploadToken(req.params.id, actor, role);
+  const result = db.revokeUploadToken(req.params.id, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -397,12 +863,9 @@ app.post('/api/public/upload-portal/:token/submit', (req: Request, res: Response
 
 // 1. Interviews
 app.post('/api/candidates/:id/interviews', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot schedule interviews.' });
-    return;
-  }
-  const result = db.addInterviewRound(req.params.id, req.body, actor, role);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const result = db.addInterviewRound(req.params.id, req.body, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -411,8 +874,9 @@ app.post('/api/candidates/:id/interviews', (req: Request, res: Response) => {
 });
 
 app.put('/api/candidates/:id/interviews/:roundId', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  const result = db.updateInterviewRound(req.params.id, req.params.roundId, req.body, actor, role);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const result = db.updateInterviewRound(req.params.id, req.params.roundId, req.body, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -421,12 +885,9 @@ app.put('/api/candidates/:id/interviews/:roundId', (req: Request, res: Response)
 });
 
 app.delete('/api/candidates/:id/interviews/:roundId', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot delete interview rounds.' });
-    return;
-  }
-  const result = db.deleteInterviewRound(req.params.id, req.params.roundId, actor, role);
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const result = db.deleteInterviewRound(req.params.id, req.params.roundId, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -434,42 +895,113 @@ app.delete('/api/candidates/:id/interviews/:roundId', (req: Request, res: Respon
   res.json(result);
 });
 
-// 2. Offer Letter
-app.post('/api/candidates/:id/offer-letter/generate', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot generate offer letters.' });
-    return;
+// 2. Offer Letter (STRICTLY HR and Co-Founder for generate/edit; CEO can preview & download saved .docx)
+app.post('/api/candidates/:id/offer-letter/generate', async (req: Request, res: Response) => {
+  try {
+    const auth = authenticateRequest(req, res, ['HR', 'Co-Founder']);
+    if (!auth) return;
+
+    const candidate = db.getEmployeeById(req.params.id, auth.role);
+    if (!candidate) {
+      res.status(404).json({ error: 'Candidate not found' });
+      return;
+    }
+
+    const customOverrides = (req.body || {}) as Partial<OfferLetterData>;
+    const previewOffer = buildOfferLetterData(candidate, customOverrides, db.getSalaryStructures());
+    const docxBuffer = await generateWcrOfferLetterDocx(previewOffer);
+    const result = db.saveGeneratedOfferLetterWithDocx(
+      req.params.id,
+      auth.actor,
+      auth.role,
+      customOverrides,
+      docxBuffer
+    );
+
+    if (!result.success) {
+      res.status(400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (err: any) {
+    console.error('[Offer Generate Error]:', err);
+    res.status(500).json({ error: err.message || 'Failed to generate and save offer letter.' });
   }
-  const result = db.generateOfferLetter(req.params.id, actor, role, req.body);
-  if (!result.success) {
-    res.status(400).json(result);
-    return;
-  }
-  res.json(result);
 });
 
-app.put('/api/candidates/:id/offer-letter', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot edit offer letters.' });
+app.put('/api/candidates/:id/offer-letter', async (req: Request, res: Response) => {
+  try {
+    const auth = authenticateRequest(req, res, ['HR', 'Co-Founder']);
+    if (!auth) return;
+
+    const candidate = db.getEmployeeById(req.params.id, auth.role);
+    if (!candidate) {
+      res.status(404).json({ error: 'Candidate not found' });
+      return;
+    }
+
+    const customOverrides = (req.body || {}) as Partial<OfferLetterData>;
+    const previewOffer = buildOfferLetterData(candidate, customOverrides, db.getSalaryStructures());
+    const docxBuffer = await generateWcrOfferLetterDocx(previewOffer);
+    const result = db.saveGeneratedOfferLetterWithDocx(
+      req.params.id,
+      auth.actor,
+      auth.role,
+      customOverrides,
+      docxBuffer
+    );
+
+    if (!result.success) {
+      res.status(400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (err: any) {
+    console.error('[Offer Update Error]:', err);
+    res.status(500).json({ error: err.message || 'Failed to update and save offer letter.' });
+  }
+});
+
+app.get('/api/candidates/:id/offer-letter/files', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+
+  const candidate = db.getEmployeeById(req.params.id, auth.role);
+  if (!candidate) {
+    res.status(404).json({ error: 'Candidate not found' });
     return;
   }
-  const result = db.generateOfferLetter(req.params.id, actor, role, req.body);
-  if (!result.success) {
-    res.status(400).json(result);
+
+  res.json({
+    candidateId: candidate.id,
+    candidateName: candidate.fullName,
+    savedOfferLetters: candidate.savedOfferLetters || [],
+    currentOfferLetter: candidate.offerLetter || null,
+  });
+});
+
+app.get('/api/candidates/:id/offer-letter/files/:fileId/download', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+
+  const saved = db.getSavedOfferLetterFile(req.params.id, req.params.fileId);
+  if (!saved) {
+    res.status(404).json({ error: 'Saved offer letter .docx file not found.' });
     return;
   }
-  res.json(result);
+
+  const stat = fs.statSync(saved.filePath);
+  const sanitizedFileName = saved.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition', `attachment; filename="${sanitizedFileName}"`);
+  res.setHeader('Content-Length', stat.size.toString());
+  fs.createReadStream(saved.filePath).pipe(res);
 });
 
 app.post('/api/candidates/:id/offer-letter/approve', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER' || role === 'HR_EXECUTIVE') {
-    res.status(403).json({ error: 'Permission denied: Requires HR Admin or HR Manager approval.' });
-    return;
-  }
-  const result = db.approveOfferLetter(req.params.id, actor, role);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const result = db.approveOfferLetter(req.params.id, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -478,12 +1010,9 @@ app.post('/api/candidates/:id/offer-letter/approve', (req: Request, res: Respons
 });
 
 app.post('/api/candidates/:id/offer-letter/issue', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot issue offer letters.' });
-    return;
-  }
-  const result = db.issueOfferLetter(req.params.id, actor, role);
+  const auth = authenticateRequest(req, res, ['HR', 'Co-Founder']);
+  if (!auth) return;
+  const result = db.issueOfferLetter(req.params.id, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -492,8 +1021,15 @@ app.post('/api/candidates/:id/offer-letter/issue', (req: Request, res: Response)
 });
 
 app.post('/api/candidates/:id/offer-letter/accept', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   const { signatureName, actor } = req.body || {};
-  const result = db.acceptOfferLetter(req.params.id, signatureName || 'Candidate', actor || 'Candidate Portal');
+  const result = db.acceptOfferLetter(
+    req.params.id,
+    signatureName || 'Candidate',
+    actor || auth.actor,
+    auth.role
+  );
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -501,38 +1037,139 @@ app.post('/api/candidates/:id/offer-letter/accept', (req: Request, res: Response
   res.json(result);
 });
 
-// Email approved offer letter to candidate (requires prior approval by HR)
-app.post('/api/candidates/:id/offer-letter/email', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot dispatch offer letters.' });
+// Email approved offer letter to candidate via real Email API (requires prior approval)
+app.post('/api/candidates/:id/offer-letter/email', async (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ['HR', 'Co-Founder']);
+  if (!auth) return;
+
+  const candidate = db.getEmployeeById(req.params.id, auth.role);
+  if (!candidate || !candidate.offerLetter) {
+    res.status(404).json({ success: false, error: 'Candidate or offer letter not found.' });
     return;
   }
-  const result = db.emailOfferLetter(req.params.id, actor, role);
+
+  if (
+    candidate.offerLetter.status !== 'Approved' &&
+    candidate.offerLetter.status !== 'Issued' &&
+    candidate.offerLetter.status !== 'Accepted'
+  ) {
+    res.status(400).json({
+      success: false,
+      error: 'The offer letter must be formally approved before emailing the candidate.',
+    });
+    return;
+  }
+
+  // Ensure we attach the saved .docx (or generate & save if missing)
+  let docxBuffer: Buffer;
+  let attachmentName: string;
+  const latestSaved = db.getSavedOfferLetterFile(candidate.id);
+  if (latestSaved && fs.existsSync(latestSaved.filePath)) {
+    docxBuffer = fs.readFileSync(latestSaved.filePath);
+    attachmentName = latestSaved.fileName;
+  } else {
+    const offerData = buildOfferLetterData(candidate, candidate.offerLetter, db.getSalaryStructures());
+    docxBuffer = await generateWcrOfferLetterDocx(offerData);
+    const savedRes = db.saveGeneratedOfferLetterWithDocx(
+      candidate.id,
+      auth.actor,
+      auth.role,
+      candidate.offerLetter,
+      docxBuffer
+    );
+    attachmentName = savedRes.savedFile?.fileName || `Offer_Letter_${candidate.fullName}.docx`;
+  }
+
+  const emailRes = await sendEmailNotification({
+    to: candidate.email,
+    subject: `Official Offer of Employment — White Collar Realty (${candidate.offerLetter.designation})`,
+    text: `Dear ${candidate.fullName},\n\nCongratulations! Please find attached your official Offer Letter (Ref: ${candidate.offerLetter.refNo}) for the position of ${candidate.offerLetter.designation} (${candidate.offerLetter.department}) at White Collar Realty.\n\nProposed Joining Date: ${candidate.offerLetter.joiningDate}\nOffer Valid Till: ${candidate.offerLetter.validTillDate}\n\nWarm regards,\n${auth.actor}\nWhite Collar Realty HR`,
+    attachments: [
+      {
+        filename: attachmentName,
+        content: docxBuffer,
+        contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      },
+    ],
+  });
+
+  db.addNotificationDeliveryLog({
+    category: 'OFFER_LETTER_EMAIL',
+    personId: candidate.id,
+    personName: candidate.fullName,
+    channel: 'EMAIL',
+    provider: emailRes.provider,
+    recipient: emailRes.recipient || candidate.email,
+    status: emailRes.ok ? 'SENT' : 'FAILED',
+    attemptNumber: 1,
+    messageId: emailRes.messageId,
+    statusCode: emailRes.statusCode,
+    error: emailRes.error,
+    summary: emailRes.ok
+      ? `Emailed official .docx offer letter (${attachmentName}) to ${candidate.email}.`
+      : `Offer letter email dispatch failed (${emailRes.provider}): ${emailRes.error}`,
+  });
+
+  if (!emailRes.ok) {
+    res.status(502).json({
+      success: false,
+      error: emailRes.error || 'Real Email API dispatch failed.',
+      deliveryResult: emailRes,
+    });
+    return;
+  }
+
+  const result = db.emailOfferLetter(req.params.id, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
   }
-  res.json(result);
+  res.json({ ...result, deliveryResult: emailRes });
 });
 
-// Download Offer Letter in Genuine Editable Microsoft Word (.docx) Format
+// Download Saved Offer Letter in Genuine Editable Microsoft Word (.docx) Format
 app.get('/api/candidates/:id/offer-letter/docx', async (req: Request, res: Response) => {
   try {
-    const { role } = getAuthContext(req);
-    if (role === 'DEPT_HEAD_VIEWER') {
-      res.status(403).json({ error: 'Permission denied: Compensation offer letters are restricted to HR and Finance.' });
-      return;
-    }
+    const auth = authenticateRequest(req, res, ALL_ROLES);
+    if (!auth) return;
 
-    const candidate = db.getEmployeeById(req.params.id, role);
+    const candidate = db.getEmployeeById(req.params.id, auth.role);
     if (!candidate) {
       res.status(404).json({ error: 'Candidate not found' });
       return;
     }
 
+    const latestSaved = db.getSavedOfferLetterFile(candidate.id);
+    if (latestSaved && fs.existsSync(latestSaved.filePath)) {
+      const stat = fs.statSync(latestSaved.filePath);
+      const sanitizedFileName = latestSaved.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${sanitizedFileName}"`);
+      res.setHeader('Content-Length', stat.size.toString());
+      fs.createReadStream(latestSaved.filePath).pipe(res);
+      return;
+    }
+
+    if (!candidate.offerLetter && auth.role === 'CEO') {
+      res.status(404).json({
+        error: 'No saved offer letter exists for this candidate yet. Only HR and Co-Founder can generate offer letters.',
+      });
+      return;
+    }
+
     const offerData = buildOfferLetterData(candidate, candidate.offerLetter, db.getSalaryStructures());
     const docxBuffer = await generateWcrOfferLetterDocx(offerData);
+
+    if (auth.role === 'HR' || auth.role === 'Co-Founder') {
+      db.saveGeneratedOfferLetterWithDocx(
+        candidate.id,
+        auth.actor,
+        auth.role,
+        candidate.offerLetter,
+        docxBuffer
+      );
+    }
+
     const sanitizedName = (offerData.candidateName || candidate.fullName || 'Candidate').replace(/[^a-zA-Z0-9_-]/g, '_');
     const filename = `White_Collar_Realty_Offer_Letter_${sanitizedName}.docx`;
 
@@ -542,19 +1179,17 @@ app.get('/api/candidates/:id/offer-letter/docx', async (req: Request, res: Respo
     res.send(docxBuffer);
   } catch (error: any) {
     console.error('[Docx Export Error]:', error);
-    res.status(500).json({ error: error.message || 'Failed to generate Word offer letter' });
+    res.status(500).json({ error: error.message || 'Failed to download Word offer letter' });
   }
 });
 
+// Generate + Save + Download Offer Letter (.docx) — STRICTLY HR & Co-Founder
 app.post('/api/candidates/:id/offer-letter/docx', async (req: Request, res: Response) => {
   try {
-    const { role } = getAuthContext(req);
-    if (role === 'DEPT_HEAD_VIEWER') {
-      res.status(403).json({ error: 'Permission denied: Compensation offer letters are restricted to HR and Finance.' });
-      return;
-    }
+    const auth = authenticateRequest(req, res, ['HR', 'Co-Founder']);
+    if (!auth) return;
 
-    const candidate = db.getEmployeeById(req.params.id, role);
+    const candidate = db.getEmployeeById(req.params.id, auth.role);
     if (!candidate) {
       res.status(404).json({ error: 'Candidate not found' });
       return;
@@ -564,8 +1199,17 @@ app.post('/api/candidates/:id/offer-letter/docx', async (req: Request, res: Resp
     const mergedData = buildOfferLetterData(candidate, customData, db.getSalaryStructures());
 
     const docxBuffer = await generateWcrOfferLetterDocx(mergedData);
-    const sanitizedName = (mergedData.candidateName || candidate.fullName || 'Candidate').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = `White_Collar_Realty_Offer_Letter_${sanitizedName}.docx`;
+    const saved = db.saveGeneratedOfferLetterWithDocx(
+      candidate.id,
+      auth.actor,
+      auth.role,
+      customData,
+      docxBuffer
+    );
+
+    const filename =
+      saved.savedFile?.fileName ||
+      `White_Collar_Realty_Offer_Letter_${(mergedData.candidateName || candidate.fullName || 'Candidate').replace(/[^a-zA-Z0-9_-]/g, '_')}.docx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -579,36 +1223,31 @@ app.post('/api/candidates/:id/offer-letter/docx', async (req: Request, res: Resp
 
 // Configurable Role-Based Salary Structures Endpoints
 app.get('/api/salary-structures', (req: Request, res: Response) => {
-  const { role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Salary structures are restricted to HR & Finance.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   res.json({ structures: db.getSalaryStructures() });
 });
 
 app.post('/api/salary-structures', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role !== 'HR_ADMIN' && role !== 'HR_MANAGER' && role !== 'FINANCE_ADMIN') {
-    res.status(403).json({ error: 'Permission denied: Only HR Admin, HR Manager, or Finance Admin can configure role salary structures.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, ['HR', 'Co-Founder']);
+  if (!auth) return;
   const body = (req.body || {}) as Partial<RoleSalaryStructure>;
   if (!body.designation || !body.designation.trim()) {
     res.status(400).json({ error: 'designation is required.' });
     return;
   }
-  const saved = db.saveSalaryStructure(body as Partial<RoleSalaryStructure> & { designation: string }, actor, role);
+  const saved = db.saveSalaryStructure(
+    body as Partial<RoleSalaryStructure> & { designation: string },
+    auth.actor,
+    auth.role
+  );
   res.json({ success: true, structure: saved, structures: db.getSalaryStructures() });
 });
 
 app.delete('/api/salary-structures/:id', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role !== 'HR_ADMIN' && role !== 'HR_MANAGER') {
-    res.status(403).json({ error: 'Permission denied: Only HR Admin or HR Manager can delete role salary structures.' });
-    return;
-  }
-  const deleted = db.deleteSalaryStructure(req.params.id, actor, role);
+  const auth = authenticateRequest(req, res, ['HR', 'Co-Founder']);
+  if (!auth) return;
+  const deleted = db.deleteSalaryStructure(req.params.id, auth.actor, auth.role);
   if (!deleted) {
     res.status(400).json({ error: 'Could not delete salary structure.' });
     return;
@@ -618,6 +1257,8 @@ app.delete('/api/salary-structures/:id', (req: Request, res: Response) => {
 
 // Master Offer Letter Template (Full 10-page legal clauses and annexures)
 app.get('/api/offer-letter/master-template', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   res.json({
     templateVersion: 'v1.0-official-10page',
     companyName: 'White Collar Realty',
@@ -634,6 +1275,8 @@ app.get('/api/offer-letter/master-template', (req: Request, res: Response) => {
 
 // Missing Document Reminders Endpoints
 app.get('/api/candidates/:id/missing-documents', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   const result = db.getMissingRequiredDocuments(req.params.id);
   if (!result.candidate) {
     res.status(404).json({ error: 'Candidate not found' });
@@ -642,12 +1285,9 @@ app.get('/api/candidates/:id/missing-documents', (req: Request, res: Response) =
   res.json(result);
 });
 
-app.post('/api/candidates/:id/reminders/send', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot dispatch reminders.' });
-    return;
-  }
+app.post('/api/candidates/:id/reminders/send', async (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ['HR', 'Co-Founder']);
+  if (!auth) return;
 
   const { channel, missingDocumentKeys, deadlineHours, messageBody, emailSubject, recipientEmail, recipientPhone } = req.body || {};
   if (!channel || (channel !== 'EMAIL' && channel !== 'WHATSAPP' && channel !== 'BOTH')) {
@@ -666,19 +1306,74 @@ app.post('/api/candidates/:id/reminders/send', (req: Request, res: Response) => 
       recipientEmail,
       recipientPhone,
     },
-    actor,
-    role
+    auth.actor,
+    auth.role
   );
 
-  if (!result.success) {
+  if (!result.success || !result.reminder || !result.candidate) {
     res.status(400).json(result);
     return;
   }
-  res.json(result);
+
+  const deliveryResults: Record<string, any> = {};
+  if (channel === 'EMAIL' || channel === 'BOTH') {
+    const emailRes = await sendEmailNotification({
+      to: result.reminder.recipientEmail,
+      subject: result.reminder.emailSubject || 'Action Required: Missing Onboarding Documents — White Collar Realty',
+      text: result.reminder.messageBody,
+    });
+    deliveryResults.email = emailRes;
+    db.addNotificationDeliveryLog({
+      category: 'DOCUMENT_REMINDER',
+      reminderId: result.reminder.id,
+      personId: result.candidate.id,
+      personName: result.candidate.fullName,
+      channel: 'EMAIL',
+      provider: emailRes.provider,
+      recipient: emailRes.recipient || result.reminder.recipientEmail,
+      status: emailRes.ok ? 'SENT' : 'FAILED',
+      attemptNumber: 1,
+      messageId: emailRes.messageId,
+      statusCode: emailRes.statusCode,
+      error: emailRes.error,
+      summary: emailRes.ok
+        ? `Sent missing-document email reminder to ${result.reminder.recipientEmail}.`
+        : `Missing-document email failed (${emailRes.provider}): ${emailRes.error}`,
+    });
+  }
+
+  if (channel === 'WHATSAPP' || channel === 'BOTH') {
+    const waRes = await sendWhatsAppNotification({
+      toPhone: result.reminder.recipientPhone,
+      message: result.reminder.messageBody,
+    });
+    deliveryResults.whatsapp = waRes;
+    db.addNotificationDeliveryLog({
+      category: 'DOCUMENT_REMINDER',
+      reminderId: result.reminder.id,
+      personId: result.candidate.id,
+      personName: result.candidate.fullName,
+      channel: 'WHATSAPP',
+      provider: waRes.provider,
+      recipient: waRes.recipient || result.reminder.recipientPhone,
+      status: waRes.ok ? 'SENT' : 'FAILED',
+      attemptNumber: 1,
+      messageId: waRes.messageId,
+      statusCode: waRes.statusCode,
+      error: waRes.error,
+      summary: waRes.ok
+        ? `Sent missing-document WhatsApp reminder to ${waRes.recipient}.`
+        : `Missing-document WhatsApp failed (${waRes.provider}): ${waRes.error}`,
+    });
+  }
+
+  res.json({ ...result, deliveryResults });
 });
 
 app.get('/api/candidates/:id/reminders', (req: Request, res: Response) => {
-  const cand = db.getEmployeeById(req.params.id, 'HR_ADMIN');
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const cand = db.getEmployeeById(req.params.id, auth.role);
   if (!cand) {
     res.status(404).json({ error: 'Candidate not found' });
     return;
@@ -695,8 +1390,9 @@ app.get('/api/candidates/:id/reminders', (req: Request, res: Response) => {
 
 // 3. Probation Management
 app.post('/api/employees/:id/probation/review', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  const result = db.recordProbationReview(req.params.id, req.body, actor, role);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const result = db.recordProbationReview(req.params.id, req.body, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -705,13 +1401,10 @@ app.post('/api/employees/:id/probation/review', (req: Request, res: Response) =>
 });
 
 app.post('/api/employees/:id/probation/confirm', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot confirm probation.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   const { confirmationLetterRef } = req.body || {};
-  const result = db.confirmProbation(req.params.id, actor, role, confirmationLetterRef);
+  const result = db.confirmProbation(req.params.id, auth.actor, auth.role, confirmationLetterRef);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -720,13 +1413,10 @@ app.post('/api/employees/:id/probation/confirm', (req: Request, res: Response) =
 });
 
 app.post('/api/employees/:id/probation/extend', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot extend probation.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   const { extensionMonths, reason } = req.body || {};
-  const result = db.extendProbation(req.params.id, extensionMonths || 1, reason || 'Performance observation', actor, role);
+  const result = db.extendProbation(req.params.id, extensionMonths || 1, reason || 'Performance observation', auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -736,12 +1426,9 @@ app.post('/api/employees/:id/probation/extend', (req: Request, res: Response) =>
 
 // 4. Exit, Clearances & FnF Settlement
 app.post('/api/employees/:id/exit/initiate', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot initiate exits.' });
-    return;
-  }
-  const result = db.initiateExit(req.params.id, req.body, actor, role);
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const result = db.initiateExit(req.params.id, req.body, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -750,7 +1437,8 @@ app.post('/api/employees/:id/exit/initiate', (req: Request, res: Response) => {
 });
 
 app.put('/api/employees/:id/exit/clearance/:dept', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   const rawDept = req.params.dept;
   const deptKey = (
     rawDept === 'it' || rawDept === 'itClearance' ? 'itClearance' :
@@ -758,7 +1446,7 @@ app.put('/api/employees/:id/exit/clearance/:dept', (req: Request, res: Response)
     rawDept === 'finance' || rawDept === 'financeClearance' ? 'financeClearance' :
     'deptHeadClearance'
   );
-  const result = db.updateExitClearance(req.params.id, deptKey, req.body, actor, role);
+  const result = db.updateExitClearance(req.params.id, deptKey, req.body, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -767,6 +1455,8 @@ app.put('/api/employees/:id/exit/clearance/:dept', (req: Request, res: Response)
 });
 
 app.post('/api/employees/:id/exit/fnf/calculate', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
   const result = db.calculateFnF(req.params.id, req.body);
   if (!result.success) {
     res.status(400).json(result);
@@ -776,12 +1466,9 @@ app.post('/api/employees/:id/exit/fnf/calculate', (req: Request, res: Response) 
 });
 
 app.post('/api/employees/:id/exit/fnf/settle', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot execute settlements.' });
-    return;
-  }
-  const result = db.finalizeFnFSettlement(req.params.id, req.body || {}, actor, role);
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const result = db.finalizeFnFSettlement(req.params.id, req.body || {}, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -793,16 +1480,15 @@ app.post('/api/employees/:id/exit/fnf/settle', (req: Request, res: Response) => 
 // Desk Allocation Endpoints
 // --------------------------------------------------------------------------
 app.get('/api/desks', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   const desks = db.getDesks();
   res.json({ desks, total: desks.length, allowedDesks: ALL_DESK_CODES });
 });
 
 app.post('/api/desks/assign', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot allocate desks.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
   const { deskCode, employeeId } = req.body;
   if (!deskCode || !employeeId) {
@@ -810,7 +1496,7 @@ app.post('/api/desks/assign', (req: Request, res: Response) => {
     return;
   }
 
-  const result = db.assignDesk(deskCode, employeeId, actor, role);
+  const result = db.assignDesk(deskCode, employeeId, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -819,11 +1505,8 @@ app.post('/api/desks/assign', (req: Request, res: Response) => {
 });
 
 app.post('/api/desks/release', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot release desks.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
   const { deskCode } = req.body;
   if (!deskCode) {
@@ -831,7 +1514,7 @@ app.post('/api/desks/release', (req: Request, res: Response) => {
     return;
   }
 
-  const result = db.releaseDesk(deskCode, actor, role);
+  const result = db.releaseDesk(deskCode, auth.actor, auth.role);
   if (!result.success) {
     res.status(400).json(result);
     return;
@@ -840,14 +1523,18 @@ app.post('/api/desks/release', (req: Request, res: Response) => {
 });
 
 // --------------------------------------------------------------------------
-// Company Assets & Inventory Endpoints
+// Company Assets & Inventory Endpoints (Managed inside Candidate/Employee Profile)
 // --------------------------------------------------------------------------
 app.get('/api/assets', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   const assets = db.getAssets();
   res.json({ assets, total: assets.length });
 });
 
 app.get('/api/assets/:id', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   const asset = db.getAssetById(req.params.id);
   if (!asset) {
     res.status(404).json({ error: 'Asset not found' });
@@ -857,24 +1544,18 @@ app.get('/api/assets/:id', (req: Request, res: Response) => {
 });
 
 app.post('/api/assets', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot create assets.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
-  const created = db.createAsset(req.body, actor, role);
+  const created = db.createAsset(req.body, auth.actor, auth.role);
   res.status(201).json(created);
 });
 
 app.put('/api/assets/:id', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot edit assets.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
-  const updated = db.updateAsset(req.params.id, req.body, actor, role);
+  const updated = db.updateAsset(req.params.id, req.body, auth.actor, auth.role);
   if (!updated) {
     res.status(404).json({ error: 'Asset not found' });
     return;
@@ -883,19 +1564,24 @@ app.put('/api/assets/:id', (req: Request, res: Response) => {
 });
 
 app.post('/api/assets/:id/issue', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
-  const { employeeId, issueDate, notes } = req.body;
+  const { employeeId, issueDate, expectedReturnDate, notes } = req.body;
   if (!employeeId) {
     res.status(400).json({ error: 'employeeId is required.' });
     return;
   }
 
-  const updated = db.issueAsset(req.params.id, employeeId, issueDate, notes, actor, role);
+  const updated = db.issueAsset(
+    req.params.id,
+    employeeId,
+    issueDate,
+    notes,
+    auth.actor,
+    auth.role,
+    expectedReturnDate
+  );
   if (!updated) {
     res.status(400).json({ error: 'Unable to issue asset. Verify asset and employee exist.' });
     return;
@@ -904,14 +1590,11 @@ app.post('/api/assets/:id/issue', (req: Request, res: Response) => {
 });
 
 app.post('/api/assets/:id/return', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
   const { returnDate, condition, notes } = req.body;
-  const updated = db.returnAsset(req.params.id, returnDate, condition, notes, actor, role);
+  const updated = db.returnAsset(req.params.id, returnDate, condition, notes, auth.actor, auth.role);
   if (!updated) {
     res.status(404).json({ error: 'Asset not found' });
     return;
@@ -920,11 +1603,8 @@ app.post('/api/assets/:id/return', (req: Request, res: Response) => {
 });
 
 app.post('/api/assets/:id/transfer', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
   const { newEmployeeId, notes } = req.body;
   if (!newEmployeeId) {
@@ -932,7 +1612,7 @@ app.post('/api/assets/:id/transfer', (req: Request, res: Response) => {
     return;
   }
 
-  const updated = db.transferAsset(req.params.id, newEmployeeId, notes, actor, role);
+  const updated = db.transferAsset(req.params.id, newEmployeeId, notes, auth.actor, auth.role);
   if (!updated) {
     res.status(400).json({ error: 'Unable to transfer asset.' });
     return;
@@ -941,17 +1621,55 @@ app.post('/api/assets/:id/transfer', (req: Request, res: Response) => {
 });
 
 // --------------------------------------------------------------------------
-// Audit Logs
+// Audit Logs & Automation Endpoints
 // --------------------------------------------------------------------------
 app.get('/api/audit-logs', (req: Request, res: Response) => {
-  const logs = db.getAuditLogs(100);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const logs = db.getAuditLogs(150);
   res.json({ logs });
 });
 
+app.get('/api/automation/status', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  res.json(getSchedulerRuntimeStatus());
+});
+
+app.get('/api/automation/asset-reminders', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const personId = req.query.personId as string | undefined;
+  const reminders = db.getAssetReturnReminders(personId);
+  res.json({ reminders, total: reminders.length });
+});
+
+app.get('/api/automation/delivery-logs', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const personId = req.query.personId as string | undefined;
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 150;
+  const logs = db.getNotificationDeliveryLogs(isNaN(limit) ? 150 : limit, personId);
+  res.json({ logs, total: logs.length });
+});
+
+app.post('/api/automation/asset-reminders/run', async (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ['HR', 'Co-Founder']);
+  if (!auth) return;
+  const referenceDate = req.body?.referenceDate as string | undefined;
+  const summary = await runAssetReturnReminderSweep({
+    referenceDate,
+    triggeredBy: `${auth.actor} (${auth.role})`,
+  });
+  res.json({ success: true, summary });
+});
+
 // --------------------------------------------------------------------------
-// Upcoming Alerts (Internship Completion & Employee Birthdays)
+// Upcoming Alerts (Internship Completion, Birthdays & Candidate Missing Docs)
 // --------------------------------------------------------------------------
 app.get('/api/alerts', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   const refDate = req.query.refDate as string | undefined;
   const maxDays = req.query.maxDays ? parseInt(req.query.maxDays as string, 10) : 2;
   const activeOnly = req.query.activeOnly !== 'false';
@@ -968,7 +1686,8 @@ app.get('/api/alerts', (req: Request, res: Response) => {
 });
 
 app.post('/api/alerts/dismiss', (req: Request, res: Response) => {
-  const { actor } = getAuthContext(req);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
   const { alertId } = req.body;
 
   if (!alertId) {
@@ -976,18 +1695,22 @@ app.post('/api/alerts/dismiss', (req: Request, res: Response) => {
     return;
   }
 
-  const success = db.dismissAlert(alertId, actor);
+  const success = db.dismissAlert(alertId, auth.actor);
   res.json({ success, alertId });
 });
 
-app.post('/api/alerts/reset-dismissed', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot reset alerts.' });
-    return;
-  }
+app.post('/api/alerts/dismiss-missing-docs', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const candidateId = req.body?.candidateId as string | undefined;
+  const result = db.dismissMissingDocumentAlerts(auth.actor, auth.role, candidateId);
+  res.json({ success: true, ...result });
+});
 
-  const success = db.resetDismissedAlerts(actor);
+app.post('/api/alerts/reset-dismissed', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const success = db.resetDismissedAlerts(auth.actor);
   res.json({ success, message: 'Dismissed alerts reset successfully.' });
 });
 
@@ -995,6 +1718,8 @@ app.post('/api/alerts/reset-dismissed', (req: Request, res: Response) => {
 // Spreadsheet Import & Parsing Endpoints
 // --------------------------------------------------------------------------
 app.post('/api/import/preview', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
   try {
     const { fileBase64, csvText, targetType } = req.body;
     let workbook: XLSX.WorkBook;
@@ -1019,7 +1744,7 @@ app.post('/api/import/preview', (req: Request, res: Response) => {
     }
 
     const headers = Object.keys(rawRows[0]);
-    const existingEmployees = db.getEmployees('HR_ADMIN');
+    const existingEmployees = db.getEmployees('HR');
 
     // Smart Column Matching & Mapping
     const previewRows = rawRows.map((row, idx) => {
@@ -1199,11 +1924,8 @@ app.post('/api/import/preview', (req: Request, res: Response) => {
 });
 
 app.post('/api/import/commit', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role === 'DEPT_HEAD_VIEWER') {
-    res.status(403).json({ error: 'Permission denied: Viewers cannot import records.' });
-    return;
-  }
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
 
   const { rows, mode } = req.body;
   if (!rows || !Array.isArray(rows)) {
@@ -1211,7 +1933,7 @@ app.post('/api/import/commit', (req: Request, res: Response) => {
     return;
   }
 
-  const summary = db.commitImportedRecords(rows, mode || 'merge', actor, role);
+  const summary = db.commitImportedRecords(rows, mode || 'merge', auth.actor, auth.role);
   res.json(summary);
 });
 
@@ -1219,16 +1941,19 @@ app.post('/api/import/commit', (req: Request, res: Response) => {
 // Backup & Export (JSON & Excel)
 // --------------------------------------------------------------------------
 app.get('/api/export/backup', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ['HR', 'Co-Founder']);
+  if (!auth) return;
   const rawData = db.getRawData();
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', `attachment; filename=WhiteCollarRealty_HR_Backup_${Date.now()}.json`);
   res.send(JSON.stringify(rawData, null, 2));
 });
 
-// Requirement 5: Single-sheet Excel export (1 row per person, sorted alphabetically)
+// Single-sheet Excel export (1 row per person, sorted alphabetically)
 app.get('/api/export/excel/single-sheet', (req: Request, res: Response) => {
-  const { role } = getAuthContext(req);
-  const data = db.generateSingleSheetExportData(role);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const data = db.generateSingleSheetExportData(auth.role);
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(data);
   XLSX.utils.book_append_sheet(wb, ws, 'Master Personnel Directory');
@@ -1239,7 +1964,9 @@ app.get('/api/export/excel/single-sheet', (req: Request, res: Response) => {
 });
 
 app.get('/api/export/excel', (req: Request, res: Response) => {
-  const { role } = getAuthContext(req);
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  const { role } = auth;
   if (req.query.format === 'single' || req.query.format === 'single-sheet') {
     const data = db.generateSingleSheetExportData(role);
     const wb = XLSX.utils.book_new();
@@ -1322,6 +2049,7 @@ app.get('/api/export/excel', (req: Request, res: Response) => {
     'Assigned To': a.assignedEmployeeName || 'Unassigned',
     'Employee Code': a.assignedEmployeeCode || '—',
     'Issue Date': a.issueDate || '—',
+    'Expected Return Date': a.expectedReturnDate || '—',
     'Return Date': a.returnDate || '—',
     'Notes': a.notes || '',
   }));
@@ -1347,12 +2075,9 @@ app.get('/api/export/excel', (req: Request, res: Response) => {
 
 // Database reset endpoint
 app.post('/api/database/reset', (req: Request, res: Response) => {
-  const { actor, role } = getAuthContext(req);
-  if (role !== 'HR_ADMIN') {
-    res.status(403).json({ error: 'Permission denied: Only HR Admin can reset the database.' });
-    return;
-  }
-  db.resetToSeed(actor, role);
+  const auth = authenticateRequest(req, res, ['HR', 'Co-Founder']);
+  if (!auth) return;
+  db.resetToSeed(auth.actor, auth.role);
   res.json({ success: true, message: 'Database reset to original seed data.' });
 });
 
@@ -1373,6 +2098,8 @@ async function startServer() {
       res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
     });
   }
+
+  startAutomationScheduler();
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[SERVER] White Collar Realty HR System running at http://0.0.0.0:${PORT}`);

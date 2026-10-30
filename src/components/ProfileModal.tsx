@@ -36,6 +36,9 @@ import {
   Trash2,
   Loader2,
   Download,
+  Bell,
+  Eye,
+  QrCode,
 } from 'lucide-react';
 import {
   Employee,
@@ -48,7 +51,12 @@ import {
   ALL_DESK_CODES,
   UploadToken,
   AuditLog,
+  OfferLetterData,
+  AssetReturnReminderRecord,
+  DepartmentWithCounts,
+  LiveQrUploadEvent,
 } from '../types/index.js';
+import { api } from '../services/api.js';
 import { LiveDocumentViewerModal } from './LiveDocumentViewerModal.js';
 import { LifecycleTimeline } from './LifecycleTimeline.js';
 
@@ -62,7 +70,13 @@ interface ProfileModalProps {
   auditLogs?: AuditLog[];
   userRole: UserRole;
   currentUserName: string;
-  onIssueAsset?: (assetId: string, employeeId: string, issueDate: string, notes: string) => Promise<void>;
+  onIssueAsset?: (
+    assetId: string,
+    employeeId: string,
+    issueDate: string,
+    notes: string,
+    expectedReturnDate?: string | null
+  ) => Promise<void>;
   onCreateAndIssueAsset?: (assetData: Partial<CompanyAsset>) => Promise<void>;
   onReturnAsset?: (assetId: string, returnDate: string, condition: AssetCondition, notes: string) => Promise<void>;
   onUpdateAsset?: (assetId: string, updates: Partial<CompanyAsset>) => Promise<void>;
@@ -70,8 +84,22 @@ interface ProfileModalProps {
   onGenerateUploadLink?: (candidateId: string, options?: { expiryDays?: number; isOneTime?: boolean }) => Promise<{ success: boolean; token: UploadToken; message: string }>;
   onRevokeUploadLink?: (candidateId: string) => Promise<{ success: boolean; message: string }>;
   onOpenCandidatePortal?: (token: string) => void;
-  onOpenOfferLetter?: (employee: Employee) => void;
+  onOpenOfferLetter?: (employee: Employee, snapshot?: OfferLetterData) => void;
+  departments?: DepartmentWithCounts[];
+  onOpenQrModal?: (person: Employee) => void;
+  liveQrUploads?: Record<string, LiveQrUploadEvent>;
 }
+
+const FALLBACK_DEPARTMENT_NAMES = [
+  'Gurgaon Market',
+  'Dubai Market',
+  'AI Intern',
+  'DM Intern',
+  'Marketing & Digital Media',
+  'Human Resources',
+  'Executive Leadership',
+  'Administration & Operations',
+];
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   employee,
@@ -92,6 +120,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onRevokeUploadLink,
   onOpenCandidatePortal,
   onOpenOfferLetter,
+  departments = [],
+  onOpenQrModal,
+  liveQrUploads = {},
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'family' | 'experience' | 'education' | 'references' | 'documents' | 'assets' | 'audit' | 'timeline'>('profile');
   const [isEditing, setIsEditing] = useState(false);
@@ -126,6 +157,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [issueMode, setIssueMode] = useState<'existing' | 'new'>('existing');
   const [selectedStockAssetId, setSelectedStockAssetId] = useState('');
   const [issueDateInput, setIssueDateInput] = useState(new Date().toISOString().split('T')[0]);
+  const [expectedReturnDateInput, setExpectedReturnDateInput] = useState(
+    employee.internshipCompletionDate || employee.jobEndDate || ''
+  );
   const [issueNotesInput, setIssueNotesInput] = useState('');
   
   // New asset form fields
@@ -150,10 +184,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   // Expanded history for an asset
   const [expandedHistoryAssetId, setExpandedHistoryAssetId] = useState<string | null>(null);
   const [assetActionLoading, setAssetActionLoading] = useState(false);
+  const [assetReminders, setAssetReminders] = useState<AssetReturnReminderRecord[]>([]);
+
+  React.useEffect(() => {
+    setExpectedReturnDateInput(employee.internshipCompletionDate || employee.jobEndDate || '');
+  }, [employee.id, employee.internshipCompletionDate, employee.jobEndDate]);
+
+  React.useEffect(() => {
+    if (!isOpen || activeTab !== 'assets') return;
+    api
+      .getAssetReminders(employee.id)
+      .then(res => setAssetReminders(res.reminders || []))
+      .catch(() => setAssetReminders([]));
+  }, [isOpen, activeTab, employee.id, assets.length]);
 
   if (!isOpen) return null;
 
-  const isViewer = userRole === 'DEPT_HEAD_VIEWER';
+  const canEdit = userRole === 'HR' || userRole === 'Co-Founder';
+  const canManageOffer = userRole === 'HR' || userRole === 'Co-Founder';
+  const savedOfferLetters = employee.savedOfferLetters || [];
+  const hasSavedOffer = Boolean(employee.offerLetter || savedOfferLetters.length > 0);
   
   // Active assets currently held by this employee/candidate
   const assignedAssets = assets.filter(
@@ -163,12 +213,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   // Assets previously returned by this person
   const returnedAssets = assets.filter(
     a =>
-      a.history.some(
-        h =>
-          h.action === 'Returned' &&
-          h.employeeName?.toLowerCase().includes(employee.fullName.toLowerCase())
-      ) ||
-      (a.assignedEmployeeId === employee.id && a.status === 'Available' && a.returnDate)
+      a.status !== 'In Use' &&
+      (a.lastAssignedEmployeeId === employee.id ||
+        a.history.some(
+          h =>
+            h.action === 'Returned' &&
+            h.employeeName?.toLowerCase().includes(employee.fullName.toLowerCase())
+        ) ||
+        (a.assignedEmployeeId === employee.id && a.status === 'Available' && a.returnDate))
   );
 
   // Available stock assets ready to be issued
@@ -245,14 +297,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 )}
               </div>
               <p className="text-[11px] sm:text-xs text-slate-300 truncate mt-0.5">
-                {employee.designation} · {employee.department} · {employee.market} Market
+                {employee.designation} · {employee.department}
+                {employee.subDepartment ? ` (${employee.subDepartment})` : ''} · {employee.market} Market
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Completion Gauge */}
-            <div className="hidden sm:flex flex-col items-end">
+            <div className="hidden lg:flex flex-col items-end mr-1">
               <div className="flex items-center gap-1.5 text-xs">
                 <span className="text-slate-400">Profile Readiness:</span>
                 <span className="font-mono font-semibold text-amber-300 tabular-nums">
@@ -267,20 +320,33 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </div>
             </div>
 
-            {employee.isCandidate && onOpenOfferLetter && (
+            {onOpenQrModal && (
+              <button
+                type="button"
+                onClick={() => onOpenQrModal(employee)}
+                className="px-2.5 sm:px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+                title="Inspect missing documents & generate 24-hour candidate-specific QR code"
+              >
+                <QrCode className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Generate Document QR</span>
+                <span className="sm:hidden">Doc QR</span>
+              </button>
+            )}
+
+            {onOpenOfferLetter && ((employee.isCandidate && canManageOffer) || hasSavedOffer) && (
               <button
                 type="button"
                 onClick={() => onOpenOfferLetter(employee)}
                 className="px-2.5 sm:px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-400/40 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
-                title="Open Offer Letter Generator & Word (.docx) Export"
+                title={canManageOffer ? 'Open Offer Letter Generator & Word (.docx) Export' : 'Preview Saved Offer Letter'}
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Offer Letter</span>
+                <span className="hidden md:inline">{canManageOffer ? 'Offer Letter' : 'Preview Offer'}</span>
               </button>
             )}
 
-            {/* Direct Edit & Save Controls for Authorized Users */}
-            {!isViewer && (
+            {/* Direct Edit & Save Controls for Authorized Users (HR & Co-Founder) */}
+            {canEdit && (
               isEditing ? (
                 <div className="flex items-center gap-1.5">
                   <button
@@ -386,7 +452,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             })}
           </div>
 
-          {!isViewer && (
+          {canEdit && (
             <div className="flex items-center gap-2 shrink-0 py-1.5 ml-2">
               {isEditing ? (
                 <>
@@ -442,7 +508,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
                 <div>
                   <label className="text-xs font-medium text-slate-500">Employee / Candidate Code</label>
-                  {isEditing && !isViewer ? (
+                  {isEditing && canEdit ? (
                     <input
                       type="text"
                       value={formData.employeeCode || ''}
@@ -584,20 +650,79 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     {isEditing ? (
                       <select
                         value={formData.department || ''}
-                        onChange={e => setFormData({ ...formData, department: e.target.value })}
-                        className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
+                        onChange={e => {
+                          const nextDeptName = e.target.value;
+                          const matchedDept = departments.find(d => d.name === nextDeptName);
+                          const validSubs = matchedDept?.subDepartments.map(s => s.name) || [];
+                          setFormData({
+                            ...formData,
+                            department: nextDeptName,
+                            departmentId: matchedDept?.id,
+                            subDepartment:
+                              formData.subDepartment && validSubs.includes(formData.subDepartment)
+                                ? formData.subDepartment
+                                : validSubs[0] || '',
+                          });
+                        }}
+                        className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded bg-white"
                       >
-                        <option value="Sales & Investments">Sales & Investments</option>
-                        <option value="Luxury Residential & Investments">Luxury Residential & Investments</option>
-                        <option value="Commercial Leasing">Commercial Leasing</option>
-                        <option value="CRM & Client Relations">CRM & Client Relations</option>
-                        <option value="Marketing & Digital Media">Marketing & Digital Media</option>
-                        <option value="Human Resources">Human Resources</option>
-                        <option value="Finance & Accounts">Finance & Accounts</option>
-                        <option value="Operations & Legal">Operations & Legal</option>
+                        {(departments.length > 0
+                          ? departments.map(d => d.name)
+                          : FALLBACK_DEPARTMENT_NAMES
+                        ).map(deptName => (
+                          <option key={deptName} value={deptName}>
+                            {deptName}
+                          </option>
+                        ))}
+                        {formData.department &&
+                          !(departments.length > 0
+                            ? departments.some(d => d.name === formData.department)
+                            : FALLBACK_DEPARTMENT_NAMES.includes(formData.department)) && (
+                            <option value={formData.department}>{formData.department}</option>
+                          )}
                       </select>
                     ) : (
                       <p className="text-xs font-medium text-slate-900 mt-1">{employee.department}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-500">Sub-Department / Unit</label>
+                    {isEditing ? (
+                      (() => {
+                        const matchedDept = departments.find(
+                          d => d.id === formData.departmentId || d.name === formData.department
+                        );
+                        const subs = matchedDept?.subDepartments || [];
+                        return subs.length > 0 ? (
+                          <select
+                            value={formData.subDepartment || ''}
+                            onChange={e => setFormData({ ...formData, subDepartment: e.target.value })}
+                            className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded bg-white"
+                          >
+                            <option value="">— General (No Sub-Unit) —</option>
+                            {subs.map(sub => (
+                              <option key={sub.id} value={sub.name}>
+                                {sub.name}
+                              </option>
+                            ))}
+                            {formData.subDepartment &&
+                              !subs.some(s => s.name === formData.subDepartment) && (
+                                <option value={formData.subDepartment}>{formData.subDepartment}</option>
+                              )}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            placeholder="Optional sub-department"
+                            value={formData.subDepartment || ''}
+                            onChange={e => setFormData({ ...formData, subDepartment: e.target.value })}
+                            className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
+                          />
+                        );
+                      })()
+                    ) : (
+                      <p className="text-xs text-slate-800 mt-1">{employee.subDepartment || 'General'}</p>
                     )}
                   </div>
 
@@ -631,7 +756,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
                   <div>
                     <label className="text-xs font-medium text-slate-500">Assigned Desk</label>
-                    {isEditing && !isViewer ? (
+                    {isEditing && canEdit ? (
                       <select
                         value={formData.desk || ''}
                         onChange={e => setFormData({ ...formData, desk: e.target.value })}
@@ -677,6 +802,22 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     ) : (
                       <p className="text-xs font-mono text-slate-800 mt-1">
                         {employee.internshipCompletionDate || 'N/A (Regular Employee)'}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-500">Job / Contract End Date</label>
+                    {isEditing ? (
+                      <input
+                        type="date"
+                        value={formData.jobEndDate || ''}
+                        onChange={e => setFormData({ ...formData, jobEndDate: e.target.value })}
+                        className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
+                      />
+                    ) : (
+                      <p className="text-xs font-mono text-slate-800 mt-1">
+                        {employee.jobEndDate || employee.exitClearance?.actualLwd || 'Ongoing / Permanent'}
                       </p>
                     )}
                   </div>
@@ -775,21 +916,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     <Lock className="w-3.5 h-3.5 text-amber-600" />
                     Banking, Identity & Compliance Numbers
                   </h3>
-                  {isViewer ? (
-                    <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-mono">
-                      Masked for Viewer Role
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-mono">
-                      HR Access Verified
-                    </span>
-                  )}
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-mono">
+                    {userRole} Access Verified
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <span className="text-[11px] text-slate-500 block">Aadhaar Number</span>
-                    {isEditing && !isViewer ? (
+                    {isEditing && canEdit ? (
                       <input
                         type="text"
                         placeholder="12-digit Aadhaar"
@@ -802,14 +937,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       />
                     ) : (
                       <p className="text-xs font-mono font-semibold text-slate-900 mt-1">
-                        {isViewer ? '•••• •••• ••••' : employee.identityDetails?.aadhaarNo || '—'}
+                        {employee.identityDetails?.aadhaarNo || '—'}
                       </p>
                     )}
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <span className="text-[11px] text-slate-500 block">PAN Card Number</span>
-                    {isEditing && !isViewer ? (
+                    {isEditing && canEdit ? (
                       <input
                         type="text"
                         placeholder="10-char PAN"
@@ -822,14 +957,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       />
                     ) : (
                       <p className="text-xs font-mono font-semibold text-slate-900 mt-1">
-                        {isViewer ? '••••••••••' : employee.identityDetails?.panNo || '—'}
+                        {employee.identityDetails?.panNo || '—'}
                       </p>
                     )}
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <span className="text-[11px] text-slate-500 block">Bank Account Number</span>
-                    {isEditing && !isViewer ? (
+                    {isEditing && canEdit ? (
                       <input
                         type="text"
                         placeholder="Account No"
@@ -842,14 +977,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       />
                     ) : (
                       <p className="text-xs font-mono font-semibold text-slate-900 mt-1">
-                        {isViewer ? '••••••••••••' : employee.bankDetails?.accountNo || '—'}
+                        {employee.bankDetails?.accountNo || '—'}
                       </p>
                     )}
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <span className="text-[11px] text-slate-500 block">Bank & IFSC Code</span>
-                    {isEditing && !isViewer ? (
+                    {isEditing && canEdit ? (
                       <div className="flex gap-1.5 mt-1">
                         <input
                           type="text"
@@ -891,7 +1026,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       </p>
                     </div>
                   </div>
-                  {isEditing && !isViewer ? (
+                  {isEditing && canEdit ? (
                     <input
                       type="url"
                       placeholder="https://drive.google.com/drive/folders/..."
@@ -899,8 +1034,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       onChange={e => setFormData({ ...formData, googleDriveLink: e.target.value })}
                       className="px-3 py-1 bg-white text-xs border border-blue-300 rounded w-full sm:w-72"
                     />
-                  ) : isViewer ? (
-                    <span className="text-xs text-slate-400 font-mono">Restricted</span>
                   ) : employee.googleDriveLink ? (
                     <a
                       href={employee.googleDriveLink}
@@ -1023,7 +1156,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       />
                     ) : (
                       <p className="text-xs font-mono font-medium text-slate-800 mt-0.5">
-                        {isViewer ? '••••••••••' : employee.emergencyContact?.phone || '—'}
+                        {employee.emergencyContact?.phone || '—'}
                       </p>
                     )}
                   </div>
@@ -1131,7 +1264,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                                 />
                               ) : (
                                 <span className="font-mono text-slate-800">
-                                  {isViewer ? '••••••••••' : f.phone}
+                                  {f.phone}
                                 </span>
                               )}
                             </td>
@@ -1173,21 +1306,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     <Lock className="w-3.5 h-3.5" />
                     Compensation & CTC Information (Confidential)
                   </span>
-                  {isViewer ? (
-                    <span className="text-[11px] text-amber-400 font-mono bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
-                      RESTRICTED TO HR ADMIN
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-emerald-400 font-mono bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">
-                      AUTHORIZED VIEW
-                    </span>
-                  )}
+                  <span className="text-[11px] text-emerald-400 font-mono bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">
+                    {userRole} AUTHORIZED VIEW
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="p-3 bg-slate-800/80 rounded-lg border border-slate-700">
                     <span className="text-[11px] text-slate-400 block">Previous Company Verified CTC</span>
-                    {isEditing && !isViewer ? (
+                    {isEditing && canEdit ? (
                       <input
                         type="text"
                         placeholder="e.g. 8.5 LPA"
@@ -1197,7 +1324,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       />
                     ) : (
                       <p className="text-base font-semibold text-slate-100 font-mono mt-1 tabular-nums">
-                        {isViewer ? '🔒 [RESTRICTED]' : employee.previousCTC || '— (Fresh / Not Disclosed)'}
+                        {employee.previousCTC || '— (Fresh / Not Disclosed)'}
                       </p>
                     )}
                     <span className="text-[10px] text-slate-400 mt-1 block">
@@ -1207,7 +1334,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
                   <div className="p-3 bg-slate-800/80 rounded-lg border border-amber-500/40">
                     <span className="text-[11px] text-amber-300 block">Current Offered CTC (White Collar Realty)</span>
-                    {isEditing && !isViewer ? (
+                    {isEditing && canEdit ? (
                       <input
                         type="text"
                         placeholder="e.g. 12 LPA"
@@ -1217,7 +1344,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       />
                     ) : (
                       <p className="text-base font-semibold text-amber-300 font-mono mt-1 tabular-nums">
-                        {isViewer ? '🔒 [RESTRICTED]' : employee.offeredCTC || '— (Under Review)'}
+                        {employee.offeredCTC || '— (Under Review)'}
                       </p>
                     )}
                     <span className="text-[10px] text-slate-400 mt-1 block">
@@ -1666,7 +1793,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                           </div>
                         ) : (
                           <>
-                            <span>📞 {isViewer ? '••••••••••' : ref.phone}</span>
+                            <span>📞 {ref.phone}</span>
                             {ref.email && <span>✉️ {ref.email}</span>}
                           </>
                         )}
@@ -1685,6 +1812,136 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           {/* TAB 6: DOCUMENTS & VERIFICATION */}
           {activeTab === 'documents' && (
             <div className="space-y-6">
+              {/* Saved Offer Letters (.docx) Section on Profile */}
+              {(employee.isCandidate || hasSavedOffer) && (
+                <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-blue-600" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                          Generated Offer Letters (.docx)
+                        </h4>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-semibold">
+                          {savedOfferLetters.length > 0
+                            ? `${savedOfferLetters.length} Saved`
+                            : employee.offerLetter
+                              ? '1 Active Draft'
+                              : 'None Generated'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Every generated Microsoft Word (.docx) offer letter is saved directly against {employee.fullName}&apos;s profile.
+                      </p>
+                    </div>
+
+                    {canManageOffer && onOpenOfferLetter && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenOfferLetter(employee)}
+                        className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                        {hasSavedOffer ? 'Edit / Regenerate Offer Letter' : 'Generate Offer Letter'}
+                      </button>
+                    )}
+                  </div>
+
+                  {savedOfferLetters.length > 0 ? (
+                    <div className="space-y-2">
+                      {savedOfferLetters.map(file => (
+                        <div
+                          key={file.id}
+                          className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="space-y-0.5 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-slate-900 truncate">{file.fileName}</span>
+                              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white text-slate-700 border border-slate-200">
+                                {file.refNo}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-500">{file.fileSize}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500">
+                              {file.designation} · {file.department} · Generated by{' '}
+                              <strong className="text-slate-700">
+                                {file.generatedBy} ({file.generatedByRole})
+                              </strong>{' '}
+                              on {new Date(file.generatedAt).toLocaleString('en-IN')}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {onOpenOfferLetter && (
+                              <button
+                                type="button"
+                                onClick={() => onOpenOfferLetter(employee, file.offerSnapshot)}
+                                className="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 flex items-center gap-1 transition-colors"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                Preview
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                api
+                                  .downloadSavedOfferLetterFile(employee.id, file.id, file.fileName)
+                                  .catch(err => setErrorMsg(err.message || 'Failed to download .docx'))
+                              }
+                              className="px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 flex items-center gap-1 transition-colors"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              Download (.docx)
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : employee.offerLetter ? (
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div>
+                        <span className="font-semibold text-slate-900">
+                          Offer Ref {employee.offerLetter.refNo} — {employee.offerLetter.designation}
+                        </span>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Status: <strong>{employee.offerLetter.status}</strong> · {employee.offerLetter.ctcLpaFormatted || employee.offeredCTC}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {onOpenOfferLetter && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenOfferLetter(employee, employee.offerLetter)}
+                            className="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 flex items-center gap-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            Preview
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            api
+                              .downloadOfferLetterDocx(employee.id)
+                              .catch(err => setErrorMsg(err.message || 'Failed to download .docx'))
+                          }
+                          className="px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 flex items-center gap-1"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download (.docx)
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                      No offer letter generated for this candidate yet.
+                      {canManageOffer ? ' Click "Generate Offer Letter" above to create and save a .docx file.' : ''}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* One-Time Candidate Upload Link Section */}
               {employee.isCandidate && (
                 <div className="p-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl border border-slate-700 shadow-sm space-y-3">
@@ -1701,7 +1958,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       </p>
                     </div>
 
-                    {!isViewer && (
+                    {canEdit && (
                       <div className="flex items-center gap-2 shrink-0 flex-wrap">
                         <div className="flex items-center gap-1.5 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700 text-xs">
                           <Clock className="w-3.5 h-3.5 text-amber-400" />
@@ -1819,7 +2076,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                             </button>
                           )}
 
-                          {!isViewer && !employee.uploadToken.isRevoked && !employee.uploadToken.isUsed && (
+                          {canEdit && !employee.uploadToken.isRevoked && !employee.uploadToken.isUsed && (
                             <button
                               type="button"
                               onClick={async () => {
@@ -1851,18 +2108,92 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 </div>
               )}
 
-              <div className="flex items-center justify-between">
+              {/* Individual 24-Hour Document QR Banner (Available on ALL Candidate & Employee Profiles) */}
+              {(() => {
+                const allDocList = Object.values(employee.documents || {});
+                const missingReqCount = allDocList.filter(
+                  d =>
+                    d.required &&
+                    (d.status === 'Missing' || d.status === 'Not Submitted' || d.status === 'Rejected')
+                ).length;
+                const uploadedAwaitCount = allDocList.filter(
+                  d => d.status === 'Uploaded' || d.status === 'Submitted' || d.status === 'Under Review'
+                ).length;
+                const verifiedCount = allDocList.filter(d => d.status === 'Verified').length;
+                const qrMeta = employee.documentQrMeta;
+                const isQrActive =
+                  Boolean(qrMeta?.isActive && qrMeta?.expiresAt) &&
+                  new Date(qrMeta!.expiresAt!).getTime() > Date.now();
+                const isQrExpired =
+                  Boolean(qrMeta?.expiresAt) && new Date(qrMeta!.expiresAt!).getTime() <= Date.now();
+
+                return (
+                  <div className="p-4 bg-slate-900 text-white rounded-xl border border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <QrCode className="w-4 h-4 text-amber-400 shrink-0" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                          Individual 24-Hour Document Upload QR
+                        </h4>
+                        {isQrActive ? (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                            Active · Expires {new Date(qrMeta!.expiresAt!).toLocaleString()}
+                          </span>
+                        ) : isQrExpired ? (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                            Expired · Ready to Regenerate
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                            24h Expiry Window
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-300">
+                        Automatically inspects missing documents and generates a secure mobile upload QR for{' '}
+                        <strong className="text-white">{employee.fullName}</strong> without requiring HR login.
+                      </p>
+                      <div className="flex items-center gap-3 text-[11px] font-mono pt-0.5 tabular-nums flex-wrap">
+                        <span className="text-rose-300">Missing Required: {missingReqCount}</span>
+                        <span className="text-slate-600">·</span>
+                        <span className="text-indigo-300">Uploaded (Pending Verify): {uploadedAwaitCount}</span>
+                        <span className="text-slate-600">·</span>
+                        <span className="text-emerald-300">Verified: {verifiedCount}</span>
+                      </div>
+                    </div>
+
+                    {onOpenQrModal && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenQrModal(employee)}
+                        className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors shrink-0 cursor-pointer"
+                      >
+                        <QrCode className="w-4 h-4" />
+                        <span>
+                          {isQrActive
+                            ? 'View / Share 24h QR'
+                            : isQrExpired
+                              ? 'Regenerate Document QR'
+                              : 'Generate Document QR'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Onboarding Verification Checklist & Documents
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Click &quot;Preview Document&quot; to view live PDFs/images, verify items, or upload files directly.
+                    Status workflow: <strong>Missing → Uploaded → Verified</strong>. Preview PDFs/JPGs/PNGs and verify directly.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3 text-xs">
-                  {employee.isCandidate && !isViewer && onGenerateUploadLink && (
+                <div className="flex items-center gap-2.5 text-xs flex-wrap">
+                  {employee.isCandidate && canEdit && onGenerateUploadLink && (
                     <button
                       type="button"
                       disabled={tokenLoading}
@@ -1882,15 +2213,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                           setTokenLoading(false);
                         }
                       }}
-                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-semibold rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                       title="Create candidate upload portal link"
                     >
                       <Share2 className="w-3.5 h-3.5" />
-                      Create Upload Link
+                      Portal Link
                     </button>
                   )}
 
-                  <div className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                  <div className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 tabular-nums">
                     <span className="text-slate-500">Verified:</span>
                     <span className="font-mono font-bold text-emerald-700">
                       {Object.values(employee.documents || {}).filter(d => d.status === 'Verified').length} / {Object.values(employee.documents || {}).length}
@@ -1904,6 +2235,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 {Object.values(employee.documents || {}).map(doc => {
                   const statusColors: Record<DocumentStatus, string> = {
                     'Verified': 'bg-emerald-50 text-emerald-800 border-emerald-300',
+                    'Uploaded': 'bg-indigo-50 text-indigo-800 border-indigo-300',
                     'Under Review': 'bg-amber-50 text-amber-800 border-amber-300',
                     'Submitted': 'bg-blue-50 text-blue-800 border-blue-300',
                     'Not Submitted': 'bg-slate-100 text-slate-600 border-slate-300',
@@ -1912,13 +2244,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     'Not Applicable': 'bg-slate-100 text-slate-400 border-slate-200',
                   };
 
+                  const liveUpload = liveQrUploads[`${employee.id}:${doc.key}`];
+                  const isActivelyUploading = liveUpload && liveUpload.status === 'UPLOADING';
+
                   return (
                     <div
                       key={doc.key}
-                      className="p-3.5 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-colors shadow-xs"
+                      className={`p-3.5 bg-white rounded-lg border transition-colors shadow-xs ${
+                        isActivelyUploading
+                          ? 'border-indigo-400 ring-1 ring-indigo-200'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-1">
+                        <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-xs text-slate-900">{doc.title}</span>
                             <span className="text-[10px] text-slate-500 font-mono">({doc.category})</span>
@@ -1927,7 +2266,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                                 Required
                               </span>
                             )}
+                            {doc.uploadedVia === 'QR' && (
+                              <span className="text-[10px] font-mono font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200 flex items-center gap-1">
+                                <QrCode className="w-2.5 h-2.5" />
+                                QR Upload
+                              </span>
+                            )}
                           </div>
+
+                          {isActivelyUploading && (
+                            <div className="pt-1 space-y-1 max-w-md">
+                              <div className="flex items-center justify-between text-[11px] font-mono text-indigo-700 tabular-nums">
+                                <span>Live QR Upload: {liveUpload.fileName || 'Receiving file...'}</span>
+                                <span className="font-bold">{liveUpload.progress}%</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-indigo-600 transition-all duration-150"
+                                  style={{ width: `${liveUpload.progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
 
                           <div className="text-[11px] text-slate-500 flex items-center gap-3 flex-wrap">
                             {doc.driveLink ? (
@@ -1954,7 +2314,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                             )}
 
                             {doc.uploadedAt && (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-mono border border-emerald-200">
+                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-mono border border-emerald-200 tabular-nums">
                                 Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()} {new Date(doc.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             )}
@@ -1963,7 +2323,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                               <span>Verified by: <strong className="text-slate-700">{doc.verifiedBy}</strong></span>
                             )}
                             {doc.verifiedAt && (
-                              <span className="font-mono text-slate-400">
+                              <span className="font-mono text-slate-400 tabular-nums">
                                 {new Date(doc.verifiedAt).toLocaleDateString()}
                               </span>
                             )}
@@ -1978,6 +2338,22 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
                         {/* Actions Strip */}
                         <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                          {/* 1-Click Verify Action when Uploaded / Submitted */}
+                          {canEdit &&
+                            (doc.status === 'Uploaded' ||
+                              doc.status === 'Submitted' ||
+                              doc.status === 'Under Review') && (
+                              <button
+                                type="button"
+                                onClick={() => handleDocStatusChange(doc.key, 'Verified')}
+                                className="px-2.5 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded border border-emerald-700 flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                                title="Mark Uploaded document as Verified"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                Verify
+                              </button>
+                            )}
+
                           {/* Live Preview Button */}
                           <button
                             type="button"
@@ -1988,28 +2364,31 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                             Live Preview
                           </button>
 
-                          {/* Original File Download */}
+                          {/* Original File Download (Authenticated) */}
                           {(doc.storagePath || doc.fileData || doc.fileName) && (
-                            <a
-                              href={`/api/employees/${employee.id}/documents/${doc.key}/download`}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              type="button"
+                              onClick={() =>
+                                api
+                                  .downloadDocument(employee.id, doc.key, doc.fileName)
+                                  .catch(err => setErrorMsg(err.message || 'Failed to download document'))
+                              }
                               className="px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 flex items-center gap-1 transition-colors"
                               title="Download original file"
                             >
                               <Download className="w-3.5 h-3.5 text-emerald-600" />
                               Download
-                            </a>
+                            </button>
                           )}
 
-                          {/* Direct File Upload button for HR */}
-                          {!isViewer && onUploadDocumentFile && (
+                          {/* Direct File Upload button for HR / Co-Founder */}
+                          {canEdit && onUploadDocumentFile && (
                             <label className="px-2.5 py-1 text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 rounded border border-amber-300 flex items-center gap-1 cursor-pointer transition-colors">
                               <UploadCloud className="w-3.5 h-3.5 text-amber-600" />
                               Upload
                               <input
                                 type="file"
-                                accept=".pdf,image/*"
+                                accept=".pdf,image/jpeg,image/png"
                                 className="hidden"
                                 onChange={e => {
                                   const file = e.target.files?.[0];
@@ -2042,7 +2421,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                           )}
 
                           {/* Status Selector */}
-                          {!isViewer ? (
+                          {canEdit ? (
                             <select
                               value={doc.status}
                               onChange={e => handleDocStatusChange(doc.key, e.target.value as DocumentStatus)}
@@ -2050,6 +2429,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                             >
                               <option value="Missing">Status: Missing</option>
                               <option value="Not Submitted">Status: Not Submitted</option>
+                              <option value="Uploaded">Status: Uploaded</option>
                               <option value="Submitted">Status: Submitted</option>
                               <option value="Under Review">Status: Under Review</option>
                               <option value="Verified">Status: Verified</option>
@@ -2079,23 +2459,24 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   <div className="flex items-center gap-2">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
                       <Package className="w-4 h-4 text-amber-600" />
-                      Company Assets & Inventory
+                      Profile Asset Issue, Tracking & Return
                     </h3>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-200 text-slate-800">
-                      {assignedAssets.length} Active Issued · {returnedAssets.length} Returned
+                      {assignedAssets.length} Unreturned · {returnedAssets.length} Returned
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Track laptops, mobile devices, SIM cards, office access badges, chargers, and parking passes issued to {employee.fullName}.
+                    Manage laptops, SIM cards, access badges, chargers, and return deadlines exclusively inside {employee.fullName}&apos;s profile.
                   </p>
                 </div>
 
-                {!isViewer && (
+                {canEdit && (
                   <button
                     onClick={() => {
                       setIsIssueModalOpen(true);
                       setIssueMode(availableStockAssets.length > 0 ? 'existing' : 'new');
                       setSelectedStockAssetId(availableStockAssets[0]?.id || '');
+                      setExpectedReturnDateInput(employee.internshipCompletionDate || employee.jobEndDate || '');
                     }}
                     className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors shrink-0"
                   >
@@ -2104,6 +2485,57 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   </button>
                 )}
               </div>
+
+              {/* Automated 2-Day Asset Return Reminder Tracking Banner */}
+              {(employee.internshipCompletionDate ||
+                employee.jobEndDate ||
+                employee.exitClearance?.actualLwd ||
+                assetReminders.length > 0) && (
+                <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-2.5 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span className="font-bold text-slate-900">
+                        Automated 2-Day Asset Return Reminder Schedule
+                      </span>
+                    </div>
+                    <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-white border border-amber-200 text-amber-900">
+                      End Date:{' '}
+                      <strong>
+                        {employee.internshipCompletionDate ||
+                          employee.jobEndDate ||
+                          employee.exitClearance?.actualLwd ||
+                          'Not Set'}
+                      </strong>
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600">
+                    When unreturned assets remain assigned, the backend scheduler automatically dispatches Email &amp; WhatsApp reminders exactly <strong>2 days before</strong> the internship/job end date (duplicate-protected).
+                  </p>
+                  {assetReminders.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      {assetReminders.map(rem => (
+                        <div
+                          key={rem.id}
+                          className="p-2.5 bg-white rounded-lg border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]"
+                        >
+                          <div>
+                            <span className="font-semibold text-slate-800">
+                              Deadline {rem.endDate} ({rem.unreturnedAssets.length} asset{rem.unreturnedAssets.length === 1 ? '' : 's'})
+                            </span>
+                            <span className="text-slate-500 ml-2 font-mono">
+                              Email: <strong>{rem.emailStatus}</strong> · WhatsApp: <strong>{rem.whatsappStatus}</strong>
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded font-mono font-semibold bg-slate-100 text-slate-800 border border-slate-200">
+                            {rem.overallStatus} (Retries: {rem.retryCount}/{rem.maxRetries})
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Active Issued Assets Section */}
               <div className="space-y-3">
@@ -2147,14 +2579,24 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                                   <span className="text-[10px] px-2 py-0.2 rounded-full font-medium bg-blue-50 text-blue-800 border border-blue-200">
                                     {asset.type}
                                   </span>
-                                  <span className="text-[10px] px-2 py-0.2 rounded-full font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                    {asset.status}
+                                  <span className="text-[10px] px-2 py-0.2 rounded-full font-semibold bg-amber-50 text-amber-900 border border-amber-200">
+                                    Return Status: Pending Return
                                   </span>
                                 </div>
 
                                 <div className="text-[11px] text-slate-500 flex items-center gap-4 flex-wrap pt-0.5 font-mono">
                                   <span>Serial: <strong className="text-slate-800">{asset.serialNumber || 'N/A'}</strong></span>
                                   <span>Issue Date: <strong className="text-slate-800">{asset.issueDate || '—'}</strong></span>
+                                  <span>
+                                    Return Deadline:{' '}
+                                    <strong className="text-amber-800">
+                                      {asset.expectedReturnDate ||
+                                        employee.internshipCompletionDate ||
+                                        employee.jobEndDate ||
+                                        employee.exitClearance?.actualLwd ||
+                                        'Upon Exit'}
+                                    </strong>
+                                  </span>
                                   <span>Condition: <strong className="text-slate-800 font-sans">{asset.condition}</strong></span>
                                 </div>
 
@@ -2166,8 +2608,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                               </div>
                             </div>
 
-                            {/* Action Buttons for Authorized Users */}
-                            {!isViewer && (
+                            {/* Action Buttons for Authorized Users (HR & Co-Founder) */}
+                            {canEdit && (
                               <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                                 <button
                                   onClick={() => {
@@ -2267,8 +2709,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         <tr>
                           <th className="px-4 py-2.5">Tag</th>
                           <th className="px-4 py-2.5">Asset Name</th>
-                          <th className="px-4 py-2.5">Type</th>
-                          <th className="px-4 py-2.5">Serial / ID</th>
+                          <th className="px-4 py-2.5">Return Status</th>
+                          <th className="px-4 py-2.5">Issue Date</th>
                           <th className="px-4 py-2.5">Return Date</th>
                           <th className="px-4 py-2.5">Condition at Return</th>
                           <th className="px-4 py-2.5">Notes</th>
@@ -2278,9 +2720,16 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         {returnedAssets.map(asset => (
                           <tr key={asset.id} className="hover:bg-slate-50/60">
                             <td className="px-4 py-2.5 font-mono font-bold text-slate-700">{asset.assetTag}</td>
-                            <td className="px-4 py-2.5 font-medium text-slate-900">{asset.name}</td>
-                            <td className="px-4 py-2.5 text-slate-600">{asset.type}</td>
-                            <td className="px-4 py-2.5 font-mono text-slate-500">{asset.serialNumber || '—'}</td>
+                            <td className="px-4 py-2.5 font-medium text-slate-900">
+                              {asset.name}
+                              <span className="block text-[10px] text-slate-500 font-mono">{asset.serialNumber || asset.type}</span>
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                Returned
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 font-mono text-slate-600">{asset.issueDate || '—'}</td>
                             <td className="px-4 py-2.5 font-mono text-slate-800 font-semibold">{asset.returnDate || 'Returned'}</td>
                             <td className="px-4 py-2.5 text-slate-700">
                               <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 border border-slate-200">
@@ -2490,15 +2939,25 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-700">Handover Notes</label>
+                    <label className="text-xs font-medium text-slate-700">Return Deadline (Optional)</label>
                     <input
-                      type="text"
-                      placeholder="e.g. Docked at Desk C2"
-                      value={issueNotesInput}
-                      onChange={e => setIssueNotesInput(e.target.value)}
+                      type="date"
+                      value={expectedReturnDateInput}
+                      onChange={e => setExpectedReturnDateInput(e.target.value)}
                       className="mt-1 w-full p-2 text-xs border border-slate-300 rounded"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-700">Handover Notes</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Docked at Desk C2"
+                    value={issueNotesInput}
+                    onChange={e => setIssueNotesInput(e.target.value)}
+                    className="mt-1 w-full p-2 text-xs border border-slate-300 rounded"
+                  />
                 </div>
               </div>
             ) : (
@@ -2547,12 +3006,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-slate-700">Unique Serial / Card Number</label>
+                    <label className="text-xs font-medium text-slate-700">Serial / Card No</label>
                     <input
                       type="text"
-                      placeholder="e.g. SN-88912 or RFID-2026-009"
+                      placeholder="SN-88912"
                       value={newAssetSerial}
                       onChange={e => setNewAssetSerial(e.target.value)}
                       className="mt-1 w-full p-2 text-xs font-mono border border-slate-300 rounded"
@@ -2564,6 +3023,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       type="date"
                       value={issueDateInput}
                       onChange={e => setIssueDateInput(e.target.value)}
+                      className="mt-1 w-full p-2 text-xs border border-slate-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-700">Return Deadline</label>
+                    <input
+                      type="date"
+                      value={expectedReturnDateInput}
+                      onChange={e => setExpectedReturnDateInput(e.target.value)}
                       className="mt-1 w-full p-2 text-xs border border-slate-300 rounded"
                     />
                   </div>
@@ -2606,7 +3074,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                           selectedStockAssetId,
                           employee.id,
                           issueDateInput,
-                          issueNotesInput || `Issued to ${employee.fullName}`
+                          issueNotesInput || `Issued to ${employee.fullName}`,
+                          expectedReturnDateInput || null
                         );
                       }
                     } else {
@@ -2617,6 +3086,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                           serialNumber: newAssetSerial || undefined,
                           condition: newAssetCondition,
                           issueDate: issueDateInput,
+                          expectedReturnDate: expectedReturnDateInput || null,
                           notes: issueNotesInput || `Issued to ${employee.fullName}`,
                           assignedEmployeeId: employee.id,
                           assignedEmployeeName: employee.fullName,
@@ -2624,6 +3094,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         });
                       }
                     }
+                    const remRes = await api.getAssetReminders(employee.id).catch(() => ({ reminders: [] }));
+                    setAssetReminders(remRes.reminders || []);
                     setIsIssueModalOpen(false);
                     setSuccessMsg('Asset issued successfully to profile.');
                     setTimeout(() => setSuccessMsg(''), 3000);
@@ -2718,6 +3190,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         returnNotesInput || `Returned by ${employee.fullName}`
                       );
                     }
+                    const remRes = await api.getAssetReminders(employee.id).catch(() => ({ reminders: [] }));
+                    setAssetReminders(remRes.reminders || []);
                     setReturningAsset(null);
                     setSuccessMsg('Asset successfully returned to inventory.');
                     setTimeout(() => setSuccessMsg(''), 3000);
@@ -2852,7 +3326,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             setPreviewDoc(prev => (prev ? { ...prev, status, reviewNotes: notes } : null));
           }}
           onUploadFile={
-            onUploadDocumentFile
+            canEdit && onUploadDocumentFile
               ? async (docKey: string, fileData: string, fileName: string, fileSize: string, mimeType: string) => {
                   await onUploadDocumentFile(employee.id, docKey, fileData, fileName, fileSize, mimeType);
                   setPreviewDoc(prev => (prev ? { ...prev, fileData, fileName, fileSize, mimeType, status: 'Submitted' } : null));

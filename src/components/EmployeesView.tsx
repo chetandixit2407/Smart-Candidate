@@ -12,8 +12,9 @@ import {
   Clock,
   AlertCircle,
   Armchair,
+  QrCode,
 } from 'lucide-react';
-import { Employee, UserRole } from '../types/index.js';
+import { Employee, UserRole, DepartmentWithCounts } from '../types/index.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
 
 interface EmployeesViewProps {
@@ -22,6 +23,8 @@ interface EmployeesViewProps {
   onOpenAddModal: () => void;
   onDeleteEmployee: (id: string) => Promise<void>;
   userRole: UserRole;
+  departmentsList?: DepartmentWithCounts[];
+  onOpenQrModal?: (emp: Employee) => void;
 }
 
 export const EmployeesView: React.FC<EmployeesViewProps> = ({
@@ -30,6 +33,8 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
   onOpenAddModal,
   onDeleteEmployee,
   userRole,
+  departmentsList = [],
+  onOpenQrModal,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
@@ -39,15 +44,19 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [pageSize, setPageSize] = useState<number>(15);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const canEdit = userRole === 'HR' || userRole === 'Co-Founder';
 
   // Departments list
   const departments = useMemo(() => {
     const set = new Set<string>();
+    departmentsList.forEach(d => {
+      if (d.name) set.add(d.name);
+    });
     employees.forEach(e => {
       if (e.department) set.add(e.department);
     });
     return ['All', ...Array.from(set)];
-  }, [employees]);
+  }, [employees, departmentsList]);
 
   // Filtered & Sorted employees
   const filteredEmployees = useMemo(() => {
@@ -64,6 +73,8 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
             e.email.toLowerCase().includes(q) ||
             e.phone.toLowerCase().includes(q) ||
             e.designation.toLowerCase().includes(q) ||
+            e.department.toLowerCase().includes(q) ||
+            (e.subDepartment && e.subDepartment.toLowerCase().includes(q)) ||
             (e.desk && e.desk.toLowerCase().includes(q));
           if (!match) return false;
         }
@@ -131,7 +142,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
               Showing <strong className="font-mono text-slate-800">{filteredEmployees.length}</strong> of{' '}
               <span className="font-mono">{employees.length}</span> active employees
             </span>
-            {userRole !== 'DEPT_HEAD_VIEWER' && (
+            {canEdit && (
               <button
                 onClick={onOpenAddModal}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap shadow-xs"
@@ -261,6 +272,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                     </span>
                     <span className="text-[10px] text-slate-500 truncate block">
                       {emp.department}
+                      {emp.subDepartment ? ` · ${emp.subDepartment}` : ''}
                     </span>
                   </div>
                   <div className="bg-slate-50 p-2 rounded border border-slate-100 min-w-0">
@@ -289,12 +301,26 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                         style={{ width: `${emp.profileCompletion}%` }}
                       />
                     </div>
-                    <span className="font-mono text-[10px] font-bold text-slate-700">
+                    <span className="font-mono text-[10px] font-bold text-slate-700 tabular-nums">
                       {emp.profileCompletion}%
                     </span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
+                    {onOpenQrModal && (
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          onOpenQrModal(emp);
+                        }}
+                        className="px-2 py-1 text-[11px] text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded font-semibold flex items-center gap-1 transition-colors"
+                        title="Generate 24-Hour Document QR"
+                      >
+                        <QrCode className="w-3 h-3 text-amber-600" />
+                        <span>QR</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={e => {
@@ -305,7 +331,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                     >
                       Dossier
                     </button>
-                    {userRole === 'HR_ADMIN' && (
+                    {canEdit && (
                       <button
                         type="button"
                         onClick={e => handleDelete(e, emp)}
@@ -423,7 +449,10 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                     {/* Designation & Department */}
                     <td className="px-4 py-3 min-w-[180px]">
                       <p className="font-medium text-slate-800 truncate">{emp.designation}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{emp.department}</p>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        {emp.department}
+                        {emp.subDepartment ? ` · ${emp.subDepartment}` : ''}
+                      </p>
                     </td>
 
                     {/* Desk */}
@@ -453,7 +482,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                     </td>
 
                     {/* Joining Date */}
-                    <td className="px-4 py-3 font-mono text-slate-700 whitespace-nowrap">
+                    <td className="px-4 py-3 font-mono text-slate-700 whitespace-nowrap tabular-nums">
                       {emp.joiningDate || '—'}
                     </td>
 
@@ -481,6 +510,18 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                     {/* Actions */}
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
+                        {onOpenQrModal && (
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              onOpenQrModal(emp);
+                            }}
+                            title="Generate Document QR (24h)"
+                            className="p-1 rounded text-amber-600 hover:text-amber-800 hover:bg-amber-50 transition-colors cursor-pointer"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={e => {
                             e.stopPropagation();
@@ -491,7 +532,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        {userRole === 'HR_ADMIN' && (
+                        {canEdit && (
                           <button
                             onClick={e => handleDelete(e, emp)}
                             title="Delete Record"

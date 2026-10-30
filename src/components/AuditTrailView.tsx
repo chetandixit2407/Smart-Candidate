@@ -1,14 +1,77 @@
-import React, { useState, useMemo } from 'react';
-import { History, Search, Filter, Shield, Clock } from 'lucide-react';
-import { AuditLog } from '../types/index.js';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import {
+  Search,
+  Filter,
+  Clock,
+  RefreshCw,
+  Mail,
+  MessageSquare,
+  CheckCircle2,
+  AlertTriangle,
+  Play,
+  Package,
+} from 'lucide-react';
+import {
+  AuditLog,
+  UserRole,
+  AssetReturnReminderRecord,
+  NotificationDeliveryLog,
+} from '../types/index.js';
+import { api } from '../services/api.js';
 
 interface AuditTrailViewProps {
   logs: AuditLog[];
+  userRole?: UserRole;
 }
 
-export const AuditTrailView: React.FC<AuditTrailViewProps> = ({ logs }) => {
+export const AuditTrailView: React.FC<AuditTrailViewProps> = ({ logs, userRole = 'HR' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All');
+
+  const [automationStatus, setAutomationStatus] = useState<any>(null);
+  const [assetReminders, setAssetReminders] = useState<AssetReturnReminderRecord[]>([]);
+  const [deliveryLogs, setDeliveryLogs] = useState<NotificationDeliveryLog[]>([]);
+  const [runningSweep, setRunningSweep] = useState(false);
+  const [sweepMsg, setSweepMsg] = useState<string | null>(null);
+
+  const canTriggerSweep = userRole === 'HR' || userRole === 'Co-Founder';
+
+  const loadAutomationTelemetry = useCallback(async () => {
+    try {
+      const [statusRes, remRes, delRes] = await Promise.all([
+        api.getAutomationStatus(),
+        api.getAssetReminders(),
+        api.getDeliveryLogs(undefined, 25),
+      ]);
+      setAutomationStatus(statusRes);
+      setAssetReminders(remRes.reminders || []);
+      setDeliveryLogs(delRes.logs || []);
+    } catch {
+      // ignore background load error
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAutomationTelemetry();
+  }, [loadAutomationTelemetry, logs.length]);
+
+  const handleManualSweep = async () => {
+    if (!canTriggerSweep) return;
+    try {
+      setRunningSweep(true);
+      setSweepMsg(null);
+      const res = await api.runAssetReminderSweep();
+      const s = res.summary;
+      setSweepMsg(
+        `Evaluated ${s.evaluatedPeopleCount} records (${s.referenceDate}): ${s.eligibleTwoDayMatches} exact 2-day match(es), ${s.dispatchedOrUpdated} reminder(s) processed, ${s.skippedDuplicateAlreadySent} duplicate(s) prevented, ${s.skippedNoUnreturnedAssets} skipped (no unreturned assets).`
+      );
+      await loadAutomationTelemetry();
+    } catch (err: unknown) {
+      setSweepMsg(err instanceof Error ? err.message : 'Failed to run 2-day asset return sweep.');
+    } finally {
+      setRunningSweep(false);
+    }
+  };
 
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
@@ -28,6 +91,180 @@ export const AuditTrailView: React.FC<AuditTrailViewProps> = ({ logs }) => {
 
   return (
     <div className="space-y-4">
+      {/* Automated 2-Day Asset Return Reminders & API Delivery Logs */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-amber-600" />
+                Automated 2-Day Asset Return Reminders & Real API Delivery Logs
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                Cron: {automationStatus?.sweepCron || '0 * * * *'} · Retry: {automationStatus?.retryCron || '*/5 * * * *'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Automatically dispatches Email and WhatsApp reminders exactly 2 days before internship/job end dates when issued assets remain unreturned, with duplicate prevention and exponential retry scheduling.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={loadAutomationTelemetry}
+              className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Refresh
+            </button>
+            {canTriggerSweep && (
+              <button
+                type="button"
+                onClick={handleManualSweep}
+                disabled={runningSweep}
+                className="px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg flex items-center gap-1.5 shadow-2xs disabled:opacity-50 transition-colors"
+              >
+                <Play className="w-3.5 h-3.5 text-amber-400" />
+                {runningSweep ? 'Running Check...' : 'Run 2-Day Check Now'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Provider Readiness Badges */}
+        {automationStatus?.notificationConfig && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div
+              className={`p-3 rounded-lg border flex items-center justify-between ${
+                automationStatus.notificationConfig.emailConfigured
+                  ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900'
+                  : 'bg-amber-50/70 border-amber-200 text-amber-900'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 shrink-0" />
+                <div>
+                  <span className="font-semibold block">Email API Gateway</span>
+                  <span className="text-[11px] opacity-80">
+                    Provider: {automationStatus.notificationConfig.emailProvider}
+                  </span>
+                </div>
+              </div>
+              <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-white/80 border border-current/20">
+                {automationStatus.notificationConfig.emailConfigured ? 'CONNECTED' : 'CREDENTIALS REQUIRED'}
+              </span>
+            </div>
+
+            <div
+              className={`p-3 rounded-lg border flex items-center justify-between ${
+                automationStatus.notificationConfig.whatsappConfigured
+                  ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900'
+                  : 'bg-amber-50/70 border-amber-200 text-amber-900'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 shrink-0" />
+                <div>
+                  <span className="font-semibold block">WhatsApp Business API Gateway</span>
+                  <span className="text-[11px] opacity-80">
+                    Provider: {automationStatus.notificationConfig.whatsappProvider}
+                  </span>
+                </div>
+              </div>
+              <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-white/80 border border-current/20">
+                {automationStatus.notificationConfig.whatsappConfigured ? 'CONNECTED' : 'CREDENTIALS REQUIRED'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {sweepMsg && (
+          <div className="p-2.5 rounded-lg bg-slate-900 text-amber-300 text-xs font-mono">
+            {sweepMsg}
+          </div>
+        )}
+
+        {/* Persisted 2-Day Asset Return Reminders & Delivery Logs */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="border border-slate-200 rounded-lg p-3 space-y-2 bg-slate-50/50">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                <Package className="w-3.5 h-3.5 text-blue-600" />
+                Persisted 2-Day Asset Return Reminders ({assetReminders.length})
+              </span>
+            </div>
+            {assetReminders.length === 0 ? (
+              <p className="text-[11px] text-slate-500 py-3 text-center">
+                No candidates/interns with unreturned assets have hit the exact 2-day pre-end-date window yet.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                {assetReminders.slice(0, 10).map(rem => (
+                  <div key={rem.id} className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-slate-900">{rem.personName}</span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                          rem.overallStatus === 'SENT'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : rem.overallStatus === 'CANCELLED_ASSETS_RETURNED'
+                            ? 'bg-slate-200 text-slate-700'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {rem.overallStatus}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 font-mono">
+                      Deadline: {rem.endDate} · Assets: {rem.unreturnedAssets.map(a => a.assetTag).join(', ')}
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                      <span>Email: {rem.emailStatus} · WhatsApp: {rem.whatsappStatus}</span>
+                      <span>Retries: {rem.retryCount}/{rem.maxRetries}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="border border-slate-200 rounded-lg p-3 space-y-2 bg-slate-50/50">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-800">
+                Recent API Delivery & Retry Logs ({deliveryLogs.length})
+              </span>
+            </div>
+            {deliveryLogs.length === 0 ? (
+              <p className="text-[11px] text-slate-500 py-3 text-center">
+                No Email or WhatsApp API dispatches logged yet.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                {deliveryLogs.slice(0, 10).map(dlog => (
+                  <div key={dlog.id} className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-slate-800 flex items-center gap-1">
+                        {dlog.status === 'SENT' ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                        )}
+                        {dlog.channel} ({dlog.provider}) · {dlog.personName}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Attempt #{dlog.attemptNumber}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 break-words">{dlog.summary}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Control Bar */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row items-center justify-between gap-3">
@@ -62,9 +299,12 @@ export const AuditTrailView: React.FC<AuditTrailViewProps> = ({ logs }) => {
             <option value="All">All Entity Types</option>
             <option value="Employee">Employee Profiles</option>
             <option value="Candidate">Candidate Onboarding</option>
+            <option value="OfferLetter">Offer Letters (.docx)</option>
             <option value="Document">Document Verifications</option>
             <option value="Desk">Desk Allocations</option>
             <option value="Asset">Company Assets</option>
+            <option value="Automation">Scheduled Automation</option>
+            <option value="Lifecycle">Lifecycle & Clearances</option>
             <option value="Import">Spreadsheet Imports</option>
           </select>
         </div>

@@ -69,7 +69,7 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
 
     // Check size limit (max 15MB)
     if (file.size > 15 * 1024 * 1024) {
-      alert('File size exceeds the 15MB limit. Please choose a smaller PDF or image.');
+      setErrorMsg('File size exceeds the 15MB limit. Please choose a smaller PDF or image.');
       return;
     }
 

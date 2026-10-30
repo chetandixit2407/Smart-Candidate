@@ -29,6 +29,7 @@ interface UpcomingAlertsModalProps {
   onReferenceDateChange: (dateStr: string) => void;
   onResetDismissed: () => Promise<void>;
   userRole: UserRole;
+  onDismissAllMissingDocs?: () => Promise<void>;
   onSendReminder?: (candidateId: string, channel: 'EMAIL' | 'WHATSAPP') => void;
 }
 
@@ -42,16 +43,18 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
   onReferenceDateChange,
   onResetDismissed,
   userRole,
+  onDismissAllMissingDocs,
   onSendReminder,
 }) => {
   const [filterType, setFilterType] = useState<'ALL' | 'MISSING_DOCUMENTS' | 'BIRTHDAY' | 'INTERNSHIP_COMPLETION'>('ALL');
   const [dismissingId, setDismissingId] = useState<string | null>(null);
+  const [dismissingAllDocs, setDismissingAllDocs] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
 
   if (!isOpen) return null;
 
-  const isViewer = userRole === 'DEPT_HEAD_VIEWER';
+  const canSendReminders = userRole === 'HR' || userRole === 'Co-Founder';
 
   const filteredAlerts = alerts.filter(a => {
     if (filterType === 'ALL') return true;
@@ -192,17 +195,34 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
                 onChange={e => e.target.value && onReferenceDateChange(e.target.value)}
                 className="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-mono text-slate-800 shadow-2xs"
               />
-              {!isViewer && (
+              {missingDocsAlertsCount > 0 && onDismissAllMissingDocs && (
                 <button
-                  onClick={handleReset}
-                  disabled={resetting}
-                  title="Reset all dismissed alerts to test duplicate prevention"
-                  className="px-2 py-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-300 rounded hover:bg-slate-100 transition-colors flex items-center gap-1"
+                  onClick={async () => {
+                    try {
+                      setDismissingAllDocs(true);
+                      await onDismissAllMissingDocs();
+                      setStatusMsg('HR Alert: Candidate Missing Documents dismissed.');
+                      setTimeout(() => setStatusMsg(''), 3000);
+                    } finally {
+                      setDismissingAllDocs(false);
+                    }
+                  }}
+                  disabled={dismissingAllDocs}
+                  title="Dismiss / Hide all Candidate Missing Documents alerts"
+                  className="px-2 py-1 text-[11px] font-medium text-amber-900 bg-amber-100 border border-amber-300 rounded hover:bg-amber-200 transition-colors"
                 >
-                  <RotateCcw className="w-3 h-3" />
-                  <span className="hidden sm:inline">Reset</span>
+                  {dismissingAllDocs ? 'Hiding...' : 'Hide Missing Docs Alert'}
                 </button>
               )}
+              <button
+                onClick={handleReset}
+                disabled={resetting}
+                title="Reset all dismissed alerts to test duplicate prevention"
+                className="px-2 py-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-300 rounded hover:bg-slate-100 transition-colors flex items-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span className="hidden sm:inline">Reset</span>
+              </button>
             </div>
           </div>
         </div>
@@ -334,7 +354,7 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
                         <div className="pt-1 flex items-center gap-3 text-xs font-mono text-slate-600 flex-wrap">
                           <span className="flex items-center gap-1">
                             <Phone className="w-3 h-3 text-slate-400" />
-                            {isViewer ? '••••••••••' : alert.phone}
+                            {alert.phone}
                           </span>
                           <span className="flex items-center gap-1">
                             <Mail className="w-3 h-3 text-slate-400" />
@@ -389,7 +409,7 @@ export const UpcomingAlertsModal: React.FC<UpcomingAlertsModalProps> = ({
                             View Profile
                           </button>
 
-                          {onSendReminder && (
+                          {onSendReminder && canSendReminders && (
                             <>
                               <button
                                 onClick={() => {

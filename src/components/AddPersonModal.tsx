@@ -1,15 +1,37 @@
-import React, { useState } from 'react';
-import { X, UserPlus, Lock } from 'lucide-react';
-import { Employee, UserRole, MarketType } from '../types/index.js';
-import { ALL_DESK_CODES } from '../../server/seedData.js';
+import React, { useState, useEffect } from 'react';
+import { X, UserPlus, Lock, QrCode, Building2 } from 'lucide-react';
+import {
+  Employee,
+  UserRole,
+  MarketType,
+  ALL_DESK_CODES,
+  DepartmentWithCounts,
+} from '../types/index.js';
 
 interface AddPersonModalProps {
   isOpen: boolean;
   isCandidateDefault: boolean;
   onClose: () => void;
-  onCreate: (emp: Partial<Employee>) => Promise<void>;
+  onCreate: (
+    emp: Partial<Employee>,
+    options?: { openQrAfterCreate?: boolean }
+  ) => Promise<Employee | void>;
   userRole: UserRole;
+  departments?: DepartmentWithCounts[];
+  defaultDepartment?: string;
+  defaultSubDepartment?: string;
 }
+
+const FALLBACK_DEPARTMENTS = [
+  'Gurgaon Market',
+  'Dubai Market',
+  'AI Intern',
+  'DM Intern',
+  'Marketing & Digital Media',
+  'Human Resources',
+  'Executive Leadership',
+  'Administration & Operations',
+];
 
 export const AddPersonModal: React.FC<AddPersonModalProps> = ({
   isOpen,
@@ -17,8 +39,20 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
   onClose,
   onCreate,
   userRole,
+  departments = [],
+  defaultDepartment,
+  defaultSubDepartment,
 }) => {
   const [isCandidate, setIsCandidate] = useState(isCandidateDefault);
+  const [openQrAfterCreate, setOpenQrAfterCreate] = useState<boolean>(true);
+  const initialDeptName =
+    defaultDepartment || departments[0]?.name || 'Gurgaon Market';
+  const initialDeptObj = departments.find(d => d.name === initialDeptName);
+  const initialSubDept =
+    defaultSubDepartment !== undefined
+      ? defaultSubDepartment
+      : initialDeptObj?.subDepartments[0]?.name || '';
+
   const [formData, setFormData] = useState<Partial<Employee>>({
     fullName: '',
     employeeCode: '',
@@ -27,11 +61,15 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
     dateOfBirth: '',
     gender: 'Male',
     nationality: 'Indian',
-    department: 'Sales & Investments',
+    department: initialDeptName,
+    departmentId: initialDeptObj?.id,
+    subDepartment: initialSubDept,
     designation: 'Property Consultant',
     reportingManager: 'Varun Batra',
     joiningDate: new Date().toISOString().split('T')[0],
-    market: 'Gurgaon',
+    internshipCompletionDate: '',
+    jobEndDate: '',
+    market: initialDeptName === 'Dubai Market' ? 'Dubai' : 'Gurgaon',
     desk: '',
     previousCompany: '',
     previousDesignation: '',
@@ -43,27 +81,71 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
     currentAddress: '',
   });
 
+  useEffect(() => {
+    if (!isOpen) return;
+    setIsCandidate(isCandidateDefault);
+    const deptName = defaultDepartment || departments[0]?.name || 'Gurgaon Market';
+    const deptObj = departments.find(d => d.name === deptName);
+    const subName =
+      defaultSubDepartment !== undefined
+        ? defaultSubDepartment
+        : deptObj?.subDepartments[0]?.name || '';
+    const isInternDept =
+      deptName.toLowerCase().includes('intern') || subName.toLowerCase().includes('intern');
+
+    setFormData(prev => ({
+      ...prev,
+      department: deptName,
+      departmentId: deptObj?.id,
+      subDepartment: subName,
+      market: deptName === 'Dubai Market' ? 'Dubai' : prev.market || 'Gurgaon',
+      designation: isInternDept && prev.designation === 'Property Consultant'
+        ? deptName === 'AI Intern'
+          ? 'AI & Automation Intern'
+          : 'Digital Marketing Intern'
+        : prev.designation,
+    }));
+  }, [isOpen, isCandidateDefault, defaultDepartment, defaultSubDepartment, departments]);
+
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   if (!isOpen) return null;
 
+  const selectedDeptObj = departments.find(
+    d => d.id === formData.departmentId || d.name === formData.department
+  );
+  const availableSubDepts = selectedDeptObj?.subDepartments || [];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.fullName) {
+    if (!formData.fullName?.trim()) {
       setErrorMsg('Full Name is required.');
       return;
     }
+    if (!formData.department?.trim()) {
+      setErrorMsg('Department selection is required.');
+      return;
+    }
+
+    const isInternDept = (formData.department || '').toLowerCase().includes('intern');
 
     try {
       setSaving(true);
       setErrorMsg('');
-      await onCreate({
-        ...formData,
-        isCandidate,
-        employmentStatus: isCandidate ? 'Upcoming Joiner' : 'Full-Time',
-        candidateStatus: isCandidate ? 'Offer Accepted' : undefined,
-      });
+      await onCreate(
+        {
+          ...formData,
+          isCandidate,
+          employmentStatus: isCandidate
+            ? 'Upcoming Joiner'
+            : isInternDept
+              ? 'Intern'
+              : 'Full-Time',
+          candidateStatus: isCandidate ? 'Offer Accepted' : undefined,
+        },
+        { openQrAfterCreate }
+      );
       onClose();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to register person';
@@ -198,21 +280,68 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-slate-700">Department</label>
+                <label className="text-xs font-medium text-slate-700 flex items-center gap-1">
+                  <Building2 className="w-3 h-3 text-slate-400" />
+                  <span>Department *</span>
+                </label>
                 <select
-                  value={formData.department}
-                  onChange={e => setFormData({ ...formData, department: e.target.value })}
-                  className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
+                  value={formData.department || ''}
+                  onChange={e => {
+                    const nextName = e.target.value;
+                    const matched = departments.find(d => d.name === nextName);
+                    const nextSub = matched?.subDepartments[0]?.name || '';
+                    setFormData({
+                      ...formData,
+                      department: nextName,
+                      departmentId: matched?.id,
+                      subDepartment: nextSub,
+                      market:
+                        nextName === 'Dubai Market'
+                          ? 'Dubai'
+                          : nextName === 'Gurgaon Market'
+                            ? 'Gurgaon'
+                            : formData.market,
+                    });
+                  }}
+                  className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded bg-white"
                 >
-                  <option value="Sales & Investments">Sales & Investments</option>
-                  <option value="Luxury Residential & Investments">Luxury Residential & Investments</option>
-                  <option value="Commercial Leasing">Commercial Leasing</option>
-                  <option value="CRM & Client Relations">CRM & Client Relations</option>
-                  <option value="Marketing & Digital Media">Marketing & Digital Media</option>
-                  <option value="Human Resources">Human Resources</option>
-                  <option value="Finance & Accounts">Finance & Accounts</option>
-                  <option value="Operations & Legal">Operations & Legal</option>
+                  {(departments.length > 0
+                    ? departments.map(d => d.name)
+                    : FALLBACK_DEPARTMENTS
+                  ).map(deptName => (
+                    <option key={deptName} value={deptName}>
+                      {deptName}
+                    </option>
+                  ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-700">
+                  Sub-Department / Unit
+                </label>
+                {availableSubDepts.length > 0 ? (
+                  <select
+                    value={formData.subDepartment || ''}
+                    onChange={e => setFormData({ ...formData, subDepartment: e.target.value })}
+                    className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded bg-white"
+                  >
+                    <option value="">— General (Department Root) —</option>
+                    {availableSubDepts.map(sub => (
+                      <option key={sub.id} value={sub.name}>
+                        {sub.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="Optional sub-unit (e.g. Off-Plan Team)"
+                    value={formData.subDepartment || ''}
+                    onChange={e => setFormData({ ...formData, subDepartment: e.target.value })}
+                    className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
+                  />
+                )}
               </div>
 
               <div>
@@ -245,6 +374,24 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
                   type="date"
                   value={formData.joiningDate}
                   onChange={e => setFormData({ ...formData, joiningDate: e.target.value })}
+                  className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-700">
+                  Internship / Contract End Date <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={formData.internshipCompletionDate || formData.jobEndDate || ''}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      internshipCompletionDate: e.target.value,
+                      jobEndDate: e.target.value,
+                    })
+                  }
                   className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
                 />
               </div>
@@ -344,6 +491,27 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
                 />
               </div>
             </div>
+          </div>
+
+          {/* Automatic New Profile Onboarding & 24-Hour Document QR Option */}
+          <div className="p-3 bg-amber-50/70 rounded-lg border border-amber-200 space-y-1.5">
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={openQrAfterCreate}
+                onChange={e => setOpenQrAfterCreate(e.target.checked)}
+                className="mt-0.5 rounded border-amber-400 text-slate-900 focus:ring-slate-900"
+              />
+              <div className="text-xs">
+                <span className="font-semibold text-slate-900 flex items-center gap-1.5">
+                  <QrCode className="w-3.5 h-3.5 text-amber-600" />
+                  Open &ldquo;Generate Document QR&rdquo; immediately after saving
+                </span>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  Every new profile automatically initializes document tracking (Missing → Uploaded → Verified), department placement, offer letters, asset tracking, and 24-hour QR generation.
+                </p>
+              </div>
+            </label>
           </div>
 
           {/* Modal Footer */}

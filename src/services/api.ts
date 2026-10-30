@@ -14,22 +14,29 @@ import {
   ProbationReview,
   FullAndFinalSettlement,
   ExitClearanceRecord,
+  SavedOfferLetterFile,
+  AssetReturnReminderRecord,
+  NotificationDeliveryLog,
+  DepartmentWithCounts,
+  MarketType,
+  ProfileDocumentInspection,
+  DocumentQrStatusInfo,
+  PublicQrSessionData,
+  PublicQrDocumentSlot,
 } from '../types/index.js';
 
 class ApiService {
-  private currentRole: UserRole = 'HR_ADMIN';
-  private currentUserName = 'Simran Kaur (HR Head)';
+  private currentRole: UserRole = 'HR';
+  private currentUserName = 'Nisha (HR)';
 
   public setRole(role: UserRole, name?: string) {
     this.currentRole = role;
     if (name) {
       this.currentUserName = name;
     } else {
-      if (role === 'HR_ADMIN') this.currentUserName = 'Simran Kaur (HR Head)';
-      else if (role === 'HR_MANAGER') this.currentUserName = 'Ritu Agarwal (HR Ops)';
-      else if (role === 'HR_EXECUTIVE') this.currentUserName = 'Ananya Sen (Talent Acquisition)';
-      else if (role === 'FINANCE_ADMIN') this.currentUserName = 'Rajesh Mehta (Head of Finance & FnF)';
-      else this.currentUserName = 'Varun Batra (Sales Director - Viewer)';
+      if (role === 'HR') this.currentUserName = 'Nisha (HR)';
+      else if (role === 'Co-Founder') this.currentUserName = 'Rohit Juneja (Co-Founder)';
+      else this.currentUserName = 'Lalit Sir (CEO)';
     }
   }
 
@@ -49,9 +56,17 @@ class ApiService {
     };
   }
 
+  private getAuthOnlyHeaders(): Record<string, string> {
+    return {
+      'x-user-role': this.currentRole,
+      'x-user-name': this.currentUserName,
+    };
+  }
+
   // --- Real-time SSE Subscription ---
   public subscribeToEvents(onEvent: (type: string, data: unknown) => void): () => void {
-    const eventSource = new EventSource('/api/events');
+    const sseUrl = `/api/events?role=${encodeURIComponent(this.currentRole)}&name=${encodeURIComponent(this.currentUserName)}`;
+    const eventSource = new EventSource(sseUrl);
 
     const handleEvent = (type: string) => (e: MessageEvent) => {
       try {
@@ -87,6 +102,14 @@ class ApiService {
       'REMINDER_SENT',
       'ALERT_UPDATED',
       'LIFECYCLE_EVENT_ADDED',
+      'ASSET_REMINDER_UPDATED',
+      'NOTIFICATION_LOG_ADDED',
+      'DOCUMENT_QR_GENERATED',
+      'DOCUMENT_QR_REVOKED',
+      'QR_UPLOAD_PROGRESS',
+      'QR_UPLOAD_COMPLETED',
+      'DEPARTMENTS_UPDATED',
+      'EMPLOYEES_BULK_UPDATED',
     ];
 
     eventTypes.forEach(type => {
@@ -106,11 +129,19 @@ class ApiService {
   }
 
   // --- Employees & Candidates ---
-  public async getEmployees(params?: { isCandidate?: boolean; search?: string; department?: string }): Promise<Employee[]> {
+  public async getEmployees(params?: {
+    isCandidate?: boolean;
+    search?: string;
+    department?: string;
+    departmentId?: string;
+    subDepartment?: string;
+  }): Promise<Employee[]> {
     const query = new URLSearchParams();
     if (params?.isCandidate !== undefined) query.set('isCandidate', String(params.isCandidate));
     if (params?.search) query.set('search', params.search);
     if (params?.department && params.department !== 'All') query.set('department', params.department);
+    if (params?.departmentId && params.departmentId !== 'All') query.set('departmentId', params.departmentId);
+    if (params?.subDepartment && params.subDepartment !== 'All') query.set('subDepartment', params.subDepartment);
 
     const res = await fetch(`/api/employees?${query.toString()}`, { headers: this.getHeaders() });
     if (!res.ok) throw new Error('Failed to fetch employees');
@@ -263,11 +294,17 @@ class ApiService {
     return res.json();
   }
 
-  public async issueAsset(id: string, employeeId: string, issueDate: string, notes: string): Promise<CompanyAsset> {
+  public async issueAsset(
+    id: string,
+    employeeId: string,
+    issueDate: string,
+    notes: string,
+    expectedReturnDate?: string | null
+  ): Promise<CompanyAsset> {
     const res = await fetch(`/api/assets/${id}/issue`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify({ employeeId, issueDate, notes }),
+      body: JSON.stringify({ employeeId, issueDate, notes, expectedReturnDate }),
     });
     if (!res.ok) {
       const err = await res.json();
@@ -377,6 +414,19 @@ class ApiService {
     return res.json();
   }
 
+  public async dismissMissingDocAlerts(candidateId?: string): Promise<{ success: boolean; dismissedCount: number }> {
+    const res = await fetch('/api/alerts/dismiss-missing-docs', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(candidateId ? { candidateId } : {}),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to dismiss missing document alerts');
+    }
+    return res.json();
+  }
+
   public async resetDismissedAlerts(): Promise<{ success: boolean; message: string }> {
     const res = await fetch('/api/alerts/reset-dismissed', {
       method: 'POST',
@@ -457,12 +507,21 @@ class ApiService {
     return data;
   }
 
+  public async fetchDocumentObjectUrl(employeeId: string, docKey: string): Promise<string> {
+    const res = await fetch(`/api/employees/${employeeId}/documents/${docKey}/file`, {
+      headers: this.getAuthOnlyHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to load document file' }));
+      throw new Error(err.error || 'Failed to load document file');
+    }
+    const blob = await res.blob();
+    return window.URL.createObjectURL(blob);
+  }
+
   public async downloadDocument(employeeId: string, docKey: string, fallbackFileName?: string): Promise<void> {
     const res = await fetch(`/api/employees/${employeeId}/documents/${docKey}/download`, {
-      headers: {
-        'x-user-role': this.currentRole,
-        'x-user-name': this.currentUserName,
-      },
+      headers: this.getAuthOnlyHeaders(),
     });
     if (!res.ok) {
       throw new Error('Failed to download document from server');
@@ -473,6 +532,38 @@ class ApiService {
     a.style.display = 'none';
     a.href = url;
     a.download = fallbackFileName || `${docKey}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }, 200);
+  }
+
+  public async downloadExcelExport(format: 'single-sheet' | 'multi-sheet' = 'single-sheet'): Promise<void> {
+    const endpoint = format === 'single-sheet' ? '/api/export/excel/single-sheet' : '/api/export/excel';
+    const res = await fetch(endpoint, {
+      headers: this.getAuthOnlyHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to export Excel workbook' }));
+      throw new Error(err.error || 'Failed to export Excel workbook');
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    const disposition = res.headers.get('Content-Disposition');
+    let filename =
+      format === 'single-sheet'
+        ? `WhiteCollarRealty_Master_Directory_SingleSheet_${Date.now()}.xlsx`
+        : `WhiteCollarRealty_HR_Master_${Date.now()}.xlsx`;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
@@ -596,11 +687,59 @@ class ApiService {
     return res.json();
   }
 
-  public async downloadOfferLetterDocx(candidateId: string, customData?: Partial<OfferLetterData>): Promise<void> {
-    const res = await fetch(`/api/candidates/${candidateId}/offer-letter/docx`, {
-      method: customData ? 'POST' : 'GET',
+  public async getSavedOfferLetterFiles(candidateId: string): Promise<{
+    candidateId: string;
+    candidateName: string;
+    savedOfferLetters: SavedOfferLetterFile[];
+    currentOfferLetter: OfferLetterData | null;
+  }> {
+    const res = await fetch(`/api/candidates/${candidateId}/offer-letter/files`, {
       headers: this.getHeaders(),
-      body: customData ? JSON.stringify(customData) : undefined,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to load saved offer letters' }));
+      throw new Error(err.error || 'Failed to load saved offer letters');
+    }
+    return res.json();
+  }
+
+  public async downloadSavedOfferLetterFile(
+    candidateId: string,
+    fileId: string,
+    fallbackFileName?: string
+  ): Promise<void> {
+    const res = await fetch(`/api/candidates/${candidateId}/offer-letter/files/${encodeURIComponent(fileId)}/download`, {
+      headers: this.getAuthOnlyHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to download saved offer letter .docx' }));
+      throw new Error(err.error || 'Failed to download saved offer letter .docx');
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const disposition = res.headers.get('Content-Disposition');
+    let filename = fallbackFileName || `White_Collar_Realty_Offer_Letter_${candidateId}.docx`;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }, 200);
+  }
+
+  public async downloadOfferLetterDocx(candidateId: string, customData?: Partial<OfferLetterData>): Promise<void> {
+    const usePost = Boolean(customData) && (this.currentRole === 'HR' || this.currentRole === 'Co-Founder');
+    const res = await fetch(`/api/candidates/${candidateId}/offer-letter/docx`, {
+      method: usePost ? 'POST' : 'GET',
+      headers: usePost ? this.getHeaders() : this.getAuthOnlyHeaders(),
+      body: usePost ? JSON.stringify(customData) : undefined,
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: 'Failed to download Word document' }));
@@ -798,6 +937,261 @@ class ApiService {
       throw new Error(err.message || err.error || 'Failed to finalize FnF settlement');
     }
     return res.json();
+  }
+
+  // --- Scheduled Automation & Asset Return Reminders ---
+  public async getAutomationStatus(): Promise<any> {
+    const res = await fetch('/api/automation/status', { headers: this.getHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch automation status');
+    return res.json();
+  }
+
+  public async getAssetReminders(personId?: string): Promise<{ reminders: AssetReturnReminderRecord[]; total: number }> {
+    const query = new URLSearchParams();
+    if (personId) query.set('personId', personId);
+    const res = await fetch(`/api/automation/asset-reminders?${query.toString()}`, { headers: this.getHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch asset return reminders');
+    return res.json();
+  }
+
+  public async getDeliveryLogs(
+    personId?: string,
+    limit?: number
+  ): Promise<{ logs: NotificationDeliveryLog[]; total: number }> {
+    const query = new URLSearchParams();
+    if (personId) query.set('personId', personId);
+    if (limit !== undefined) query.set('limit', String(limit));
+    const res = await fetch(`/api/automation/delivery-logs?${query.toString()}`, { headers: this.getHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch notification delivery logs');
+    return res.json();
+  }
+
+  public async runAssetReminderSweep(referenceDate?: string): Promise<{ success: boolean; summary: any }> {
+    const res = await fetch('/api/automation/asset-reminders/run', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(referenceDate ? { referenceDate } : {}),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to run asset return reminder sweep' }));
+      throw new Error(err.error || 'Failed to run asset return reminder sweep');
+    }
+    return res.json();
+  }
+
+  // --- Configurable Departments & Sub-Departments ---
+  public async getDepartments(): Promise<DepartmentWithCounts[]> {
+    const res = await fetch('/api/departments', { headers: this.getHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch departments');
+    const data = await res.json();
+    return data.departments || [];
+  }
+
+  public async createDepartment(payload: {
+    name: string;
+    description?: string;
+    marketFocus?: MarketType;
+    subDepartments?: string[];
+  }): Promise<{ department: DepartmentWithCounts; departments: DepartmentWithCounts[] }> {
+    const res = await fetch('/api/departments', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to create department');
+    return data;
+  }
+
+  public async updateDepartment(
+    id: string,
+    payload: { name?: string; description?: string; marketFocus?: MarketType }
+  ): Promise<{ department: DepartmentWithCounts; departments: DepartmentWithCounts[] }> {
+    const res = await fetch(`/api/departments/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update department');
+    return data;
+  }
+
+  public async deleteDepartment(
+    id: string,
+    reassignToDepartmentId?: string
+  ): Promise<{ success: boolean; departments: DepartmentWithCounts[] }> {
+    const query = new URLSearchParams();
+    if (reassignToDepartmentId) query.set('reassignToDepartmentId', reassignToDepartmentId);
+    const res = await fetch(`/api/departments/${encodeURIComponent(id)}?${query.toString()}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+      body: JSON.stringify(reassignToDepartmentId ? { reassignToDepartmentId } : {}),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete department');
+    return data;
+  }
+
+  public async addSubDepartment(
+    deptId: string,
+    payload: { name: string; description?: string }
+  ): Promise<{ department: DepartmentWithCounts; departments: DepartmentWithCounts[] }> {
+    const res = await fetch(`/api/departments/${encodeURIComponent(deptId)}/sub-departments`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to add sub-department');
+    return data;
+  }
+
+  public async updateSubDepartment(
+    deptId: string,
+    subId: string,
+    payload: { name?: string; description?: string }
+  ): Promise<{ department: DepartmentWithCounts; departments: DepartmentWithCounts[] }> {
+    const res = await fetch(
+      `/api/departments/${encodeURIComponent(deptId)}/sub-departments/${encodeURIComponent(subId)}`,
+      {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update sub-department');
+    return data;
+  }
+
+  public async deleteSubDepartment(
+    deptId: string,
+    subId: string
+  ): Promise<{ department: DepartmentWithCounts; departments: DepartmentWithCounts[] }> {
+    const res = await fetch(
+      `/api/departments/${encodeURIComponent(deptId)}/sub-departments/${encodeURIComponent(subId)}`,
+      {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete sub-department');
+    return data;
+  }
+
+  // --- Individual 24-Hour Document QR (Protected HR / Co-Founder) ---
+  public async getEmployeeDocumentQr(
+    employeeId: string
+  ): Promise<{ inspection: ProfileDocumentInspection; qrStatus: DocumentQrStatusInfo }> {
+    const query = new URLSearchParams({ clientOrigin: window.location.origin });
+    const res = await fetch(`/api/employees/${encodeURIComponent(employeeId)}/document-qr?${query.toString()}`, {
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to inspect profile QR status');
+    return data;
+  }
+
+  public async generateEmployeeDocumentQr(
+    employeeId: string,
+    options?: { includeOptionalMissing?: boolean; customDocKeys?: string[] }
+  ): Promise<{
+    success: boolean;
+    inspection: ProfileDocumentInspection;
+    qrStatus: DocumentQrStatusInfo;
+    message: string;
+  }> {
+    const res = await fetch(`/api/employees/${encodeURIComponent(employeeId)}/document-qr`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        ...(options || {}),
+        clientOrigin: window.location.origin,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to generate Document QR');
+    return data;
+  }
+
+  public async revokeEmployeeDocumentQr(employeeId: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`/api/employees/${encodeURIComponent(employeeId)}/document-qr/revoke`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to revoke Document QR');
+    return data;
+  }
+
+  // --- Public QR-Based Document Upload (No HR Login Required) ---
+  public async getPublicQrSession(token: string, silent = false): Promise<PublicQrSessionData> {
+    const query = silent ? '?silent=true' : '';
+    const res = await fetch(`/api/public/document-qr/${encodeURIComponent(token)}${query}`, {
+      cache: 'no-store',
+    });
+    const data = await res.json().catch(() => ({ error: 'Unable to load QR session' }));
+    if (!res.ok) {
+      const err: Error & { status?: number; code?: string } = new Error(data.error || 'QR upload link unavailable');
+      err.status = res.status;
+      err.code = data.code;
+      throw err;
+    }
+    return data;
+  }
+
+  public uploadPublicQrDocument(
+    token: string,
+    docKey: string,
+    file: File,
+    onProgress?: (pct: number) => void
+  ): Promise<{ success: boolean; slot: PublicQrDocumentSlot; session: PublicQrSessionData }> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(
+        'POST',
+        `/api/public/document-qr/${encodeURIComponent(token)}/upload/${encodeURIComponent(docKey)}`,
+        true
+      );
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.setRequestHeader('X-Mime-Type', file.type || 'application/octet-stream');
+      xhr.setRequestHeader('X-File-Name', encodeURIComponent(file.name));
+
+      xhr.upload.onprogress = e => {
+        if (e.lengthComputable && onProgress) {
+          const pct = Math.min(98, Math.max(1, Math.round((e.loaded / e.total) * 98)));
+          onProgress(pct);
+        }
+      };
+
+      xhr.onload = () => {
+        let parsed: any = {};
+        try {
+          parsed = JSON.parse(xhr.responseText || '{}');
+        } catch {
+          parsed = { error: 'Unexpected server response' };
+        }
+        if (xhr.status >= 200 && xhr.status < 300 && parsed.success) {
+          if (onProgress) onProgress(100);
+          resolve(parsed);
+        } else {
+          const err: Error & { status?: number; code?: string } = new Error(
+            parsed.error || 'Document upload failed'
+          );
+          err.status = xhr.status;
+          err.code = parsed.code;
+          reject(err);
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network error while uploading document. Please check your connection and try again.'));
+      };
+
+      xhr.send(file);
+    });
   }
 
   // --- Reset Database ---

@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
+import QRCode from 'qrcode';
 import type { Response } from 'express';
 import type {
   Employee,
@@ -23,9 +25,23 @@ import type {
   LifecycleStage,
   LifecycleHistoryEntry,
   RoleSalaryStructure,
+  SavedOfferLetterFile,
+  AssetReturnReminderRecord,
+  NotificationDeliveryLog,
+  DepartmentConfig,
+  SubDepartmentConfig,
+  DepartmentWithCounts,
+  QrDocumentTokenRecord,
+  ProfileDocumentInspection,
+  DocumentQrStatusInfo,
+  PublicQrDocumentSlot,
+  PublicQrSessionData,
+  LiveQrUploadEvent,
+  MarketType,
 } from '../src/types/index.ts';
 import {
   ALL_DESK_CODES,
+  DEFAULT_DEPARTMENTS,
   getBayFromDesk,
   mapSpreadsheetSeatToStandardDesk,
   SEED_EMPLOYEES,
@@ -43,15 +59,29 @@ import {
   DEFAULT_ROLE_SALARY_STRUCTURES,
 } from './lifecycleEngine.ts';
 
+export function normalizeLegacyRole(raw?: string): UserRole {
+  if (raw === 'HR' || raw === 'Co-Founder' || raw === 'CEO') return raw;
+  if (raw === 'FINANCE_ADMIN') return 'Co-Founder';
+  if (raw === 'DEPT_HEAD_VIEWER') return 'CEO';
+  return 'HR';
+}
+
 interface DatabaseSchema {
   employees: Employee[];
   assets: CompanyAsset[];
   auditLogs: AuditLog[];
+  departments?: DepartmentConfig[];
+  qrDocumentTokens?: QrDocumentTokenRecord[];
   salaryStructures?: RoleSalaryStructure[];
+  assetReturnReminders?: AssetReturnReminderRecord[];
+  notificationDeliveryLogs?: NotificationDeliveryLog[];
   acknowledgedAlerts: Record<string, { dismissedAt: string; dismissedBy: string }>;
   version: number;
   lastUpdated: string;
 }
+
+export const QR_EXPIRY_DURATION_MS = 24 * 60 * 60 * 1000; // Exact 24 hours (86,400,000 ms)
+export const QR_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB per document
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'hr_db.json');
@@ -84,10 +114,52 @@ class DatabaseService {
         // If version 3, load existing database
         if (parsed.version === 3 && parsed.employees && parsed.assets) {
           if (!parsed.acknowledgedAlerts) parsed.acknowledgedAlerts = {};
+          if (!parsed.assetReturnReminders || !Array.isArray(parsed.assetReturnReminders)) {
+            parsed.assetReturnReminders = [];
+          }
+          if (!parsed.notificationDeliveryLogs || !Array.isArray(parsed.notificationDeliveryLogs)) {
+            parsed.notificationDeliveryLogs = [];
+          }
           if (!parsed.salaryStructures || !Array.isArray(parsed.salaryStructures) || parsed.salaryStructures.length === 0) {
             parsed.salaryStructures = JSON.parse(JSON.stringify(DEFAULT_ROLE_SALARY_STRUCTURES));
           }
-          console.log(`[DB] Successfully loaded ${parsed.employees.length} employees and ${parsed.assets.length} assets from disk (v3).`);
+          if (!parsed.qrDocumentTokens || !Array.isArray(parsed.qrDocumentTokens)) {
+            parsed.qrDocumentTokens = [];
+          }
+          const isInitialDeptMigration = !parsed.departments || !Array.isArray(parsed.departments) || parsed.departments.length === 0;
+          if (isInitialDeptMigration) {
+            parsed.departments = JSON.parse(JSON.stringify(DEFAULT_DEPARTMENTS));
+          }
+          // Normalize any legacy role strings stored in persisted logs or history
+          if (Array.isArray(parsed.auditLogs)) {
+            parsed.auditLogs.forEach((log: any) => {
+              log.actorRole = normalizeLegacyRole(log.actorRole);
+            });
+          }
+          parsed.employees.forEach((emp: any) => {
+            if (Array.isArray(emp.lifecycleHistory)) {
+              emp.lifecycleHistory.forEach((entry: any) => {
+                entry.actorRole = normalizeLegacyRole(entry.actorRole);
+              });
+            }
+            if (Array.isArray(emp.documentReminders)) {
+              emp.documentReminders.forEach((rem: any) => {
+                rem.sentByRole = normalizeLegacyRole(rem.sentByRole);
+              });
+            }
+            if (Array.isArray(emp.savedOfferLetters)) {
+              emp.savedOfferLetters.forEach((f: any) => {
+                f.generatedByRole = normalizeLegacyRole(f.generatedByRole);
+              });
+            }
+          });
+
+          const migrated = this.ensureDepartmentsAndAssignmentsOnSchema(parsed, isInitialDeptMigration);
+          if (migrated || isInitialDeptMigration) {
+            this.saveDataDirect(parsed);
+          }
+
+          console.log(`[DB] Successfully loaded ${parsed.employees.length} employees, ${parsed.departments.length} departments, and ${parsed.assets.length} assets from disk (v3).`);
           return parsed;
         }
       }
@@ -96,17 +168,22 @@ class DatabaseService {
     }
 
     // Initialize with verified seed data
-    const initialEmployees = [...SEED_EMPLOYEES, ...SEED_CANDIDATES];
+    const initialEmployees = JSON.parse(JSON.stringify([...SEED_EMPLOYEES, ...SEED_CANDIDATES]));
     const initialData: DatabaseSchema = {
       employees: initialEmployees,
-      assets: SEED_ASSETS,
-      auditLogs: INITIAL_AUDIT_LOGS,
+      assets: JSON.parse(JSON.stringify(SEED_ASSETS)),
+      auditLogs: JSON.parse(JSON.stringify(INITIAL_AUDIT_LOGS)),
+      departments: JSON.parse(JSON.stringify(DEFAULT_DEPARTMENTS)),
+      qrDocumentTokens: [],
       salaryStructures: JSON.parse(JSON.stringify(DEFAULT_ROLE_SALARY_STRUCTURES)),
+      assetReturnReminders: [],
+      notificationDeliveryLogs: [],
       acknowledgedAlerts: {},
       version: 3,
       lastUpdated: new Date().toISOString(),
     };
 
+    this.ensureDepartmentsAndAssignmentsOnSchema(initialData, false);
     this.saveDataDirect(initialData);
     console.log(`[DB] Initialized database with ${initialEmployees.length} employees/candidates and ${SEED_ASSETS.length} assets (v3).`);
     return initialData;
@@ -176,15 +253,32 @@ class DatabaseService {
   }
 
   // --- Employees & Candidates ---
-  public getEmployees(role: UserRole = 'HR_ADMIN', filter?: { isCandidate?: boolean; search?: string; department?: string }): Employee[] {
+  public getEmployees(
+    _role: UserRole = 'HR',
+    filter?: { isCandidate?: boolean; search?: string; department?: string; departmentId?: string; subDepartment?: string }
+  ): Employee[] {
+    // Refresh live QR metadata (24h expiry awareness)
+    this.data.employees.forEach(emp => {
+      emp.documentQrMeta = this.computeEmployeeQrMeta(emp.id);
+    });
+
     let list = this.data.employees;
 
     if (filter) {
       if (typeof filter.isCandidate === 'boolean') {
         list = list.filter(e => Boolean(e.isCandidate) === filter.isCandidate);
       }
-      if (filter.department && filter.department !== 'All') {
-        list = list.filter(e => e.department === filter.department);
+      if (filter.departmentId && filter.departmentId !== 'All') {
+        list = list.filter(e => e.departmentId === filter.departmentId);
+      } else if (filter.department && filter.department !== 'All') {
+        list = list.filter(e => e.department.toLowerCase() === filter.department!.toLowerCase());
+      }
+      if (filter.subDepartment && filter.subDepartment !== 'All') {
+        if (filter.subDepartment === '__unassigned__') {
+          list = list.filter(e => !e.subDepartment);
+        } else {
+          list = list.filter(e => (e.subDepartment || '').toLowerCase() === filter.subDepartment!.toLowerCase());
+        }
       }
       if (filter.search) {
         const q = filter.search.toLowerCase();
@@ -195,26 +289,21 @@ class DatabaseService {
             e.email.toLowerCase().includes(q) ||
             e.phone.toLowerCase().includes(q) ||
             e.designation.toLowerCase().includes(q) ||
+            e.department.toLowerCase().includes(q) ||
+            (e.subDepartment && e.subDepartment.toLowerCase().includes(q)) ||
             (e.desk && e.desk.toLowerCase().includes(q)) ||
             (e.sourceSpreadsheetSeat && e.sourceSpreadsheetSeat.toLowerCase().includes(q))
         );
       }
     }
 
-    // Role-based field masking
-    if (role === 'DEPT_HEAD_VIEWER') {
-      return list.map(emp => this.redactSensitiveFields(emp));
-    }
-
     return list;
   }
 
-  public getEmployeeById(id: string, role: UserRole = 'HR_ADMIN'): Employee | null {
+  public getEmployeeById(id: string, _role: UserRole = 'HR'): Employee | null {
     const emp = this.data.employees.find(e => e.id === id);
     if (!emp) return null;
-    if (role === 'DEPT_HEAD_VIEWER') {
-      return this.redactSensitiveFields(emp);
-    }
+    emp.documentQrMeta = this.computeEmployeeQrMeta(emp.id);
     return emp;
   }
 
@@ -365,6 +454,18 @@ class DatabaseService {
     }
 
     const desk = empData.desk || (empData.sourceSpreadsheetSeat ? mapSpreadsheetSeatToStandardDesk(empData.sourceSpreadsheetSeat) : '');
+    const resolvedMarket: MarketType =
+      empData.market ||
+      (empData.department?.toLowerCase().includes('dubai') ? 'Dubai' : 'Gurgaon');
+
+    const resolvedDept = this.resolveAndEnsureDepartment(
+      empData.departmentId,
+      empData.department || (resolvedMarket === 'Dubai' ? 'Dubai Market' : 'Gurgaon Market'),
+      empData.subDepartment,
+      resolvedMarket
+    );
+
+    const isDubaiDocs = resolvedMarket === 'Dubai' || resolvedMarket === 'Dual Market' || resolvedDept.department.toLowerCase().includes('dubai');
 
     const newEmp: Employee = {
       id,
@@ -380,15 +481,18 @@ class DatabaseService {
       permanentAddress: empData.permanentAddress || '',
       emergencyContact: empData.emergencyContact || { name: '', relation: '', phone: '' },
       familyDetails: empData.familyDetails || [],
-      department: empData.department || 'Sales & Investments',
+      departmentId: resolvedDept.departmentId,
+      department: resolvedDept.department,
+      subDepartment: resolvedDept.subDepartment,
       designation: empData.designation || 'Property Consultant',
       reportingManager: empData.reportingManager || 'Management',
       joiningDate: empData.joiningDate || new Date().toISOString().split('T')[0],
       internshipCompletionDate: empData.internshipCompletionDate,
+      jobEndDate: empData.jobEndDate,
       employmentStatus: empData.employmentStatus || (isCand ? 'Upcoming Joiner' : 'Full-Time'),
       isCandidate: isCand,
       candidateStatus: empData.candidateStatus || (isCand ? 'Offer Accepted' : undefined),
-      market: empData.market || 'Gurgaon',
+      market: resolvedMarket,
       desk: ALL_DESK_CODES.includes(desk) ? desk : '',
       sourceSpreadsheetSeat: empData.sourceSpreadsheetSeat || desk,
       previousCompany: empData.previousCompany,
@@ -410,7 +514,16 @@ class DatabaseService {
       hobbies: empData.hobbies,
       aspirations: empData.aspirations,
       googleDriveLink: empData.googleDriveLink,
-      documents: empData.documents || getDefaultDocumentChecklist(empData.market === 'Dubai' || empData.market === 'Dual Market'),
+      documents: empData.documents || getDefaultDocumentChecklist(isDubaiDocs),
+      savedOfferLetters: empData.savedOfferLetters || [],
+      documentQrMeta: {
+        hasToken: false,
+        isActive: false,
+        isExpired: false,
+        isRevoked: false,
+        targetDocKeys: [],
+        uploadedDocKeys: [],
+      },
       profileCompletion: 0,
       notes: empData.notes,
       createdAt: new Date().toISOString(),
@@ -433,10 +546,11 @@ class DatabaseService {
       isCand ? 'Candidate' : 'Employee',
       newEmp.id,
       newEmp.fullName,
-      `Created ${isCand ? 'candidate' : 'employee'} profile (${newEmp.employeeCode}). Seat: ${newEmp.sourceSpreadsheetSeat || 'None'}.`
+      `Created ${isCand ? 'candidate' : 'employee'} profile (${newEmp.employeeCode}) in ${newEmp.department}${newEmp.subDepartment ? ` / ${newEmp.subDepartment}` : ''}. Seat: ${newEmp.sourceSpreadsheetSeat || 'None'}.`
     );
 
     this.broadcast('EMPLOYEE_CREATED', newEmp);
+    this.broadcast('DEPARTMENTS_UPDATED', this.getDepartmentsWithCounts());
     return newEmp;
   }
 
@@ -468,6 +582,23 @@ class DatabaseService {
       updatedAt: new Date().toISOString(),
     };
 
+    if (updates.department !== undefined || updates.departmentId !== undefined || updates.subDepartment !== undefined) {
+      const resolvedDept = this.resolveAndEnsureDepartment(
+        updates.departmentId !== undefined ? updates.departmentId : (updates.department !== undefined ? undefined : existing.departmentId),
+        updates.department !== undefined ? updates.department : existing.department,
+        updates.subDepartment !== undefined ? updates.subDepartment : existing.subDepartment,
+        merged.market
+      );
+      merged.departmentId = resolvedDept.departmentId;
+      merged.department = resolvedDept.department;
+      merged.subDepartment = resolvedDept.subDepartment;
+    }
+
+    if (!merged.documents || Object.keys(merged.documents).length === 0) {
+      merged.documents = getDefaultDocumentChecklist(merged.market === 'Dubai' || merged.market === 'Dual Market');
+    }
+
+    merged.documentQrMeta = this.computeEmployeeQrMeta(merged.id);
     merged.profileCompletion = calculateCompletion(merged);
 
     this.data.employees[index] = merged;
@@ -493,10 +624,11 @@ class DatabaseService {
       merged.isCandidate ? 'Candidate' : 'Employee',
       merged.id,
       merged.fullName,
-      `Updated profile fields (${Object.keys(updates).join(', ')}). Profile score: ${merged.profileCompletion}%.`
+      `Updated profile fields (${Object.keys(updates).join(', ')}). Department: ${merged.department}${merged.subDepartment ? ` / ${merged.subDepartment}` : ''}. Profile score: ${merged.profileCompletion}%.`
     );
 
     this.broadcast('EMPLOYEE_UPDATED', merged);
+    this.broadcast('DEPARTMENTS_UPDATED', this.getDepartmentsWithCounts());
     return merged;
   }
 
@@ -506,6 +638,18 @@ class DatabaseService {
 
     const removed = this.data.employees[index];
     this.data.employees.splice(index, 1);
+
+    // Immediately revoke any active QR tokens belonging to the deleted profile
+    if (this.data.qrDocumentTokens) {
+      const nowIso = new Date().toISOString();
+      this.data.qrDocumentTokens.forEach(t => {
+        if (t.employeeId === id && !t.revokedAt) {
+          t.revokedAt = nowIso;
+          t.revokedBy = actor;
+          t.revokeReason = 'Profile deleted';
+        }
+      });
+    }
 
     this.data.assets.forEach(asset => {
       if (asset.assignedEmployeeId === id) {
@@ -536,6 +680,7 @@ class DatabaseService {
     );
 
     this.broadcast('EMPLOYEE_DELETED', { id, desk: removed.desk });
+    this.broadcast('DEPARTMENTS_UPDATED', this.getDepartmentsWithCounts());
     return true;
   }
 
@@ -590,6 +735,22 @@ class DatabaseService {
   }
 
   // --- Secure Private File Storage Helpers ---
+  public saveSecureBuffer(personId: string, docKey: string, originalFileName: string, fileBuffer: Buffer): string {
+    const safePersonId = path.basename(personId).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const personDir = path.join(SECURE_UPLOADS_DIR, safePersonId);
+    if (!fs.existsSync(personDir)) {
+      fs.mkdirSync(personDir, { recursive: true });
+    }
+
+    const sanitizedBase = path.basename(originalFileName).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || `${docKey}.pdf`;
+    const safeDocKey = docKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const storedFileName = `${safeDocKey}_${Date.now()}_${sanitizedBase}`;
+    const targetFilePath = path.join(personDir, storedFileName);
+    fs.writeFileSync(targetFilePath, fileBuffer);
+
+    return path.join('secure_uploads', safePersonId, storedFileName);
+  }
+
   public saveSecureFile(personId: string, docKey: string, originalFileName: string, fileData: string): string {
     const personDir = path.join(SECURE_UPLOADS_DIR, personId);
     if (!fs.existsSync(personDir)) {
@@ -629,13 +790,14 @@ class DatabaseService {
     if (!mimeType) {
       if (fileName.endsWith('.png')) mimeType = 'image/png';
       else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) mimeType = 'image/jpeg';
+      else if (fileName.endsWith('.docx')) mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
       else mimeType = 'application/pdf';
     }
 
-    // 1. Check storagePath on disk in secure_uploads
+    // 1. Check storagePath on disk in secure_uploads (with strict path-traversal guard)
     if (doc.storagePath) {
       const diskPath = path.resolve(DATA_DIR, doc.storagePath);
-      if (fs.existsSync(diskPath)) {
+      if (diskPath.startsWith(SECURE_UPLOADS_DIR + path.sep) && fs.existsSync(diskPath)) {
         return { filePath: diskPath, mimeType, fileName };
       }
     }
@@ -984,7 +1146,7 @@ class DatabaseService {
 
     this.logAudit(
       'Candidate Portal',
-      'HR_MANAGER',
+      'HR',
       'Candidate Documents Uploaded via Secure Link',
       'Candidate',
       candidate.id,
@@ -1214,6 +1376,136 @@ class DatabaseService {
     return { success: true, candidate, employee: candidate, offerLetter, message: 'Offer letter saved to candidate record.' };
   }
 
+  public saveGeneratedOfferLetterWithDocx(
+    candidateId: string,
+    actor: string,
+    actorRole: UserRole,
+    customOverrides: Partial<OfferLetterData> | undefined,
+    docxBuffer: Buffer
+  ): {
+    success: boolean;
+    candidate?: Employee;
+    employee?: Employee;
+    offerLetter?: OfferLetterData;
+    savedFile?: SavedOfferLetterFile;
+    message: string;
+  } {
+    const genRes = this.generateOfferLetter(candidateId, actor, actorRole, customOverrides);
+    if (!genRes.success || !genRes.candidate || !genRes.offerLetter) {
+      return genRes;
+    }
+
+    const candidate = genRes.candidate;
+    const offerLetter = genRes.offerLetter;
+
+    const personDir = path.join(SECURE_UPLOADS_DIR, candidate.id);
+    if (!fs.existsSync(personDir)) {
+      fs.mkdirSync(personDir, { recursive: true });
+    }
+
+    const sanitizedName = (offerLetter.candidateName || candidate.fullName || 'Candidate')
+      .replace(/[^a-zA-Z0-9_-]/g, '_');
+    const ts = Date.now();
+    const displayFileName = `White_Collar_Realty_Offer_Letter_${sanitizedName}_${new Date(ts).toISOString().split('T')[0]}.docx`;
+    const storedFileName = `offer_letter_${ts}_${displayFileName}`;
+    const diskPath = path.join(personDir, storedFileName);
+
+    fs.writeFileSync(diskPath, docxBuffer);
+    const relativeStoragePath = path.join('secure_uploads', candidate.id, storedFileName);
+    const sizeKb = Math.max(1, Math.round(docxBuffer.length / 1024));
+    const fileSizeStr = sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(2)} MB` : `${sizeKb} KB`;
+
+    const savedFile: SavedOfferLetterFile = {
+      id: `ol-docx-${ts}-${Math.random().toString(36).slice(2, 6)}`,
+      refNo: offerLetter.refNo,
+      fileName: displayFileName,
+      fileSize: fileSizeStr,
+      storagePath: relativeStoragePath,
+      generatedAt: new Date(ts).toISOString(),
+      generatedBy: actor,
+      generatedByRole: actorRole,
+      designation: offerLetter.designation,
+      department: offerLetter.department,
+      annualCtc: offerLetter.salaryBreakup.annualCtc,
+      currency: offerLetter.salaryBreakup.currency,
+      offerSnapshot: JSON.parse(JSON.stringify(offerLetter)),
+    };
+
+    if (!candidate.savedOfferLetters) {
+      candidate.savedOfferLetters = [];
+    }
+    candidate.savedOfferLetters.unshift(savedFile);
+    if (candidate.savedOfferLetters.length > 25) {
+      candidate.savedOfferLetters = candidate.savedOfferLetters.slice(0, 25);
+    }
+
+    if (!candidate.documents) {
+      candidate.documents = getDefaultDocumentChecklist(
+        candidate.market === 'Dubai' || candidate.market === 'Dual Market'
+      );
+    }
+    candidate.documents.offer_letter = {
+      key: 'offer_letter',
+      title: 'Signed Offer Letter (.docx)',
+      category: 'Photos & General',
+      status: 'Verified',
+      required: false,
+      fileName: displayFileName,
+      fileSize: fileSizeStr,
+      storagePath: relativeStoragePath,
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      uploadedAt: savedFile.generatedAt,
+      verifiedBy: actor,
+      verifiedAt: savedFile.generatedAt,
+      reviewNotes: `Generated & saved official .docx (${offerLetter.refNo}) by ${actor} (${actorRole}).`,
+    };
+
+    candidate.updatedAt = savedFile.generatedAt;
+    this.persist();
+    this.broadcast('OFFER_LETTER_UPDATED', {
+      candidateId: candidate.id,
+      offerLetter,
+      savedFile,
+      employee: candidate,
+    });
+    this.broadcast('EMPLOYEE_UPDATED', candidate);
+
+    return {
+      success: true,
+      candidate,
+      employee: candidate,
+      offerLetter,
+      savedFile,
+      message: 'Offer letter generated and .docx saved to candidate profile.',
+    };
+  }
+
+  public getSavedOfferLetterFile(
+    candidateId: string,
+    fileId?: string
+  ): { filePath: string; fileName: string; record: SavedOfferLetterFile } | null {
+    const candidate = this.data.employees.find(e => e.id === candidateId);
+    if (!candidate || !candidate.savedOfferLetters || candidate.savedOfferLetters.length === 0) {
+      return null;
+    }
+
+    const record = fileId
+      ? candidate.savedOfferLetters.find(f => f.id === fileId)
+      : candidate.savedOfferLetters[0];
+    if (!record) return null;
+
+    const diskPath = path.resolve(DATA_DIR, record.storagePath);
+    if (!diskPath.startsWith(SECURE_UPLOADS_DIR + path.sep) || !fs.existsSync(diskPath)) {
+      return null;
+    }
+
+    return {
+      filePath: diskPath,
+      fileName: record.fileName,
+      record,
+    };
+  }
+
   public approveOfferLetter(
     candidateId: string,
     actor: string,
@@ -1274,7 +1566,7 @@ class DatabaseService {
     candidateId: string,
     signatureName: string,
     actor = 'Candidate Portal',
-    actorRole: UserRole = 'HR_MANAGER'
+    actorRole: UserRole = 'HR'
   ): { success: boolean; candidate?: Employee; employee?: Employee; offerLetter?: OfferLetterData; message: string } {
     const candidate = this.data.employees.find(e => e.id === candidateId);
     if (!candidate || !candidate.offerLetter) return { success: false, message: 'Candidate or offer letter not found.' };
@@ -1849,7 +2141,7 @@ class DatabaseService {
     const sorted = [...all].sort((a, b) => a.fullName.localeCompare(b.fullName));
 
     return sorted.map(p => {
-      const isViewer = role === 'DEPT_HEAD_VIEWER';
+      const isViewer = false;
       
       const assignedAssets = this.data.assets.filter(a => a.assignedEmployeeId === p.id && a.status === 'In Use');
       const activeAssetList = assignedAssets
@@ -2063,11 +2355,20 @@ class DatabaseService {
 
     let empName = null;
     let empCode = null;
+    let defaultExpectedReturn: string | null = assetData.expectedReturnDate || null;
     if (assetData.assignedEmployeeId) {
       const emp = this.data.employees.find(e => e.id === assetData.assignedEmployeeId);
       if (emp) {
         empName = emp.fullName;
         empCode = emp.employeeCode;
+        if (!defaultExpectedReturn) {
+          defaultExpectedReturn =
+            emp.internshipCompletionDate ||
+            emp.jobEndDate ||
+            emp.exitClearance?.actualLwd ||
+            emp.exitClearance?.calculatedLwd ||
+            null;
+        }
       }
     }
 
@@ -2080,7 +2381,10 @@ class DatabaseService {
       assignedEmployeeId: assetData.assignedEmployeeId || null,
       assignedEmployeeName: empName,
       assignedEmployeeCode: empCode,
+      lastAssignedEmployeeId: assetData.assignedEmployeeId || null,
+      lastAssignedEmployeeName: empName,
       issueDate: assetData.assignedEmployeeId ? (assetData.issueDate || new Date().toISOString().split('T')[0]) : undefined,
+      expectedReturnDate: defaultExpectedReturn,
       returnDate: null,
       condition: assetData.condition || 'Brand New',
       status: assetData.assignedEmployeeId ? 'In Use' : 'Available',
@@ -2155,7 +2459,8 @@ class DatabaseService {
     issueDate: string,
     notes: string,
     actor: string,
-    actorRole: UserRole
+    actorRole: UserRole,
+    expectedReturnDate?: string | null
   ): CompanyAsset | null {
     const asset = this.data.assets.find(a => a.id === assetId);
     const emp = this.data.employees.find(e => e.id === employeeId);
@@ -2164,9 +2469,20 @@ class DatabaseService {
     asset.assignedEmployeeId = emp.id;
     asset.assignedEmployeeName = emp.fullName;
     asset.assignedEmployeeCode = emp.employeeCode;
+    asset.lastAssignedEmployeeId = emp.id;
+    asset.lastAssignedEmployeeName = emp.fullName;
     asset.issueDate = issueDate || new Date().toISOString().split('T')[0];
+    asset.expectedReturnDate =
+      expectedReturnDate !== undefined
+        ? expectedReturnDate
+        : emp.internshipCompletionDate ||
+          emp.jobEndDate ||
+          emp.exitClearance?.actualLwd ||
+          emp.exitClearance?.calculatedLwd ||
+          null;
     asset.returnDate = null;
     asset.status = 'In Use';
+    if (notes) asset.notes = notes;
     asset.updatedAt = new Date().toISOString();
 
     asset.history.unshift({
@@ -2204,13 +2520,17 @@ class DatabaseService {
     const asset = this.data.assets.find(a => a.id === assetId);
     if (!asset) return null;
 
+    const formerEmpId = asset.assignedEmployeeId;
     const formerEmp = asset.assignedEmployeeName;
+    if (formerEmpId) asset.lastAssignedEmployeeId = formerEmpId;
+    if (formerEmp) asset.lastAssignedEmployeeName = formerEmp;
     asset.assignedEmployeeId = null;
     asset.assignedEmployeeName = null;
     asset.assignedEmployeeCode = null;
     asset.returnDate = returnDate || new Date().toISOString().split('T')[0];
     asset.status = 'Available';
     asset.condition = condition || asset.condition;
+    if (notes) asset.notes = notes;
     asset.updatedAt = new Date().toISOString();
 
     asset.history.unshift({
@@ -2218,7 +2538,7 @@ class DatabaseService {
       action: 'Returned',
       performedBy: actor,
       employeeName: formerEmp || undefined,
-      notes: notes || `Returned by ${formerEmp || 'employee'} in ${condition} condition`,
+      notes: notes || `Returned by ${formerEmp || 'employee'} on ${asset.returnDate} in ${asset.condition} condition`,
     });
 
     this.persist();
@@ -2230,7 +2550,7 @@ class DatabaseService {
       'Asset',
       asset.id,
       asset.name,
-      `Returned [${asset.assetTag}] ${asset.name} from ${formerEmp || 'employee'}. Marked as Available.`
+      `Returned [${asset.assetTag}] ${asset.name} from ${formerEmp || 'employee'} on ${asset.returnDate}. Marked as Available.`
     );
 
     this.broadcast('ASSET_UPDATED', asset);
@@ -2359,10 +2679,10 @@ class DatabaseService {
 
   // --- Reset to Fresh Seed Data ---
   public resetToSeed(actor: string, actorRole: UserRole) {
-    const initialEmployees = [...SEED_EMPLOYEES, ...SEED_CANDIDATES];
+    const initialEmployees = JSON.parse(JSON.stringify([...SEED_EMPLOYEES, ...SEED_CANDIDATES]));
     this.data = {
       employees: initialEmployees,
-      assets: SEED_ASSETS,
+      assets: JSON.parse(JSON.stringify(SEED_ASSETS)),
       auditLogs: [
         {
           id: `log-${Date.now()}`,
@@ -2375,14 +2695,21 @@ class DatabaseService {
           entityName: 'System Database',
           details: 'Reset system database to pristine White Collar Realty seed dataset.',
         },
-        ...INITIAL_AUDIT_LOGS,
+        ...JSON.parse(JSON.stringify(INITIAL_AUDIT_LOGS)),
       ],
+      departments: JSON.parse(JSON.stringify(DEFAULT_DEPARTMENTS)),
+      qrDocumentTokens: [],
+      salaryStructures: JSON.parse(JSON.stringify(DEFAULT_ROLE_SALARY_STRUCTURES)),
+      assetReturnReminders: [],
+      notificationDeliveryLogs: [],
       acknowledgedAlerts: {},
       version: 3,
       lastUpdated: new Date().toISOString(),
     };
+    this.ensureDepartmentsAndAssignmentsOnSchema(this.data, false);
     this.persist();
     this.broadcast('DATABASE_RESET', { time: this.data.lastUpdated });
+    this.broadcast('DEPARTMENTS_UPDATED', this.getDepartmentsWithCounts());
   }
 
   // --------------------------------------------------------------------------
@@ -2721,6 +3048,50 @@ class DatabaseService {
     return true;
   }
 
+  public dismissMissingDocumentAlerts(
+    actor: string,
+    actorRole: UserRole,
+    candidateId?: string
+  ): { dismissedIds: string[]; count: number } {
+    if (!this.data.acknowledgedAlerts) {
+      this.data.acknowledgedAlerts = {};
+    }
+    const nowIso = new Date().toISOString();
+    const dismissedIds: string[] = [];
+
+    if (candidateId) {
+      const id = `missing-docs-${candidateId}`;
+      this.data.acknowledgedAlerts[id] = { dismissedAt: nowIso, dismissedBy: actor };
+      dismissedIds.push(id);
+    } else {
+      this.data.employees.forEach(cand => {
+        if (!cand.isCandidate) return;
+        const hasMissing = Object.values(cand.documents || {}).some(
+          d => d.required && (d.status === 'Missing' || d.status === 'Not Submitted' || d.status === 'Rejected')
+        );
+        if (hasMissing) {
+          const id = `missing-docs-${cand.id}`;
+          this.data.acknowledgedAlerts[id] = { dismissedAt: nowIso, dismissedBy: actor };
+          dismissedIds.push(id);
+        }
+      });
+    }
+
+    this.persist();
+    this.logAudit(
+      actor,
+      actorRole,
+      'Missing Documents HR Alert Dismissed',
+      'Candidate',
+      candidateId || 'all-missing-docs',
+      candidateId || 'HR Alert: Candidate Missing Documents',
+      `Dismissed ${dismissedIds.length} missing-document alert(s) on dashboard.`
+    );
+    this.broadcast('ALERT_DISMISSED', { dismissedIds, actor });
+    this.broadcast('ALERT_UPDATED', { dismissedIds });
+    return { dismissedIds, count: dismissedIds.length };
+  }
+
   public resetDismissedAlerts(actor: string): boolean {
     this.data.acknowledgedAlerts = {};
     this.persist();
@@ -2728,8 +3099,1416 @@ class DatabaseService {
     return true;
   }
 
+  // --- Automation: Asset Return Reminders & Notification Delivery Logs ---
+  public getAssetReturnReminders(personId?: string): AssetReturnReminderRecord[] {
+    const list = this.data.assetReturnReminders || [];
+    if (personId) {
+      return list.filter(r => r.personId === personId);
+    }
+    return list;
+  }
+
+  public getAssetReturnReminderByKey(idempotencyKey: string): AssetReturnReminderRecord | undefined {
+    return (this.data.assetReturnReminders || []).find(r => r.idempotencyKey === idempotencyKey);
+  }
+
+  public upsertAssetReturnReminder(record: AssetReturnReminderRecord): AssetReturnReminderRecord {
+    if (!this.data.assetReturnReminders) {
+      this.data.assetReturnReminders = [];
+    }
+    const idx = this.data.assetReturnReminders.findIndex(
+      r => r.id === record.id || r.idempotencyKey === record.idempotencyKey
+    );
+    if (idx >= 0) {
+      this.data.assetReturnReminders[idx] = record;
+    } else {
+      this.data.assetReturnReminders.unshift(record);
+    }
+    this.persist();
+    this.broadcast('ASSET_REMINDER_UPDATED', record);
+    return record;
+  }
+
+  public addNotificationDeliveryLog(
+    entry: Omit<NotificationDeliveryLog, 'id' | 'timestamp'> & { timestamp?: string }
+  ): NotificationDeliveryLog {
+    if (!this.data.notificationDeliveryLogs) {
+      this.data.notificationDeliveryLogs = [];
+    }
+    const log: NotificationDeliveryLog = {
+      ...entry,
+      id: `ndlv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      timestamp: entry.timestamp || new Date().toISOString(),
+    };
+    this.data.notificationDeliveryLogs.unshift(log);
+    if (this.data.notificationDeliveryLogs.length > 500) {
+      this.data.notificationDeliveryLogs = this.data.notificationDeliveryLogs.slice(0, 500);
+    }
+    this.persist();
+    this.broadcast('NOTIFICATION_LOG_ADDED', log);
+    return log;
+  }
+
+  public getNotificationDeliveryLogs(limit = 100, personId?: string): NotificationDeliveryLog[] {
+    let list = this.data.notificationDeliveryLogs || [];
+    if (personId) {
+      list = list.filter(l => l.personId === personId);
+    }
+    return list.slice(0, limit);
+  }
+
   public getRawData(): DatabaseSchema {
     return this.data;
+  }
+
+  // ==========================================================================
+  // Department & Sub-Department Management Engine
+  // ==========================================================================
+  private inferLegacyDepartmentMigration(emp: Employee): { department: string; subDepartment?: string } | null {
+    const desig = (emp.designation || '').toLowerCase();
+    const dept = (emp.department || '').toLowerCase();
+
+    if (
+      desig.includes('ai intern') ||
+      desig.includes('da intern') ||
+      desig.includes('ai data') ||
+      (dept.includes('technology') && emp.employmentStatus === 'Intern')
+    ) {
+      return {
+        department: 'AI Intern',
+        subDepartment: desig.includes('da intern') ? 'Data Analytics & Insights' : 'AI & ML Engineering',
+      };
+    }
+
+    if (desig.includes('dm intern')) {
+      return {
+        department: 'DM Intern',
+        subDepartment: emp.fullName.toLowerCase().includes('tanishq') ? 'Performance Campaigns' : 'Social Media & Content',
+      };
+    }
+
+    if (desig.includes('dubai') || emp.market === 'Dubai') {
+      return {
+        department: 'Dubai Market',
+        subDepartment: desig.includes('international') || desig.includes('advisor') ? 'International Advisory Desk' : 'Downtown & Palm Jumeirah',
+      };
+    }
+
+    if (
+      dept === 'sales & investments' ||
+      dept === 'sales & leadership' ||
+      dept === 'luxury residential & investments'
+    ) {
+      let sub = 'Golf Course Road Luxury';
+      if (desig.includes('trainee')) sub = 'Trainee Desk';
+      else if (emp.fullName.toLowerCase() === 'adil') sub = 'DLF & Micro-Markets';
+      return { department: 'Gurgaon Market', subDepartment: sub };
+    }
+
+    if (dept === 'administration & facilities' || dept === 'operations & pantry support') {
+      return {
+        department: 'Administration & Operations',
+        subDepartment: desig.includes('pantry') ? 'Facility & Pantry Support' : 'Office Administration',
+      };
+    }
+
+    if (dept === 'human resources') {
+      return { department: 'Human Resources', subDepartment: 'Talent & Onboarding' };
+    }
+
+    if (dept === 'executive leadership') {
+      return { department: 'Executive Leadership', subDepartment: 'Founder & C-Suite' };
+    }
+
+    if (dept === 'marketing & digital media') {
+      return { department: 'Marketing & Digital Media', subDepartment: 'Performance & Brand Media' };
+    }
+
+    return null;
+  }
+
+  private ensureDepartmentsAndAssignmentsOnSchema(schema: DatabaseSchema, migrateLegacyLabels: boolean): boolean {
+    let changed = false;
+    const nowIso = new Date().toISOString();
+
+    if (!schema.departments || !Array.isArray(schema.departments) || schema.departments.length === 0) {
+      schema.departments = JSON.parse(JSON.stringify(DEFAULT_DEPARTMENTS));
+      changed = true;
+    }
+
+    if (!schema.qrDocumentTokens || !Array.isArray(schema.qrDocumentTokens)) {
+      schema.qrDocumentTokens = [];
+      changed = true;
+    }
+
+    schema.employees.forEach(emp => {
+      if (migrateLegacyLabels) {
+        const mapped = this.inferLegacyDepartmentMigration(emp);
+        if (mapped) {
+          emp.department = mapped.department;
+          if (!emp.subDepartment && mapped.subDepartment) {
+            emp.subDepartment = mapped.subDepartment;
+          }
+          changed = true;
+        }
+      }
+
+      if (!emp.documents || Object.keys(emp.documents).length === 0) {
+        emp.documents = getDefaultDocumentChecklist(emp.market === 'Dubai' || emp.market === 'Dual Market');
+        changed = true;
+      }
+
+      let matchedDept =
+        (emp.departmentId ? schema.departments!.find(d => d.id === emp.departmentId) : undefined) ||
+        schema.departments!.find(d => d.name.toLowerCase() === (emp.department || '').trim().toLowerCase());
+
+      if (!matchedDept) {
+        const cleanName = (emp.department || '').trim() || (emp.market === 'Dubai' ? 'Dubai Market' : 'Gurgaon Market');
+        matchedDept = schema.departments!.find(d => d.name.toLowerCase() === cleanName.toLowerCase());
+        if (!matchedDept) {
+          const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `custom-${Date.now()}`;
+          matchedDept = {
+            id: `dept-${slug}`,
+            name: cleanName,
+            description: `${cleanName} team & profiles`,
+            marketFocus: emp.market || 'Gurgaon',
+            subDepartments: [],
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          };
+          schema.departments!.push(matchedDept);
+          changed = true;
+        }
+      }
+
+      if (emp.departmentId !== matchedDept.id || emp.department !== matchedDept.name) {
+        emp.departmentId = matchedDept.id;
+        emp.department = matchedDept.name;
+        changed = true;
+      }
+
+      if (emp.subDepartment) {
+        const subTrimmed = emp.subDepartment.trim();
+        const existingSub = matchedDept.subDepartments.find(s => s.name.toLowerCase() === subTrimmed.toLowerCase());
+        if (existingSub) {
+          if (emp.subDepartment !== existingSub.name) {
+            emp.subDepartment = existingSub.name;
+            changed = true;
+          }
+        } else if (subTrimmed) {
+          const subSlug = subTrimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `sub-${Date.now()}`;
+          matchedDept.subDepartments.push({
+            id: `sub-${subSlug}-${Math.random().toString(36).slice(2, 5)}`,
+            name: subTrimmed,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          });
+          emp.subDepartment = subTrimmed;
+          changed = true;
+        }
+      }
+    });
+
+    return changed;
+  }
+
+  private resolveAndEnsureDepartment(
+    departmentId?: string,
+    departmentName?: string,
+    subDepartmentName?: string,
+    marketFocus: MarketType = 'Gurgaon'
+  ): { departmentId: string; department: string; subDepartment?: string } {
+    const depts: DepartmentConfig[] =
+      this.data.departments && this.data.departments.length > 0
+        ? this.data.departments
+        : (this.data.departments = JSON.parse(JSON.stringify(DEFAULT_DEPARTMENTS)) as DepartmentConfig[]);
+
+    const nowIso = new Date().toISOString();
+    let dept =
+      (departmentId ? depts.find(d => d.id === departmentId) : undefined) ||
+      (departmentName ? depts.find(d => d.name.toLowerCase() === departmentName.trim().toLowerCase()) : undefined);
+
+    if (!dept) {
+      const cleanName = (departmentName || '').trim() || (marketFocus === 'Dubai' ? 'Dubai Market' : 'Gurgaon Market');
+      dept = depts.find(d => d.name.toLowerCase() === cleanName.toLowerCase());
+      if (!dept) {
+        const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `dept-${Date.now()}`;
+        dept = {
+          id: `dept-${slug}-${Math.random().toString(36).slice(2, 5)}`,
+          name: cleanName,
+          description: `${cleanName} department`,
+          marketFocus,
+          subDepartments: [],
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        };
+        depts.push(dept);
+      }
+    }
+
+    let resolvedSub: string | undefined = undefined;
+    if (subDepartmentName && subDepartmentName.trim()) {
+      const cleanSub = subDepartmentName.trim();
+      const foundSub = dept.subDepartments.find(s => s.name.toLowerCase() === cleanSub.toLowerCase());
+      if (foundSub) {
+        resolvedSub = foundSub.name;
+      } else {
+        const subSlug = cleanSub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `sub-${Date.now()}`;
+        dept.subDepartments.push({
+          id: `sub-${subSlug}-${Math.random().toString(36).slice(2, 5)}`,
+          name: cleanSub,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
+        dept.updatedAt = nowIso;
+        resolvedSub = cleanSub;
+      }
+    }
+
+    return {
+      departmentId: dept.id,
+      department: dept.name,
+      subDepartment: resolvedSub,
+    };
+  }
+
+  public getDepartments(): DepartmentConfig[] {
+    if (!this.data.departments || this.data.departments.length === 0) {
+      this.data.departments = JSON.parse(JSON.stringify(DEFAULT_DEPARTMENTS)) as DepartmentConfig[];
+    }
+    return this.data.departments!;
+  }
+
+  public getDepartmentsWithCounts(): DepartmentWithCounts[] {
+    const depts = this.getDepartments();
+    return depts.map(dept => {
+      const members = this.data.employees.filter(
+        e => e.departmentId === dept.id || e.department.toLowerCase() === dept.name.toLowerCase()
+      );
+      const subDepartmentCounts: Record<string, number> = {};
+      dept.subDepartments.forEach(s => {
+        subDepartmentCounts[s.name] = 0;
+      });
+      let unassignedSubCount = 0;
+      let missingDocsCount = 0;
+
+      members.forEach(m => {
+        if (m.subDepartment) {
+          subDepartmentCounts[m.subDepartment] = (subDepartmentCounts[m.subDepartment] || 0) + 1;
+        } else {
+          unassignedSubCount++;
+        }
+        const hasMissing = Object.values(m.documents || {}).some(
+          d => d.required && (d.status === 'Missing' || d.status === 'Not Submitted' || d.status === 'Rejected')
+        );
+        if (hasMissing) missingDocsCount++;
+      });
+
+      if (unassignedSubCount > 0) {
+        subDepartmentCounts['__unassigned__'] = unassignedSubCount;
+      }
+
+      return {
+        ...dept,
+        totalCount: members.length,
+        employeeCount: members.filter(m => !m.isCandidate).length,
+        candidateCount: members.filter(m => m.isCandidate).length,
+        missingDocsCount,
+        subDepartmentCounts,
+      };
+    });
+  }
+
+  public createDepartment(
+    input: { name: string; description?: string; marketFocus?: MarketType; subDepartments?: string[] },
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; department?: DepartmentWithCounts; error?: string } {
+    const cleanName = (input.name || '').trim();
+    if (!cleanName) {
+      return { success: false, error: 'Department name is required.' };
+    }
+
+    const depts = this.getDepartments();
+    if (depts.some(d => d.name.toLowerCase() === cleanName.toLowerCase())) {
+      return { success: false, error: `A department named '${cleanName}' already exists.` };
+    }
+
+    const nowIso = new Date().toISOString();
+    const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'custom';
+    const subDepts: SubDepartmentConfig[] = (input.subDepartments || [])
+      .map(s => s.trim())
+      .filter(Boolean)
+      .filter((v, idx, arr) => arr.findIndex(x => x.toLowerCase() === v.toLowerCase()) === idx)
+      .map(sName => ({
+        id: `sub-${sName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Math.random().toString(36).slice(2, 5)}`,
+        name: sName,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      }));
+
+    const newDept: DepartmentConfig = {
+      id: `dept-${slug}-${Math.random().toString(36).slice(2, 6)}`,
+      name: cleanName,
+      description: input.description?.trim() || `${cleanName} department`,
+      marketFocus: input.marketFocus || 'Gurgaon',
+      subDepartments: subDepts,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+
+    depts.push(newDept);
+    this.persist();
+
+    this.logAudit(
+      actor,
+      actorRole,
+      'Department Created',
+      'Department',
+      newDept.id,
+      newDept.name,
+      `Created department '${newDept.name}'${subDepts.length ? ` with ${subDepts.length} sub-department(s)` : ''}.`
+    );
+
+    const allWithCounts = this.getDepartmentsWithCounts();
+    this.broadcast('DEPARTMENTS_UPDATED', allWithCounts);
+    return {
+      success: true,
+      department: allWithCounts.find(d => d.id === newDept.id),
+    };
+  }
+
+  public updateDepartment(
+    id: string,
+    updates: { name?: string; description?: string; marketFocus?: MarketType },
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; department?: DepartmentWithCounts; error?: string } {
+    const depts = this.getDepartments();
+    const target = depts.find(d => d.id === id);
+    if (!target) {
+      return { success: false, error: 'Department not found.' };
+    }
+
+    const oldName = target.name;
+    if (updates.name !== undefined) {
+      const nextName = updates.name.trim();
+      if (!nextName) {
+        return { success: false, error: 'Department name cannot be empty.' };
+      }
+      if (depts.some(d => d.id !== id && d.name.toLowerCase() === nextName.toLowerCase())) {
+        return { success: false, error: `Another department named '${nextName}' already exists.` };
+      }
+      target.name = nextName;
+    }
+
+    if (updates.description !== undefined) {
+      target.description = updates.description.trim();
+    }
+    if (updates.marketFocus !== undefined) {
+      target.marketFocus = updates.marketFocus;
+    }
+    target.updatedAt = new Date().toISOString();
+
+    // Cascade department rename to every assigned employee & candidate
+    let updatedMembers = 0;
+    if (target.name !== oldName) {
+      this.data.employees.forEach(emp => {
+        if (emp.departmentId === target.id || emp.department.toLowerCase() === oldName.toLowerCase()) {
+          emp.departmentId = target.id;
+          emp.department = target.name;
+          emp.updatedAt = target.updatedAt;
+          updatedMembers++;
+        }
+      });
+    }
+
+    this.persist();
+
+    this.logAudit(
+      actor,
+      actorRole,
+      target.name !== oldName ? 'Department Renamed' : 'Department Updated',
+      'Department',
+      target.id,
+      target.name,
+      target.name !== oldName
+        ? `Renamed department from '${oldName}' to '${target.name}' (${updatedMembers} profile(s) synchronized).`
+        : `Updated department settings for '${target.name}'.`
+    );
+
+    const allWithCounts = this.getDepartmentsWithCounts();
+    this.broadcast('DEPARTMENTS_UPDATED', allWithCounts);
+    if (updatedMembers > 0) {
+      this.broadcast('EMPLOYEES_BULK_UPDATED', { departmentId: target.id, departmentName: target.name });
+    }
+    return {
+      success: true,
+      department: allWithCounts.find(d => d.id === target.id),
+    };
+  }
+
+  public deleteDepartment(
+    id: string,
+    reassignToDepartmentId: string | undefined,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; error?: string } {
+    const depts = this.getDepartments();
+    if (depts.length <= 1) {
+      return { success: false, error: 'At least one department must remain in the system.' };
+    }
+    const targetIdx = depts.findIndex(d => d.id === id);
+    if (targetIdx === -1) {
+      return { success: false, error: 'Department not found.' };
+    }
+    const target = depts[targetIdx];
+    const members = this.data.employees.filter(
+      e => e.departmentId === target.id || e.department.toLowerCase() === target.name.toLowerCase()
+    );
+
+    let fallbackDept: DepartmentConfig | undefined = undefined;
+    if (members.length > 0) {
+      if (!reassignToDepartmentId) {
+        return {
+          success: false,
+          error: `Department '${target.name}' has ${members.length} assigned member(s). Specify reassignToDepartmentId to move them safely before deleting.`,
+        };
+      }
+      fallbackDept = depts.find(d => d.id === reassignToDepartmentId && d.id !== id);
+      if (!fallbackDept) {
+        return { success: false, error: 'Valid target reassignment department is required.' };
+      }
+
+      const nowIso = new Date().toISOString();
+      members.forEach(emp => {
+        emp.departmentId = fallbackDept!.id;
+        emp.department = fallbackDept!.name;
+        emp.subDepartment = undefined;
+        emp.updatedAt = nowIso;
+      });
+    }
+
+    depts.splice(targetIdx, 1);
+    this.persist();
+
+    this.logAudit(
+      actor,
+      actorRole,
+      'Department Deleted',
+      'Department',
+      target.id,
+      target.name,
+      members.length > 0
+        ? `Deleted department '${target.name}' and reassigned ${members.length} member(s) to '${fallbackDept!.name}'.`
+        : `Deleted empty department '${target.name}'.`
+    );
+
+    this.broadcast('DEPARTMENTS_UPDATED', this.getDepartmentsWithCounts());
+    if (members.length > 0) {
+      this.broadcast('EMPLOYEES_BULK_UPDATED', { reassignedTo: fallbackDept!.id });
+    }
+    return { success: true };
+  }
+
+  public addSubDepartment(
+    deptId: string,
+    input: { name: string; description?: string },
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; department?: DepartmentWithCounts; error?: string } {
+    const dept = this.getDepartments().find(d => d.id === deptId);
+    if (!dept) return { success: false, error: 'Department not found.' };
+
+    const cleanName = (input.name || '').trim();
+    if (!cleanName) return { success: false, error: 'Sub-department name is required.' };
+
+    if (dept.subDepartments.some(s => s.name.toLowerCase() === cleanName.toLowerCase())) {
+      return { success: false, error: `Sub-department '${cleanName}' already exists in ${dept.name}.` };
+    }
+
+    const nowIso = new Date().toISOString();
+    const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'sub';
+    dept.subDepartments.push({
+      id: `sub-${slug}-${Math.random().toString(36).slice(2, 6)}`,
+      name: cleanName,
+      description: input.description?.trim(),
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    });
+    dept.updatedAt = nowIso;
+    this.persist();
+
+    this.logAudit(
+      actor,
+      actorRole,
+      'Sub-Department Created',
+      'Department',
+      dept.id,
+      `${dept.name} / ${cleanName}`,
+      `Added sub-department '${cleanName}' under '${dept.name}'.`
+    );
+
+    const allWithCounts = this.getDepartmentsWithCounts();
+    this.broadcast('DEPARTMENTS_UPDATED', allWithCounts);
+    return { success: true, department: allWithCounts.find(d => d.id === dept.id) };
+  }
+
+  public updateSubDepartment(
+    deptId: string,
+    subId: string,
+    updates: { name?: string; description?: string },
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; department?: DepartmentWithCounts; error?: string } {
+    const dept = this.getDepartments().find(d => d.id === deptId);
+    if (!dept) return { success: false, error: 'Department not found.' };
+
+    const sub = dept.subDepartments.find(s => s.id === subId);
+    if (!sub) return { success: false, error: 'Sub-department not found.' };
+
+    const oldSubName = sub.name;
+    if (updates.name !== undefined) {
+      const nextName = updates.name.trim();
+      if (!nextName) return { success: false, error: 'Sub-department name cannot be empty.' };
+      if (dept.subDepartments.some(s => s.id !== subId && s.name.toLowerCase() === nextName.toLowerCase())) {
+        return { success: false, error: `Sub-department '${nextName}' already exists in ${dept.name}.` };
+      }
+      sub.name = nextName;
+    }
+    if (updates.description !== undefined) {
+      sub.description = updates.description.trim();
+    }
+
+    const nowIso = new Date().toISOString();
+    sub.updatedAt = nowIso;
+    dept.updatedAt = nowIso;
+
+    let updatedCount = 0;
+    if (sub.name !== oldSubName) {
+      this.data.employees.forEach(emp => {
+        if (
+          (emp.departmentId === dept.id || emp.department.toLowerCase() === dept.name.toLowerCase()) &&
+          (emp.subDepartment || '').toLowerCase() === oldSubName.toLowerCase()
+        ) {
+          emp.subDepartment = sub.name;
+          emp.updatedAt = nowIso;
+          updatedCount++;
+        }
+      });
+    }
+
+    this.persist();
+    this.logAudit(
+      actor,
+      actorRole,
+      sub.name !== oldSubName ? 'Sub-Department Renamed' : 'Sub-Department Updated',
+      'Department',
+      dept.id,
+      `${dept.name} / ${sub.name}`,
+      sub.name !== oldSubName
+        ? `Renamed sub-department '${oldSubName}' to '${sub.name}' in ${dept.name} (${updatedCount} profile(s) updated).`
+        : `Updated sub-department '${sub.name}' in ${dept.name}.`
+    );
+
+    const allWithCounts = this.getDepartmentsWithCounts();
+    this.broadcast('DEPARTMENTS_UPDATED', allWithCounts);
+    if (updatedCount > 0) {
+      this.broadcast('EMPLOYEES_BULK_UPDATED', { departmentId: dept.id, subDepartment: sub.name });
+    }
+    return { success: true, department: allWithCounts.find(d => d.id === dept.id) };
+  }
+
+  public deleteSubDepartment(
+    deptId: string,
+    subId: string,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; department?: DepartmentWithCounts; error?: string } {
+    const dept = this.getDepartments().find(d => d.id === deptId);
+    if (!dept) return { success: false, error: 'Department not found.' };
+
+    const subIdx = dept.subDepartments.findIndex(s => s.id === subId);
+    if (subIdx === -1) return { success: false, error: 'Sub-department not found.' };
+
+    const removedSub = dept.subDepartments[subIdx];
+    dept.subDepartments.splice(subIdx, 1);
+    const nowIso = new Date().toISOString();
+    dept.updatedAt = nowIso;
+
+    let clearedCount = 0;
+    this.data.employees.forEach(emp => {
+      if (
+        (emp.departmentId === dept.id || emp.department.toLowerCase() === dept.name.toLowerCase()) &&
+        (emp.subDepartment || '').toLowerCase() === removedSub.name.toLowerCase()
+      ) {
+        emp.subDepartment = undefined;
+        emp.updatedAt = nowIso;
+        clearedCount++;
+      }
+    });
+
+    this.persist();
+    this.logAudit(
+      actor,
+      actorRole,
+      'Sub-Department Deleted',
+      'Department',
+      dept.id,
+      `${dept.name} / ${removedSub.name}`,
+      `Removed sub-department '${removedSub.name}' from ${dept.name} (${clearedCount} profile(s) unassigned from sub-department).`
+    );
+
+    const allWithCounts = this.getDepartmentsWithCounts();
+    this.broadcast('DEPARTMENTS_UPDATED', allWithCounts);
+    if (clearedCount > 0) {
+      this.broadcast('EMPLOYEES_BULK_UPDATED', { departmentId: dept.id });
+    }
+    return { success: true, department: allWithCounts.find(d => d.id === dept.id) };
+  }
+
+  // ==========================================================================
+  // Individual 24-Hour Document QR & Secure Candidate Upload Engine
+  // ==========================================================================
+  private hashQrToken(rawToken: string): string {
+    return crypto.createHash('sha256').update(rawToken).digest('hex');
+  }
+
+  private getLatestQrTokenForEmployee(employeeId: string): QrDocumentTokenRecord | undefined {
+    const tokens = (this.data.qrDocumentTokens || []).filter(t => t.employeeId === employeeId);
+    if (tokens.length === 0) return undefined;
+    // Prefer active non-revoked token first, otherwise most recently created
+    const nowMs = Date.now();
+    const active = tokens.find(t => !t.revokedAt && new Date(t.expiresAt).getTime() > nowMs);
+    if (active) return active;
+    return tokens.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+  }
+
+  private computeEmployeeQrMeta(employeeId: string): Omit<DocumentQrStatusInfo, 'shareUrl' | 'qrDataUrl'> {
+    const latest = this.getLatestQrTokenForEmployee(employeeId);
+    if (!latest) {
+      return {
+        hasToken: false,
+        isActive: false,
+        isExpired: false,
+        isRevoked: false,
+        targetDocKeys: [],
+        uploadedDocKeys: [],
+      };
+    }
+
+    const nowMs = Date.now();
+    const expiresMs = new Date(latest.expiresAt).getTime();
+    const isRevoked = Boolean(latest.revokedAt);
+    const isExpired = !isRevoked && nowMs >= expiresMs;
+    const isActive = !isRevoked && nowMs < expiresMs;
+    const remainingMs = isActive ? Math.max(0, expiresMs - nowMs) : 0;
+
+    return {
+      hasToken: true,
+      isActive,
+      isExpired,
+      isRevoked,
+      createdAt: latest.createdAt,
+      expiresAt: latest.expiresAt,
+      remainingMs,
+      createdBy: latest.createdBy,
+      createdByRole: latest.createdByRole,
+      targetDocKeys: latest.targetDocKeys || [],
+      uploadedDocKeys: latest.uploadedDocKeys || [],
+      openCount: latest.openCount || 0,
+      lastOpenedAt: latest.lastOpenedAt,
+    };
+  }
+
+  public inspectProfileMissingDocuments(employeeId: string): ProfileDocumentInspection | null {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp) return null;
+
+    if (!emp.documents || Object.keys(emp.documents).length === 0) {
+      emp.documents = getDefaultDocumentChecklist(emp.market === 'Dubai' || emp.market === 'Dual Market');
+      this.persist();
+    }
+
+    const docs = Object.values(emp.documents);
+    const isMissingStatus = (s: DocumentStatus) => s === 'Missing' || s === 'Not Submitted' || s === 'Rejected';
+    const isUploadedPending = (s: DocumentStatus) => s === 'Uploaded' || s === 'Submitted' || s === 'Under Review';
+
+    const missingRequired = docs
+      .filter(d => d.required && isMissingStatus(d.status))
+      .map(d => ({ key: d.key, title: d.title, category: d.category, status: d.status, required: d.required }));
+
+    const missingOptional = docs
+      .filter(d => !d.required && d.status !== 'Not Applicable' && isMissingStatus(d.status))
+      .map(d => ({ key: d.key, title: d.title, category: d.category, status: d.status, required: d.required }));
+
+    const uploadedPendingVerification = docs
+      .filter(d => isUploadedPending(d.status))
+      .map(d => ({
+        key: d.key,
+        title: d.title,
+        category: d.category,
+        status: d.status,
+        uploadedAt: d.uploadedAt,
+        fileName: d.fileName,
+      }));
+
+    const verified = docs
+      .filter(d => d.status === 'Verified')
+      .map(d => ({
+        key: d.key,
+        title: d.title,
+        category: d.category,
+        verifiedAt: d.verifiedAt,
+        verifiedBy: d.verifiedBy,
+      }));
+
+    return {
+      totalChecklistCount: docs.filter(d => d.status !== 'Not Applicable').length,
+      requiredCount: docs.filter(d => d.required).length,
+      missingRequired,
+      missingOptional,
+      uploadedPendingVerification,
+      verified,
+    };
+  }
+
+  public async getEmployeeDocumentQrStatus(
+    employeeId: string,
+    baseOrigin: string,
+    includeSecretShare = false
+  ): Promise<{ inspection: ProfileDocumentInspection; qrStatus: DocumentQrStatusInfo } | null> {
+    const inspection = this.inspectProfileMissingDocuments(employeeId);
+    if (!inspection) return null;
+
+    const latest = this.getLatestQrTokenForEmployee(employeeId);
+    const meta = this.computeEmployeeQrMeta(employeeId);
+    const qrStatus: DocumentQrStatusInfo = { ...meta };
+
+    if (includeSecretShare && latest && meta.isActive && latest.token) {
+      const cleanOrigin = baseOrigin.replace(/\/+$/, '');
+      const shareUrl = `${cleanOrigin}/qr-upload/${latest.token}`;
+      qrStatus.shareUrl = shareUrl;
+      qrStatus.qrDataUrl = await QRCode.toDataURL(shareUrl, {
+        width: 340,
+        margin: 2,
+        errorCorrectionLevel: 'M',
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff',
+        },
+      });
+    }
+
+    return { inspection, qrStatus };
+  }
+
+  public async generateEmployeeDocumentQr(
+    employeeId: string,
+    baseOrigin: string,
+    actor: string,
+    actorRole: UserRole,
+    options?: { includeOptionalMissing?: boolean; customDocKeys?: string[] }
+  ): Promise<{ success: boolean; inspection?: ProfileDocumentInspection; qrStatus?: DocumentQrStatusInfo; message: string }> {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp) {
+      return { success: false, message: 'Candidate/Employee profile not found.' };
+    }
+
+    // Step 1: Automatically inspect profile and identify missing documents before generating QR
+    const inspection = this.inspectProfileMissingDocuments(employeeId)!;
+
+    let targetDocKeys: string[] = [];
+    if (options?.customDocKeys && options.customDocKeys.length > 0) {
+      targetDocKeys = options.customDocKeys.filter(k => Boolean(emp.documents[k]) && emp.documents[k].status !== 'Not Applicable');
+    } else {
+      targetDocKeys = inspection.missingRequired.map(d => d.key);
+      if (options?.includeOptionalMissing) {
+        targetDocKeys = [...targetDocKeys, ...inspection.missingOptional.map(d => d.key)];
+      }
+      // If all required documents are already uploaded/verified, fall back to optional missing or required checklist so QR always reflects accurate profile state
+      if (targetDocKeys.length === 0) {
+        if (inspection.missingOptional.length > 0) {
+          targetDocKeys = inspection.missingOptional.map(d => d.key);
+        } else {
+          targetDocKeys = Object.values(emp.documents)
+            .filter(d => d.required && d.status !== 'Not Applicable')
+            .map(d => d.key);
+        }
+      }
+    }
+
+    if (!this.data.qrDocumentTokens) {
+      this.data.qrDocumentTokens = [];
+    }
+
+    const nowMs = Date.now();
+    const nowIso = new Date(nowMs).toISOString();
+    // Exact 24-hour expiration (24 * 60 * 60 * 1000 ms)
+    const expiresAtIso = new Date(nowMs + QR_EXPIRY_DURATION_MS).toISOString();
+
+    // Step 2: Revoke/supersede any existing unrevoked QR tokens for this candidate so prior links cannot be reused
+    let supersededCount = 0;
+    this.data.qrDocumentTokens.forEach(existing => {
+      if (existing.employeeId === emp.id && !existing.revokedAt) {
+        existing.revokedAt = nowIso;
+        existing.revokedBy = actor;
+        existing.revokeReason = 'Superseded by newly generated 24-hour Document QR';
+        supersededCount++;
+      }
+    });
+
+    // Step 3: Generate opaque 256-bit cryptographic token (zero candidate ID or PII in token)
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = this.hashQrToken(rawToken);
+
+    const newRecord: QrDocumentTokenRecord = {
+      id: `qrt-${nowMs}-${crypto.randomBytes(3).toString('hex')}`,
+      token: rawToken,
+      tokenHash,
+      employeeId: emp.id,
+      createdAt: nowIso,
+      expiresAt: expiresAtIso,
+      createdBy: actor,
+      createdByRole: actorRole,
+      targetDocKeys,
+      uploadedDocKeys: [],
+      openCount: 0,
+    };
+
+    this.data.qrDocumentTokens.unshift(newRecord);
+    // Keep token ledger bounded while preserving all active tokens
+    if (this.data.qrDocumentTokens.length > 1000) {
+      this.data.qrDocumentTokens = this.data.qrDocumentTokens.slice(0, 1000);
+    }
+
+    emp.documentQrMeta = this.computeEmployeeQrMeta(emp.id);
+    emp.updatedAt = nowIso;
+    this.persist();
+
+    const cleanOrigin = baseOrigin.replace(/\/+$/, '');
+    const shareUrl = `${cleanOrigin}/qr-upload/${rawToken}`;
+    const qrDataUrl = await QRCode.toDataURL(shareUrl, {
+      width: 340,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+      color: {
+        dark: '#0f172a',
+        light: '#ffffff',
+      },
+    });
+
+    const qrStatus: DocumentQrStatusInfo = {
+      ...emp.documentQrMeta,
+      shareUrl,
+      qrDataUrl,
+    };
+
+    this.logAudit(
+      actor,
+      actorRole,
+      supersededCount > 0 ? 'Document QR Regenerated (24h)' : 'Document QR Generated (24h)',
+      'DocumentQR',
+      emp.id,
+      emp.fullName,
+      `Generated candidate-specific 24-hour Document QR (${inspection.missingRequired.length} missing required doc(s) detected; expires ${new Date(expiresAtIso).toLocaleString()}).`
+    );
+
+    this.broadcast('DOCUMENT_QR_GENERATED', {
+      employeeId: emp.id,
+      employeeName: emp.fullName,
+      department: emp.department,
+      missingRequiredCount: inspection.missingRequired.length,
+      expiresAt: expiresAtIso,
+      qrMeta: emp.documentQrMeta,
+    });
+    this.broadcast('EMPLOYEE_UPDATED', emp);
+
+    return {
+      success: true,
+      inspection,
+      qrStatus,
+      message:
+        supersededCount > 0
+          ? 'Fresh 24-hour Document QR generated and prior QR deactivated.'
+          : '24-hour Document QR generated successfully.',
+    };
+  }
+
+  public revokeEmployeeDocumentQr(
+    employeeId: string,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; message: string } {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp) return { success: false, message: 'Profile not found.' };
+
+    const nowIso = new Date().toISOString();
+    let revokedCount = 0;
+    (this.data.qrDocumentTokens || []).forEach(t => {
+      if (t.employeeId === employeeId && !t.revokedAt) {
+        t.revokedAt = nowIso;
+        t.revokedBy = actor;
+        t.revokeReason = 'Manually revoked by HR';
+        revokedCount++;
+      }
+    });
+
+    if (revokedCount === 0) {
+      return { success: false, message: 'No active Document QR found to revoke.' };
+    }
+
+    emp.documentQrMeta = this.computeEmployeeQrMeta(emp.id);
+    emp.updatedAt = nowIso;
+    this.persist();
+
+    this.logAudit(
+      actor,
+      actorRole,
+      'Document QR Revoked',
+      'DocumentQR',
+      emp.id,
+      emp.fullName,
+      `Revoked active Document QR token for ${emp.fullName}.`
+    );
+
+    this.broadcast('DOCUMENT_QR_REVOKED', { employeeId: emp.id, qrMeta: emp.documentQrMeta });
+    this.broadcast('EMPLOYEE_UPDATED', emp);
+    return { success: true, message: 'Document QR revoked immediately.' };
+  }
+
+  public validatePublicQrToken(rawToken: string): {
+    ok: boolean;
+    httpStatus: number;
+    code: 'VALID' | 'INVALID_TOKEN' | 'QR_EXPIRED' | 'QR_REVOKED' | 'PROFILE_NOT_FOUND';
+    error?: string;
+    tokenRecord?: QrDocumentTokenRecord;
+    employee?: Employee;
+  } {
+    const trimmed = (rawToken || '').trim();
+    if (!/^[a-f0-9]{64}$/i.test(trimmed)) {
+      return {
+        ok: false,
+        httpStatus: 404,
+        code: 'INVALID_TOKEN',
+        error: 'Invalid or unrecognized QR document link.',
+      };
+    }
+
+    const incomingHashBuf = Buffer.from(this.hashQrToken(trimmed.toLowerCase()), 'hex');
+    const matched = (this.data.qrDocumentTokens || []).find(rec => {
+      if (!rec.tokenHash || rec.tokenHash.length !== 64) return false;
+      const storedBuf = Buffer.from(rec.tokenHash, 'hex');
+      if (storedBuf.length !== incomingHashBuf.length) return false;
+      return crypto.timingSafeEqual(storedBuf, incomingHashBuf);
+    });
+
+    if (!matched) {
+      return {
+        ok: false,
+        httpStatus: 404,
+        code: 'INVALID_TOKEN',
+        error: 'Invalid or unrecognized QR document link.',
+      };
+    }
+
+    if (matched.revokedAt) {
+      return {
+        ok: false,
+        httpStatus: 410,
+        code: 'QR_REVOKED',
+        error: 'This QR code was replaced or deactivated by HR. Please scan the latest QR code shared with you.',
+      };
+    }
+
+    const nowMs = Date.now();
+    const expiresAtMs = new Date(matched.expiresAt).getTime();
+    if (isNaN(expiresAtMs) || nowMs >= expiresAtMs) {
+      return {
+        ok: false,
+        httpStatus: 410,
+        code: 'QR_EXPIRED',
+        error: 'This QR upload link expired after its 24-hour security window. Please contact White Collar Realty HR for a regenerated QR code.',
+      };
+    }
+
+    const emp = this.data.employees.find(e => e.id === matched.employeeId);
+    if (!emp) {
+      return {
+        ok: false,
+        httpStatus: 404,
+        code: 'PROFILE_NOT_FOUND',
+        error: 'Associated onboarding profile is no longer available.',
+      };
+    }
+
+    return {
+      ok: true,
+      httpStatus: 200,
+      code: 'VALID',
+      tokenRecord: matched,
+      employee: emp,
+    };
+  }
+
+  private mapDocStatusForPublicQr(status: DocumentStatus): 'Missing' | 'Uploaded' | 'Verified' {
+    if (status === 'Verified') return 'Verified';
+    if (status === 'Uploaded' || status === 'Submitted' || status === 'Under Review') return 'Uploaded';
+    return 'Missing';
+  }
+
+  public getPublicQrUploadSession(
+    rawToken: string,
+    recordOpen = true
+  ): {
+    ok: boolean;
+    httpStatus: number;
+    code: string;
+    error?: string;
+    session?: PublicQrSessionData;
+  } {
+    const check = this.validatePublicQrToken(rawToken);
+    if (!check.ok || !check.tokenRecord || !check.employee) {
+      return {
+        ok: false,
+        httpStatus: check.httpStatus,
+        code: check.code,
+        error: check.error,
+      };
+    }
+
+    const { tokenRecord, employee } = check;
+    const nowMs = Date.now();
+    const nowIso = new Date(nowMs).toISOString();
+
+    if (recordOpen) {
+      tokenRecord.openCount = (tokenRecord.openCount || 0) + 1;
+      tokenRecord.lastOpenedAt = nowIso;
+      employee.documentQrMeta = this.computeEmployeeQrMeta(employee.id);
+      this.persist();
+
+      const openEvent: LiveQrUploadEvent = {
+        uploadId: `open-${tokenRecord.id}-${nowMs}`,
+        employeeId: employee.id,
+        employeeName: employee.fullName,
+        department: employee.department,
+        subDepartment: employee.subDepartment,
+        progress: 0,
+        status: 'OPENED',
+        timestamp: nowIso,
+      };
+      this.broadcast('QR_UPLOAD_PROGRESS', openEvent);
+    }
+
+    // Build candidate-scoped document list containing ONLY that candidate's target missing/required documents
+    const empDocs = employee.documents || {};
+    const targetKeys =
+      tokenRecord.targetDocKeys && tokenRecord.targetDocKeys.length > 0
+        ? tokenRecord.targetDocKeys
+        : Object.values(empDocs)
+            .filter(d => d.required && d.status !== 'Not Applicable')
+            .map(d => d.key);
+
+    const slots: PublicQrDocumentSlot[] = targetKeys
+      .map(k => empDocs[k])
+      .filter((d): d is DocumentRecord => Boolean(d) && d.status !== 'Not Applicable')
+      .map(d => {
+        const publicStatus = this.mapDocStatusForPublicQr(d.status);
+        return {
+          key: d.key,
+          title: d.title,
+          category: d.category,
+          required: d.required,
+          status: publicStatus,
+          uploadedAt: d.uploadedAt,
+          fileName: publicStatus !== 'Missing' ? d.fileName : undefined,
+          fileSize: publicStatus !== 'Missing' ? d.fileSize : undefined,
+          isLocked: publicStatus !== 'Missing', // Prevent duplicate upload once Uploaded or Verified
+        };
+      });
+
+    const expiresAtMs = new Date(tokenRecord.expiresAt).getTime();
+    return {
+      ok: true,
+      httpStatus: 200,
+      code: 'VALID',
+      session: {
+        valid: true,
+        recipientName: employee.fullName,
+        designation: employee.designation,
+        department: employee.department,
+        subDepartment: employee.subDepartment,
+        companyName: 'White Collar Realty',
+        createdAt: tokenRecord.createdAt,
+        expiresAt: tokenRecord.expiresAt,
+        remainingMs: Math.max(0, expiresAtMs - nowMs),
+        allowedFormats: ['PDF', 'JPG', 'PNG'],
+        maxFileSizeBytes: QR_MAX_FILE_SIZE_BYTES,
+        documents: slots,
+      },
+    };
+  }
+
+  public broadcastQrUploadProgress(event: LiveQrUploadEvent) {
+    this.broadcast('QR_UPLOAD_PROGRESS', event);
+  }
+
+  private detectAndVerifyBinaryFormat(
+    buffer: Buffer,
+    fileName: string,
+    declaredMime?: string
+  ): { valid: boolean; mimeType?: string; error?: string } {
+    if (!buffer || buffer.length < 8) {
+      return { valid: false, error: 'Uploaded file is empty or corrupted.' };
+    }
+
+    const ext = path.extname(fileName || '').toLowerCase();
+    const allowedExts = ['.pdf', '.jpg', '.jpeg', '.png'];
+    if (!allowedExts.includes(ext)) {
+      return {
+        valid: false,
+        error: `Unsupported file extension '${ext || 'unknown'}'. Only PDF, JPG, and PNG files are allowed.`,
+      };
+    }
+
+    const isPdfMagic =
+      buffer[0] === 0x25 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x44 &&
+      buffer[3] === 0x46 &&
+      buffer[4] === 0x2d; // %PDF-
+
+    const isJpegMagic = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+
+    const isPngMagic =
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47 &&
+      buffer[4] === 0x0d &&
+      buffer[5] === 0x0a &&
+      buffer[6] === 0x1a &&
+      buffer[7] === 0x0a;
+
+    if (ext === '.pdf') {
+      if (!isPdfMagic) {
+        return { valid: false, error: 'File content does not match a valid PDF document.' };
+      }
+      if (declaredMime && !['application/pdf', 'application/octet-stream'].includes(declaredMime.toLowerCase())) {
+        return { valid: false, error: 'Invalid MIME type for PDF upload.' };
+      }
+      return { valid: true, mimeType: 'application/pdf' };
+    }
+
+    if (ext === '.jpg' || ext === '.jpeg') {
+      if (!isJpegMagic) {
+        return { valid: false, error: 'File content does not match a valid JPG/JPEG image.' };
+      }
+      if (declaredMime && !['image/jpeg', 'image/jpg', 'application/octet-stream'].includes(declaredMime.toLowerCase())) {
+        return { valid: false, error: 'Invalid MIME type for JPG image upload.' };
+      }
+      return { valid: true, mimeType: 'image/jpeg' };
+    }
+
+    if (ext === '.png') {
+      if (!isPngMagic) {
+        return { valid: false, error: 'File content does not match a valid PNG image.' };
+      }
+      if (declaredMime && !['image/png', 'application/octet-stream'].includes(declaredMime.toLowerCase())) {
+        return { valid: false, error: 'Invalid MIME type for PNG image upload.' };
+      }
+      return { valid: true, mimeType: 'image/png' };
+    }
+
+    return { valid: false, error: 'Only PDF, JPG, and PNG files are accepted.' };
+  }
+
+  private formatBytesHuman(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  public savePublicQrDocumentUpload(
+    rawToken: string,
+    docKey: string,
+    fileBuffer: Buffer,
+    originalFileName: string,
+    declaredMime?: string,
+    uploadId?: string
+  ): {
+    ok: boolean;
+    httpStatus: number;
+    code: string;
+    error?: string;
+    slot?: PublicQrDocumentSlot;
+    session?: PublicQrSessionData;
+  } {
+    const check = this.validatePublicQrToken(rawToken);
+    if (!check.ok || !check.tokenRecord || !check.employee) {
+      return {
+        ok: false,
+        httpStatus: check.httpStatus,
+        code: check.code,
+        error: check.error,
+      };
+    }
+
+    const { tokenRecord, employee } = check;
+    const cleanDocKey = (docKey || '').trim();
+    const empDocs = employee.documents || {};
+    const targetDoc = empDocs[cleanDocKey];
+
+    // Prevent cross-candidate or unknown document slot access
+    if (!targetDoc || targetDoc.status === 'Not Applicable') {
+      return {
+        ok: false,
+        httpStatus: 403,
+        code: 'UNAUTHORIZED_DOCUMENT_SLOT',
+        error: 'This document type is not part of your onboarding checklist.',
+      };
+    }
+
+    // Prevent duplicate uploads if already Uploaded, Submitted, Under Review, or Verified
+    if (
+      targetDoc.status === 'Uploaded' ||
+      targetDoc.status === 'Submitted' ||
+      targetDoc.status === 'Under Review' ||
+      targetDoc.status === 'Verified'
+    ) {
+      return {
+        ok: false,
+        httpStatus: 409,
+        code: 'DUPLICATE_UPLOAD',
+        error: `Duplicate upload prevented: '${targetDoc.title}' has already been ${targetDoc.status === 'Verified' ? 'verified' : 'uploaded'}.`,
+      };
+    }
+
+    // Enforce strict scope to only this QR's required/missing target documents
+    if (tokenRecord.targetDocKeys.length > 0 && !tokenRecord.targetDocKeys.includes(cleanDocKey)) {
+      return {
+        ok: false,
+        httpStatus: 403,
+        code: 'DOCUMENT_NOT_REQUESTED',
+        error: 'This document was not requested on your QR checklist.',
+      };
+    }
+
+    if (!fileBuffer || fileBuffer.length === 0) {
+      return {
+        ok: false,
+        httpStatus: 400,
+        code: 'EMPTY_FILE',
+        error: 'Uploaded file cannot be empty.',
+      };
+    }
+
+    if (fileBuffer.length > QR_MAX_FILE_SIZE_BYTES) {
+      return {
+        ok: false,
+        httpStatus: 413,
+        code: 'FILE_TOO_LARGE',
+        error: 'File exceeds the maximum allowed size of 10 MB.',
+      };
+    }
+
+    const formatCheck = this.detectAndVerifyBinaryFormat(fileBuffer, originalFileName, declaredMime);
+    if (!formatCheck.valid || !formatCheck.mimeType) {
+      return {
+        ok: false,
+        httpStatus: 400,
+        code: 'INVALID_FILE_TYPE',
+        error: formatCheck.error || 'Only valid PDF, JPG, and PNG files are allowed.',
+      };
+    }
+
+    // Persist binary file directly into candidate's private secure directory
+    const storagePath = this.saveSecureBuffer(employee.id, cleanDocKey, originalFileName, fileBuffer);
+    const nowIso = new Date().toISOString();
+    const formattedSize = this.formatBytesHuman(fileBuffer.length);
+    const cleanDisplayFileName = path.basename(originalFileName).replace(/[^\w.\- ()]/g, '_');
+
+    // Automatically transition status: Missing -> Uploaded
+    targetDoc.status = 'Uploaded';
+    targetDoc.fileName = cleanDisplayFileName;
+    targetDoc.fileSize = formattedSize;
+    targetDoc.mimeType = formatCheck.mimeType;
+    targetDoc.storagePath = storagePath;
+    targetDoc.fileData = undefined; // Served securely via storagePath without bloating hr_db.json
+    targetDoc.uploadedAt = nowIso;
+    targetDoc.uploadedVia = 'QR';
+
+    if (!tokenRecord.uploadedDocKeys.includes(cleanDocKey)) {
+      tokenRecord.uploadedDocKeys.push(cleanDocKey);
+    }
+
+    employee.updatedAt = nowIso;
+    employee.documentQrMeta = this.computeEmployeeQrMeta(employee.id);
+    employee.profileCompletion = calculateCompletion(employee);
+
+    this.persist();
+
+    this.logAudit(
+      `${employee.fullName} (QR Upload)`,
+      'HR',
+      'Document Uploaded via 24h QR',
+      'DocumentQR',
+      `${employee.id}-${cleanDocKey}`,
+      `${employee.fullName} - ${targetDoc.title}`,
+      `Uploaded '${cleanDisplayFileName}' (${formattedSize}, ${formatCheck.mimeType}) via candidate-specific QR. Status automatically updated: Missing -> Uploaded.`
+    );
+
+    const completedEvent: LiveQrUploadEvent = {
+      uploadId: uploadId || `upl-${Date.now()}`,
+      employeeId: employee.id,
+      employeeName: employee.fullName,
+      department: employee.department,
+      subDepartment: employee.subDepartment,
+      docKey: cleanDocKey,
+      docTitle: targetDoc.title,
+      fileName: cleanDisplayFileName,
+      fileSize: formattedSize,
+      progress: 100,
+      status: 'COMPLETED',
+      timestamp: nowIso,
+    };
+
+    this.broadcast('QR_UPLOAD_PROGRESS', completedEvent);
+    this.broadcast('QR_UPLOAD_COMPLETED', {
+      ...completedEvent,
+      profileCompletion: employee.profileCompletion,
+      document: targetDoc,
+    });
+    this.broadcast('DOCUMENT_STATUS_CHANGED', {
+      employeeId: employee.id,
+      docKey: cleanDocKey,
+      doc: targetDoc,
+      profileCompletion: employee.profileCompletion,
+    });
+    this.broadcast('ALERT_UPDATED', { candidateId: employee.id });
+    this.broadcast('EMPLOYEE_UPDATED', employee);
+    this.broadcast('DEPARTMENTS_UPDATED', this.getDepartmentsWithCounts());
+
+    const refreshedSession = this.getPublicQrUploadSession(rawToken, false);
+    const updatedSlot: PublicQrDocumentSlot = {
+      key: targetDoc.key,
+      title: targetDoc.title,
+      category: targetDoc.category,
+      required: targetDoc.required,
+      status: 'Uploaded',
+      uploadedAt: targetDoc.uploadedAt,
+      fileName: targetDoc.fileName,
+      fileSize: targetDoc.fileSize,
+      isLocked: true,
+    };
+
+    return {
+      ok: true,
+      httpStatus: 200,
+      code: 'UPLOADED',
+      slot: updatedSlot,
+      session: refreshedSession.session,
+    };
   }
 }
 

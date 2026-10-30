@@ -22,6 +22,7 @@ interface HRAlertsFloatingBannerProps {
   onViewProfile: (personId: string) => void;
   onSendReminder: (candidateId: string, channel: 'EMAIL' | 'WHATSAPP') => void;
   onDismissAlert: (alertId: string) => Promise<void>;
+  onDismissAllMissingDocs?: () => Promise<void>;
   userRole: UserRole;
   onOpenFullModal: () => void;
 }
@@ -31,11 +32,15 @@ export const HRAlertsFloatingBanner: React.FC<HRAlertsFloatingBannerProps> = ({
   onViewProfile,
   onSendReminder,
   onDismissAlert,
+  onDismissAllMissingDocs,
   userRole,
   onOpenFullModal,
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [dismissingId, setDismissingId] = useState<string | null>(null);
+  const [dismissingAll, setDismissingAll] = useState(false);
+
+  const canSendReminders = userRole === 'HR' || userRole === 'Co-Founder';
 
   // Filter specifically for candidates with missing required documents or overdue submissions
   const missingDocAlerts = alerts.filter(a => a.type === 'MISSING_DOCUMENTS');
@@ -51,6 +56,22 @@ export const HRAlertsFloatingBanner: React.FC<HRAlertsFloatingBannerProps> = ({
       await onDismissAlert(alertId);
     } finally {
       setDismissingId(null);
+    }
+  };
+
+  const handleDismissBanner = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      setDismissingAll(true);
+      if (onDismissAllMissingDocs) {
+        await onDismissAllMissingDocs();
+      } else {
+        for (const a of missingDocAlerts) {
+          await onDismissAlert(a.id);
+        }
+      }
+    } finally {
+      setDismissingAll(false);
     }
   };
 
@@ -83,10 +104,24 @@ export const HRAlertsFloatingBanner: React.FC<HRAlertsFloatingBannerProps> = ({
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
+            onClick={e => {
+              e.stopPropagation();
+              setIsMinimized(!isMinimized);
+            }}
             className="p-1 text-slate-400 hover:text-white rounded"
             title={isMinimized ? 'Expand' : 'Minimize'}
           >
             {isMinimized ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={handleDismissBanner}
+            disabled={dismissingAll}
+            className="px-2 py-1 text-[10px] font-semibold bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white rounded border border-slate-700 hover:border-rose-500 flex items-center gap-1 transition-colors"
+            title="Dismiss / Hide HR Alert: Candidate Missing Documents"
+          >
+            <X className="w-3 h-3" />
+            <span>{dismissingAll ? 'Hiding...' : 'Dismiss'}</span>
           </button>
         </div>
       </div>
@@ -185,26 +220,30 @@ export const HRAlertsFloatingBanner: React.FC<HRAlertsFloatingBannerProps> = ({
                 )}
 
                 {/* Action Buttons: View Profile, Send Email, Send WhatsApp, Dismiss */}
-                <div className="grid grid-cols-3 gap-1.5 mt-2.5 pt-2 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => onSendReminder(alert.personId, 'WHATSAPP')}
-                    className="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors shadow-2xs"
-                    title="Send WhatsApp 24-hour reminder"
-                  >
-                    <MessageSquare className="w-3 h-3" />
-                    WhatsApp
-                  </button>
+                <div className={`grid ${canSendReminders ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 mt-2.5 pt-2 border-t border-slate-100`}>
+                  {canSendReminders && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onSendReminder(alert.personId, 'WHATSAPP')}
+                        className="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors shadow-2xs"
+                        title="Send WhatsApp 24-hour reminder"
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        WhatsApp
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => onSendReminder(alert.personId, 'EMAIL')}
-                    className="px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors shadow-2xs"
-                    title="Send Email 24-hour reminder"
-                  >
-                    <Mail className="w-3 h-3" />
-                    Email
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() => onSendReminder(alert.personId, 'EMAIL')}
+                        className="px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors shadow-2xs"
+                        title="Send Email 24-hour reminder"
+                      >
+                        <Mail className="w-3 h-3" />
+                        Email
+                      </button>
+                    </>
+                  )}
 
                   <button
                     type="button"
@@ -215,6 +254,18 @@ export const HRAlertsFloatingBanner: React.FC<HRAlertsFloatingBannerProps> = ({
                     <User className="w-3 h-3" />
                     Profile
                   </button>
+
+                  {!canSendReminders && (
+                    <button
+                      type="button"
+                      onClick={e => handleDismiss(e, alert.id)}
+                      disabled={dismissingId === alert.id}
+                      className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors border border-slate-200"
+                    >
+                      <X className="w-3 h-3" />
+                      {dismissingId === alert.id ? '...' : 'Hide Alert'}
+                    </button>
+                  )}
                 </div>
               </div>
             );

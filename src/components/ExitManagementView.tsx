@@ -56,6 +56,7 @@ export const ExitManagementView: React.FC<ExitManagementViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'notice' | 'clearance' | 'fnf' | 'alumni'>('notice');
   const [selectedEmpId, setSelectedEmpId] = useState<string>('');
+  const canEdit = userRole === 'HR' || userRole === 'Co-Founder';
 
   // Initiate Exit Modal State
   const [showInitiateModal, setShowInitiateModal] = useState(false);
@@ -157,7 +158,7 @@ export const ExitManagementView: React.FC<ExitManagementViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {userRole !== 'DEPT_HEAD_VIEWER' && (
+          {canEdit && (
             <button
               type="button"
               onClick={() => setShowInitiateModal(true)}
@@ -402,17 +403,15 @@ export const ExitManagementView: React.FC<ExitManagementViewProps> = ({
 
                             <div className="mt-3 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
                               <span>Approver: {it?.approver || 'Pending IT Head'}</span>
-                              {userRole !== 'DEPT_HEAD_VIEWER' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleClearanceDept(selectedEmployee, 'itClearance', isApproved ? 'Pending' : 'Approved')}
-                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
-                                    isApproved ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                  }`}
-                                >
-                                  {isApproved ? 'Reset' : 'Sign Off IT'}
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleClearanceDept(selectedEmployee, 'itClearance', isApproved ? 'Pending' : 'Approved')}
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                                  isApproved ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                }`}
+                              >
+                                {isApproved ? 'Reset' : 'Sign Off IT'}
+                              </button>
                             </div>
                           </div>
                         );
@@ -451,17 +450,15 @@ export const ExitManagementView: React.FC<ExitManagementViewProps> = ({
 
                             <div className="mt-3 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
                               <span>Approver: {hr?.approver || 'Pending HR Head'}</span>
-                              {userRole !== 'DEPT_HEAD_VIEWER' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleClearanceDept(selectedEmployee, 'hrClearance', isApproved ? 'Pending' : 'Approved')}
-                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
-                                    isApproved ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                  }`}
-                                >
-                                  {isApproved ? 'Reset' : 'Sign Off HR'}
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleClearanceDept(selectedEmployee, 'hrClearance', isApproved ? 'Pending' : 'Approved')}
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                                  isApproved ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                }`}
+                              >
+                                {isApproved ? 'Reset' : 'Sign Off HR'}
+                              </button>
                             </div>
                           </div>
                         );
@@ -500,17 +497,15 @@ export const ExitManagementView: React.FC<ExitManagementViewProps> = ({
 
                             <div className="mt-3 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
                               <span>Approver: {fin?.approver || 'Pending Finance Head'}</span>
-                              {userRole !== 'DEPT_HEAD_VIEWER' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleClearanceDept(selectedEmployee, 'financeClearance', isApproved ? 'Pending' : 'Approved')}
-                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
-                                    isApproved ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                  }`}
-                                >
-                                  {isApproved ? 'Reset' : 'Sign Off Fin'}
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleClearanceDept(selectedEmployee, 'financeClearance', isApproved ? 'Pending' : 'Approved')}
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                                  isApproved ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                }`}
+                              >
+                                {isApproved ? 'Reset' : 'Sign Off Fin'}
+                              </button>
                             </div>
                           </div>
                         );
@@ -592,7 +587,7 @@ export const ExitManagementView: React.FC<ExitManagementViewProps> = ({
                               <p className="text-[10px] text-slate-400">Condition: {asset.condition} · Issued: {asset.issueDate}</p>
                             </div>
 
-                            {onReturnAsset && userRole !== 'DEPT_HEAD_VIEWER' && (
+                            {onReturnAsset && canEdit && (
                               <button
                                 type="button"
                                 onClick={() => onReturnAsset(asset.id, new Date().toISOString().split('T')[0], 'Good', 'Returned during exit clearance.')}
@@ -667,7 +662,7 @@ export const ExitManagementView: React.FC<ExitManagementViewProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2 pt-2 border-t border-slate-100 flex-wrap">
-                    {!isSettled && (userRole === 'HR_ADMIN' || userRole === 'FINANCE_ADMIN' || userRole === 'HR_MANAGER') && (
+                    {!isSettled && canEdit && (
                       <button
                         type="button"
                         onClick={() => {
@@ -680,14 +675,16 @@ export const ExitManagementView: React.FC<ExitManagementViewProps> = ({
                       </button>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={() => onCalculateFnF(emp.id)}
-                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium"
-                      title="Recalculate settlement based on actual days worked"
-                    >
-                      Recalculate
-                    </button>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => onCalculateFnF(emp.id)}
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium"
+                        title="Recalculate settlement based on actual days worked"
+                      >
+                        Recalculate
+                      </button>
+                    )}
 
                     <button
                       type="button"

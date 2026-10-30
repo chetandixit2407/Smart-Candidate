@@ -40,7 +40,7 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
   const [releaseTarget, setReleaseTarget] = useState<string | null>(null);
   const [releaseLoading, setReleaseLoading] = useState(false);
 
-  const isViewer = userRole === 'DEPT_HEAD_VIEWER';
+  const canEdit = userRole === 'HR' || userRole === 'Co-Founder';
 
   // Bay definitions
   const bays = [
@@ -61,7 +61,7 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
   const availableCount = desks.filter(d => d.status === 'Available').length;
 
   const handleOpenAssignModal = (slot: DeskSlot) => {
-    if (isViewer) return;
+    if (!canEdit) return;
     setAssignModalDesk(slot);
     setSelectedPersonId('');
     setActionMsg(null);
@@ -83,7 +83,7 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
   };
 
   const handleRelease = (deskCode: string) => {
-    if (isViewer) return;
+    if (!canEdit) return;
     setReleaseTarget(deskCode);
   };
 
@@ -262,7 +262,7 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
                         </div>
 
                         {/* Desk Actions */}
-                        {!isViewer && (
+                        {canEdit && (
                           <div className="pt-2 border-t border-slate-100/80 mt-2 flex items-center justify-between text-[11px]">
                             {slot.assignedEmployeeId ? (
                               <>

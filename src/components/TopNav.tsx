@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Download, Plus, Shield, RefreshCw, Bell, ChevronDown, FileSpreadsheet, Menu, FileText } from 'lucide-react';
 import { UserRole } from '../types/index.js';
+import { api } from '../services/api.js';
 
 interface TopNavProps {
   currentTab: string;
@@ -27,12 +28,12 @@ export const TopNav: React.FC<TopNavProps> = ({
     overview: { main: 'Executive HR Dashboard', sub: 'People Analytics & Onboarding' },
     hiring: { main: 'Recruitment & Hiring Pipeline', sub: 'Applications, Interviews & Offers' },
     employees: { main: 'Employee Directory', sub: 'Active Workforce & Probation' },
+    departments: { main: 'Department-Wise Management', sub: 'Dubai Market, Gurgaon Market, AI & DM Interns' },
     candidates: { main: 'Candidate Pipeline', sub: 'New Joiners & Onboarding' },
     exit: { main: 'Separation & Exit Management', sub: 'Notice Periods, Clearances & FnF' },
     desks: { main: 'Office Desk Allocation', sub: 'Bays A–H Interactive Layout' },
-    assets: { main: 'Company Assets & Inventory', sub: 'Devices, Cards & Issued Items' },
     import: { main: 'Spreadsheet Synchronization', sub: 'Chetan Dossier & Birthday Sheet' },
-    audit: { main: 'Security Audit Trail', sub: 'Verification & Profile Change Logs' },
+    audit: { main: 'Security Audit Trail', sub: 'Verification, Automation & Change Logs' },
   };
 
   const titleInfo = tabTitles[currentTab] || { main: 'HR Management', sub: 'White Collar Realty' };
@@ -80,36 +81,26 @@ export const TopNav: React.FC<TopNavProps> = ({
         </span>
       </div>
 
-      {/* Zone 2: Sensitive CTC indicator & reset option */}
+      {/* Zone 2: Role access indicator & reset option */}
       <div className="hidden lg:flex items-center gap-3 text-xs text-slate-500 shrink-0">
-        {userRole === 'HR_ADMIN' ? (
+        {userRole === 'HR' ? (
           <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-medium border border-emerald-200">
             <Shield className="w-3 h-3" />
-            Full Admin Access (CTC & Approvals Unrestricted)
+            HR Role (Offers, Assets & Full People Ops)
           </span>
-        ) : userRole === 'HR_MANAGER' ? (
+        ) : userRole === 'Co-Founder' ? (
           <span className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[11px] font-medium border border-blue-200">
             <Shield className="w-3 h-3" />
-            Manager Access (Verification & Desk Ops)
-          </span>
-        ) : userRole === 'HR_EXECUTIVE' ? (
-          <span className="flex items-center gap-1.5 text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-[11px] font-medium border border-purple-200">
-            <Shield className="w-3 h-3" />
-            Executive Access (Recruitment & Sourcing)
-          </span>
-        ) : userRole === 'FINANCE_ADMIN' ? (
-          <span className="flex items-center gap-1.5 text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded text-[11px] font-medium border border-emerald-300">
-            <Shield className="w-3 h-3" />
-            Finance Admin (Salary CTC & FnF Disbursal)
+            Co-Founder Role (Full Executive & Offer Generation)
           </span>
         ) : (
           <span className="flex items-center gap-1.5 text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-[11px] font-medium border border-amber-200">
             <Shield className="w-3 h-3" />
-            Viewer Access (CTC & Identity Masked)
+            CEO Role (Executive Oversight & Saved Offer Review)
           </span>
         )}
 
-        {onResetDatabase && userRole === 'HR_ADMIN' && (
+        {onResetDatabase && (userRole === 'HR' || userRole === 'Co-Founder') && (
           <button
             onClick={onResetDatabase}
             title="Reset to pristine White Collar Realty dataset"
@@ -147,16 +138,16 @@ export const TopNav: React.FC<TopNavProps> = ({
         {/* Master Excel Export with Single-Sheet Option */}
         <div className="relative" ref={menuRef}>
           <div className="inline-flex rounded-lg shadow-xs border border-slate-300 bg-white">
-            <a
-              href="/api/export/excel/single-sheet"
-              download
+            <button
+              type="button"
+              onClick={() => api.downloadExcelExport('single-sheet')}
               className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors rounded-l-lg border-r border-slate-200"
               title="Export all employees and candidates in one single worksheet sorted alphabetically by name"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="hidden md:inline">Export Master Excel</span>
               <span className="inline md:hidden">Excel</span>
-            </a>
+            </button>
             <button
               type="button"
               onClick={() => setShowExportMenu(!showExportMenu)}
@@ -173,11 +164,13 @@ export const TopNav: React.FC<TopNavProps> = ({
               <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                 Export Format Options
               </div>
-              <a
-                href="/api/export/excel/single-sheet"
-                download
-                onClick={() => setShowExportMenu(false)}
-                className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-emerald-50/60 transition-colors text-slate-800 group"
+              <button
+                type="button"
+                onClick={() => {
+                  setShowExportMenu(false);
+                  api.downloadExcelExport('single-sheet');
+                }}
+                className="w-full text-left flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-emerald-50/60 transition-colors text-slate-800 group"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
@@ -188,12 +181,14 @@ export const TopNav: React.FC<TopNavProps> = ({
                     One row per person (sorted alphabetically A-Z), all personal, contact, desk, asset, and verification fields.
                   </p>
                 </div>
-              </a>
-              <a
-                href="/api/export/excel"
-                download
-                onClick={() => setShowExportMenu(false)}
-                className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-slate-50 transition-colors text-slate-800 group border-t border-slate-100"
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowExportMenu(false);
+                  api.downloadExcelExport('multi-sheet');
+                }}
+                className="w-full text-left flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-slate-50 transition-colors text-slate-800 group border-t border-slate-100"
               >
                 <Download className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                 <div>
@@ -204,12 +199,12 @@ export const TopNav: React.FC<TopNavProps> = ({
                     Divided into separate tabs for Employees, Candidates, Desks, Assets, and Compliance.
                   </p>
                 </div>
-              </a>
+              </button>
             </div>
           )}
         </div>
 
-        {onOpenOfferGenerator && (
+        {onOpenOfferGenerator && (userRole === 'HR' || userRole === 'Co-Founder') && (
           <button
             type="button"
             onClick={onOpenOfferGenerator}
@@ -222,7 +217,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           </button>
         )}
 
-        {userRole !== 'DEPT_HEAD_VIEWER' && (
+        {(userRole === 'HR' || userRole === 'Co-Founder') && (
           <div className="flex items-center gap-1 sm:gap-1.5">
             <button
               onClick={() => onOpenAddModal(false)}

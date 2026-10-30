@@ -3,17 +3,14 @@ import {
   Users,
   UserPlus,
   Armchair,
-  Package,
   FileSpreadsheet,
   History,
-  ShieldCheck,
   CheckCircle2,
-  Building2,
   Lock,
   X,
   Briefcase,
   LogOut,
-  DollarSign,
+  Building2,
 } from 'lucide-react';
 import { UserRole } from '../types/index.js';
 
@@ -25,6 +22,7 @@ interface SidebarProps {
   onChangeRole: (role: UserRole) => void;
   pendingDocCount: number;
   upcomingCount: number;
+  departmentsCount?: number;
   sseConnected: boolean;
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
@@ -38,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onChangeRole,
   pendingDocCount,
   upcomingCount,
+  departmentsCount,
   sseConnected,
   mobileOpen = false,
   onCloseMobile,
@@ -80,6 +79,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Users,
     },
     {
+      id: 'departments',
+      label: 'Departments',
+      icon: Building2,
+      badge: departmentsCount && departmentsCount > 0 ? `${departmentsCount}` : undefined,
+    },
+    {
       id: 'exit',
       label: 'Exit & FnF Settlement',
       icon: LogOut,
@@ -88,11 +93,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'desks',
       label: 'Desk Allocation',
       icon: Armchair,
-    },
-    {
-      id: 'assets',
-      label: 'Assets & Inventory',
-      icon: Package,
     },
     {
       id: 'import',
@@ -187,7 +187,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      {/* Role & Access Switcher */}
+      {/* Role & Access Switcher (Strictly 3 Roles: HR, Co-Founder, CEO) */}
       <div className="p-3 border-t border-slate-800 bg-slate-950/40">
         <div className="flex items-center justify-between px-2 pb-2">
           <span className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase flex items-center gap-1">
@@ -195,65 +195,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Security & RBAC
           </span>
           <span className="text-[10px] text-amber-400 font-mono">
-            {userRole === 'HR_ADMIN' ? 'ADMIN' : userRole === 'HR_MANAGER' ? 'OPS' : userRole === 'HR_EXECUTIVE' ? 'RECRUIT' : userRole === 'FINANCE_ADMIN' ? 'FINANCE' : 'VIEW'}
+            {userRole}
           </span>
         </div>
 
         <div className="space-y-1">
           <button
-            onClick={() => handleRoleChange('HR_ADMIN')}
+            onClick={() => handleRoleChange('HR')}
             className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs transition-colors ${
-              userRole === 'HR_ADMIN'
+              userRole === 'HR'
                 ? 'bg-slate-800 text-white font-medium border border-slate-700'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
             }`}
           >
-            <span className="truncate">HR Admin (Full Access & CTC)</span>
-            {userRole === 'HR_ADMIN' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+            <span className="truncate">HR (Offers, Assets & People Ops)</span>
+            {userRole === 'HR' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
           </button>
           <button
-            onClick={() => handleRoleChange('HR_MANAGER')}
+            onClick={() => handleRoleChange('Co-Founder')}
             className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs transition-colors ${
-              userRole === 'HR_MANAGER'
+              userRole === 'Co-Founder'
                 ? 'bg-slate-800 text-white font-medium border border-slate-700'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
             }`}
           >
-            <span className="truncate">HR Manager (Ops & Docs)</span>
-            {userRole === 'HR_MANAGER' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+            <span className="truncate">Co-Founder (Executive & Offers)</span>
+            {userRole === 'Co-Founder' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
           </button>
           <button
-            onClick={() => handleRoleChange('HR_EXECUTIVE')}
+            onClick={() => handleRoleChange('CEO')}
             className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs transition-colors ${
-              userRole === 'HR_EXECUTIVE'
+              userRole === 'CEO'
                 ? 'bg-slate-800 text-white font-medium border border-slate-700'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
             }`}
           >
-            <span className="truncate">HR Executive (Recruitment)</span>
-            {userRole === 'HR_EXECUTIVE' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
-          </button>
-          <button
-            onClick={() => handleRoleChange('FINANCE_ADMIN')}
-            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs transition-colors ${
-              userRole === 'FINANCE_ADMIN'
-                ? 'bg-slate-800 text-white font-medium border border-slate-700'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-            }`}
-          >
-            <span className="truncate">Finance Admin (FnF & Payouts)</span>
-            {userRole === 'FINANCE_ADMIN' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
-          </button>
-          <button
-            onClick={() => handleRoleChange('DEPT_HEAD_VIEWER')}
-            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs transition-colors ${
-              userRole === 'DEPT_HEAD_VIEWER'
-                ? 'bg-slate-800 text-white font-medium border border-slate-700'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-            }`}
-          >
-            <span className="truncate">Dept Head (CTC Masked)</span>
-            {userRole === 'DEPT_HEAD_VIEWER' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+            <span className="truncate">CEO (Leadership & Offer Review)</span>
+            {userRole === 'CEO' && <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
           </button>
         </div>
 
@@ -265,7 +243,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="overflow-hidden min-w-0">
             <p className="text-xs font-medium text-slate-200 truncate">{userName}</p>
             <p className="text-[10px] text-slate-400 truncate">
-              {userRole === 'HR_ADMIN' ? 'Head of People' : userRole === 'HR_MANAGER' ? 'Talent Operations' : 'Viewer Mode'}
+              {userRole === 'HR'
+                ? 'People Operations & HR'
+                : userRole === 'Co-Founder'
+                ? 'Co-Founder · Full Access'
+                : 'Chief Executive Officer'}
             </p>
           </div>
         </div>

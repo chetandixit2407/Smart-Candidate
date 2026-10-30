@@ -56,6 +56,7 @@ interface OfferLetterModalProps {
   allCandidates?: Employee[];
   onSelectCandidate?: (candidate: Employee) => void;
   userRole: UserRole;
+  initialPreviewSnapshot?: OfferLetterData | null;
   onSaveOffer: (updates: Partial<OfferLetterData>) => Promise<void>;
   onApproveOffer: () => Promise<void>;
   onIssueOffer: () => Promise<void>;
@@ -64,11 +65,17 @@ interface OfferLetterModalProps {
 }
 
 const DEPARTMENTS = [
+  'Gurgaon Market',
+  'Dubai Market',
+  'AI Intern',
+  'DM Intern',
+  'Marketing & Digital Media',
+  'Human Resources',
+  'Executive Leadership',
+  'Administration & Operations',
   'Sales & Investments',
   'Luxury Residential & Investments',
   'Commercial Leasing',
-  'Human Resources',
-  'Marketing & Digital Media',
   'Administration & Facilities',
   'Research & Data',
   'Legal & Compliance',
@@ -106,33 +113,44 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
   allCandidates = [],
   onSelectCandidate,
   userRole,
+  initialPreviewSnapshot = null,
   onSaveOffer,
   onApproveOffer,
   onIssueOffer,
   onAcceptOffer,
   onEmailOffer,
 }) => {
-  const isViewer = userRole === 'DEPT_HEAD_VIEWER';
-  const canApprove = userRole === 'HR_ADMIN' || userRole === 'HR_MANAGER';
-  const canConfigureStructures =
-    userRole === 'HR_ADMIN' || userRole === 'HR_MANAGER' || userRole === 'FINANCE_ADMIN';
+  const canEditOffer = userRole === 'HR' || userRole === 'Co-Founder';
+  const isViewer = false;
+  const canApprove = userRole === 'HR' || userRole === 'Co-Founder' || userRole === 'CEO';
+  const canConfigureStructures = canEditOffer;
+  const savedOfferLetters = candidate.savedOfferLetters || [];
+  const hasSavedOffer = Boolean(candidate.offerLetter || savedOfferLetters.length > 0);
 
   const [salaryStructures, setSalaryStructures] = useState<RoleSalaryStructure[]>(
     DEFAULT_ROLE_SALARY_STRUCTURES
   );
   const [workspaceMode, setWorkspaceMode] = useState<
     'split' | 'preview' | 'edit' | 'clauses' | 'structures' | 'compare'
-  >('split');
+  >(() => (canEditOffer && !initialPreviewSnapshot ? 'split' : 'preview'));
   const [viewAllPages, setViewAllPages] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [highlightDynamic, setHighlightDynamic] = useState<boolean>(false);
 
   // Draft form state vs Regenerated preview state
   const [draftData, setDraftData] = useState<OfferLetterData>(() =>
-    buildOfferLetterData(candidate, candidate.offerLetter, DEFAULT_ROLE_SALARY_STRUCTURES)
+    buildOfferLetterData(
+      candidate,
+      initialPreviewSnapshot || candidate.offerLetter,
+      DEFAULT_ROLE_SALARY_STRUCTURES
+    )
   );
   const [renderedOffer, setRenderedOffer] = useState<OfferLetterData>(() =>
-    buildOfferLetterData(candidate, candidate.offerLetter, DEFAULT_ROLE_SALARY_STRUCTURES)
+    buildOfferLetterData(
+      candidate,
+      initialPreviewSnapshot || candidate.offerLetter,
+      DEFAULT_ROLE_SALARY_STRUCTURES
+    )
   );
   const [hasUnregeneratedEdits, setHasUnregeneratedEdits] = useState<boolean>(false);
 
@@ -170,7 +188,7 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
 
   // Load persisted role salary structures from server
   useEffect(() => {
-    if (!isOpen || isViewer) return;
+    if (!isOpen) return;
     api
       .getSalaryStructures()
       .then(res => {
@@ -182,17 +200,25 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
       .catch(() => {
         // Fallback to default structures silently
       });
-  }, [isOpen, isViewer]);
+  }, [isOpen]);
 
-  // Re-initialize when candidate changes
+  // Re-initialize when candidate, preview snapshot, or role changes
   useEffect(() => {
-    const built = buildOfferLetterData(candidate, candidate.offerLetter, salaryStructures);
+    const sourceOffer = initialPreviewSnapshot || candidate.offerLetter;
+    const built = buildOfferLetterData(candidate, sourceOffer, salaryStructures);
     setDraftData(built);
     setRenderedOffer(built);
     setCtcInputRaw(String(built.salaryBreakup.annualCtc));
-    setJoiningIsoInput(toIsoDateIfPossible(candidate.joiningDate || built.joiningDate));
+    setJoiningIsoInput(
+      toIsoDateIfPossible(sourceOffer?.joiningDate || candidate.joiningDate || built.joiningDate)
+    );
     setHasUnregeneratedEdits(false);
-  }, [candidate.id]);
+    if (!canEditOffer || initialPreviewSnapshot) {
+      setWorkspaceMode('preview');
+    } else if (workspaceMode === 'preview') {
+      setWorkspaceMode('split');
+    }
+  }, [candidate.id, initialPreviewSnapshot, canEditOffer]);
 
   // Keep workflow status synced if candidate.offerLetter updates externally (approve/issue/accept/email)
   useEffect(() => {
@@ -498,16 +524,22 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
   const handleDownloadWord = async () => {
     try {
       setIsDownloadingDocx(true);
+      if (!canEditOffer) {
+        if (savedOfferLetters.length > 0) {
+          const latestFile = savedOfferLetters[0];
+          await api.downloadSavedOfferLetterFile(candidate.id, latestFile.id, latestFile.fileName);
+        } else {
+          await api.downloadOfferLetterDocx(candidate.id);
+        }
+        notify('Saved Microsoft Word (.docx) offer letter downloaded.');
+        return;
+      }
       const missing = checkOfferMissingFields(candidate, draftData);
       const latestPayload: OfferLetterData = { ...draftData, missingFields: missing };
       setRenderedOffer(latestPayload);
       setHasUnregeneratedEdits(false);
-      // Save to candidate record automatically if authorized so generated letters are tracked
-      if (!isViewer) {
-        await onSaveOffer(latestPayload).catch(() => {});
-      }
       await api.downloadOfferLetterDocx(candidate.id, latestPayload);
-      notify('Editable Microsoft Word (.docx) offer letter downloaded.');
+      notify('Editable Word (.docx) offer letter saved to candidate profile & downloaded.');
     } catch (err: any) {
       notify(err.message || 'Failed to download Word document', 'error');
     } finally {
@@ -2580,7 +2612,7 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-white truncate">
-                  Offer Letter Generator — {renderedOffer.candidateName || candidate.fullName}
+                  {canEditOffer ? 'Offer Letter Generator' : 'Offer Letter Preview'} — {renderedOffer.candidateName || candidate.fullName}
                 </h2>
                 <span
                   className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
@@ -2593,22 +2625,26 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
                 >
                   {renderedOffer.status}
                 </span>
-                {hasUnregeneratedEdits && (
+                {!canEditOffer && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                    {userRole} Read-Only
+                  </span>
+                )}
+                {canEditOffer && hasUnregeneratedEdits && (
                   <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-400 text-slate-950">
                     Edits Pending Preview
                   </span>
                 )}
               </div>
               <p className="text-[11px] text-slate-400 truncate tabular-nums">
-                Master Template (10 Pages) · Ref: {renderedOffer.refNo} ·{' '}
-                {isViewer ? 'Restricted Salary' : previewCtcFormatted}
+                Master Template (10 Pages) · Ref: {renderedOffer.refNo} · {previewCtcFormatted}
               </p>
             </div>
           </div>
 
           {/* Primary Workflow Controls: Regenerate Preview -> Save -> Approve -> Download .docx */}
           <div className="flex flex-wrap items-center gap-2">
-            {!isViewer && (
+            {canEditOffer && (
               <>
                 <button
                   type="button"
@@ -2636,67 +2672,72 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
                   )}
                   Save to Candidate
                 </button>
+              </>
+            )}
 
-                {canApprove && renderedOffer.status === 'Draft' && (
-                  <button
-                    type="button"
-                    disabled={isSubmittingWorkflow}
-                    onClick={async () => {
-                      try {
-                        setIsSubmittingWorkflow(true);
-                        await onSaveOffer(draftData);
-                        await onApproveOffer();
-                        notify('Offer letter formally approved by HR.');
-                      } catch (err: any) {
-                        notify(err.message || 'Approval failed', 'error');
-                      } finally {
-                        setIsSubmittingWorkflow(false);
-                      }
-                    }}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Approve
-                  </button>
-                )}
+            {canApprove && renderedOffer.status === 'Draft' && (canEditOffer || candidate.offerLetter) && (
+              <button
+                type="button"
+                disabled={isSubmittingWorkflow}
+                onClick={async () => {
+                  try {
+                    setIsSubmittingWorkflow(true);
+                    if (canEditOffer) {
+                      await onSaveOffer(draftData);
+                    }
+                    await onApproveOffer();
+                    notify(`Offer letter formally approved by ${userRole}.`);
+                  } catch (err: any) {
+                    notify(err.message || 'Approval failed', 'error');
+                  } finally {
+                    setIsSubmittingWorkflow(false);
+                  }
+                }}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Approve
+              </button>
+            )}
 
-                {onEmailOffer &&
-                  (renderedOffer.status === 'Approved' || renderedOffer.status === 'Issued') && (
-                    <button
-                      type="button"
-                      disabled={isSubmittingWorkflow}
-                      onClick={async () => {
-                        try {
-                          setIsSubmittingWorkflow(true);
-                          await onEmailOffer();
-                          notify('Official offer letter dispatched to candidate.');
-                        } catch (err: any) {
-                          notify(err.message || 'Email dispatch failed', 'error');
-                        } finally {
-                          setIsSubmittingWorkflow(false);
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
-                    >
-                      <Mail className="w-3.5 h-3.5" />
-                      Dispatch Offer
-                    </button>
-                  )}
-
+            {canEditOffer &&
+              onEmailOffer &&
+              (renderedOffer.status === 'Approved' || renderedOffer.status === 'Issued') && (
                 <button
                   type="button"
-                  disabled={isDownloadingDocx}
-                  onClick={handleDownloadWord}
-                  className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-colors disabled:opacity-50"
+                  disabled={isSubmittingWorkflow}
+                  onClick={async () => {
+                    try {
+                      setIsSubmittingWorkflow(true);
+                      await onEmailOffer();
+                      notify('Official offer letter dispatched to candidate.');
+                    } catch (err: any) {
+                      notify(err.message || 'Email dispatch failed', 'error');
+                    } finally {
+                      setIsSubmittingWorkflow(false);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
                 >
-                  {isDownloadingDocx ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                  Download Word (.docx)
+                  <Mail className="w-3.5 h-3.5" />
+                  Dispatch Offer
                 </button>
-              </>
+              )}
+
+            {(canEditOffer || hasSavedOffer) && (
+              <button
+                type="button"
+                disabled={isDownloadingDocx}
+                onClick={handleDownloadWord}
+                className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-colors disabled:opacity-50"
+              >
+                {isDownloadingDocx ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                {canEditOffer ? 'Generate & Save Word (.docx)' : 'Download Saved Word (.docx)'}
+              </button>
             )}
 
             <button
@@ -2713,9 +2754,11 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
         <div className="bg-white px-4 py-2 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 shrink-0 print:hidden">
           <div className="flex items-center gap-1">
             {[
-              { id: 'split', label: 'Split Workspace (Edit + Preview)', icon: Columns },
+              ...(canEditOffer
+                ? [{ id: 'split', label: 'Split Workspace (Edit + Preview)', icon: Columns }]
+                : []),
               { id: 'preview', label: 'Document Preview', icon: Eye },
-              ...(!isViewer
+              ...(canEditOffer
                 ? [
                     { id: 'edit', label: 'Candidate & Salary Form', icon: Edit3 },
                     { id: 'clauses', label: 'Annexure Clauses', icon: Sliders },
@@ -2799,7 +2842,7 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
                 Print
               </button>
 
-              {!isViewer && renderedOffer.status !== 'Accepted' && (
+              {canEditOffer && renderedOffer.status !== 'Accepted' && (
                 <button
                   type="button"
                   onClick={() => {
@@ -2815,6 +2858,55 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Saved .docx Versions Bar on Candidate Profile */}
+        {savedOfferLetters.length > 0 && (
+          <div className="bg-slate-50 px-4 py-1.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0 print:hidden">
+            <div className="flex items-center gap-2 overflow-x-auto">
+              <span className="font-semibold text-slate-700 shrink-0">
+                Saved .docx on Profile ({savedOfferLetters.length}):
+              </span>
+              {savedOfferLetters.slice(0, 4).map(file => (
+                <div
+                  key={file.id}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200 shadow-2xs shrink-0"
+                >
+                  <span className="font-mono text-[11px] text-slate-700">
+                    {new Date(file.generatedAt).toLocaleDateString('en-IN')} · {file.generatedByRole}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRenderedOffer(file.offerSnapshot);
+                      if (canEditOffer) {
+                        setDraftData(file.offerSnapshot);
+                        setHasUnregeneratedEdits(false);
+                      }
+                      setWorkspaceMode('preview');
+                      notify(`Previewing saved offer snapshot (${file.fileName}).`);
+                    }}
+                    className="text-blue-600 hover:underline font-semibold"
+                  >
+                    Preview
+                  </button>
+                  <span className="text-slate-300">·</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      api
+                        .downloadSavedOfferLetterFile(candidate.id, file.id, file.fileName)
+                        .then(() => notify(`Downloaded ${file.fileName}`))
+                        .catch(err => notify(err.message || 'Download failed', 'error'))
+                    }
+                    className="text-emerald-700 hover:underline font-semibold"
+                  >
+                    Download .docx
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Inline Candidate Acceptance Bar */}
         {showAcceptInput && (

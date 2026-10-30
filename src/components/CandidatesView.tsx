@@ -21,6 +21,7 @@ import {
   Eye,
   FileText,
   Send,
+  QrCode,
 } from 'lucide-react';
 import { Employee, UserRole, UploadToken } from '../types/index.js';
 
@@ -35,6 +36,7 @@ interface CandidatesViewProps {
   onOpenCandidatePortal?: (token: string) => void;
   onOpenOfferLetter?: (candidate: Employee) => void;
   onSendReminder?: (candidateId: string, channel?: 'EMAIL' | 'WHATSAPP' | 'BOTH') => void;
+  onOpenQrModal?: (candidate: Employee) => void;
 }
 
 export const CandidatesView: React.FC<CandidatesViewProps> = ({
@@ -48,6 +50,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
   onOpenCandidatePortal,
   onOpenOfferLetter,
   onSendReminder,
+  onOpenQrModal,
 }) => {
   const [convertingCand, setConvertingCand] = useState<Employee | null>(null);
   const [assignedCode, setAssignedCode] = useState('');
@@ -67,7 +70,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
   const [linkModalCopied, setLinkModalCopied] = useState<boolean>(false);
   const [linkModalMsg, setLinkModalMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const isViewer = userRole === 'DEPT_HEAD_VIEWER';
+  const canEdit = userRole === 'HR' || userRole === 'Co-Founder';
 
   const openConvertModal = (e: React.MouseEvent, cand: Employee) => {
     e.stopPropagation();
@@ -159,7 +162,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {candidates.length > 0 && onOpenOfferLetter && (
+          {canEdit && candidates.length > 0 && onOpenOfferLetter && (
             <button
               type="button"
               onClick={() => onOpenOfferLetter(candidates[0])}
@@ -169,7 +172,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
               Generate Offer Letter
             </button>
           )}
-          {!isViewer && (
+          {canEdit && (
             <button
               onClick={onOpenAddModal}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap shadow-xs"
@@ -187,8 +190,12 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
           // Document stats
           const docValues = Object.values(cand.documents || {});
           const verifiedDocs = docValues.filter(d => d.status === 'Verified').length;
-          const submittedDocs = docValues.filter(d => d.status === 'Submitted' || d.status === 'Under Review').length;
-          const missingDocs = docValues.filter(d => d.required && (d.status === 'Not Submitted' || d.status === 'Rejected'));
+          const submittedDocs = docValues.filter(
+            d => d.status === 'Uploaded' || d.status === 'Submitted' || d.status === 'Under Review'
+          ).length;
+          const missingDocs = docValues.filter(
+            d => d.required && (d.status === 'Missing' || d.status === 'Not Submitted' || d.status === 'Rejected')
+          );
           const missingDocsCount = missingDocs.length;
           const totalDocs = docValues.length;
 
@@ -197,6 +204,10 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
             !cand.uploadToken.isUsed &&
             !cand.uploadToken.isRevoked &&
             new Date(cand.uploadToken.expiresAt).getTime() > Date.now();
+
+          const hasActiveQr =
+            Boolean(cand.documentQrMeta?.isActive && cand.documentQrMeta?.expiresAt) &&
+            new Date(cand.documentQrMeta!.expiresAt!).getTime() > Date.now();
 
           const lastReminder = cand.documentReminders && cand.documentReminders.length > 0
             ? cand.documentReminders[cand.documentReminders.length - 1]
@@ -221,7 +232,13 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {hasActiveQr && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-800 border border-indigo-200 flex items-center gap-1">
+                        <QrCode className="w-3 h-3 text-indigo-600" />
+                        24h QR Active
+                      </span>
+                    )}
                     {hasActiveToken && (
                       <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
                         <KeyRound className="w-3 h-3 text-amber-600" />
@@ -238,7 +255,10 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                 <div className="grid grid-cols-2 gap-2 text-xs pt-1">
                   <div className="p-2 bg-slate-50 rounded border border-slate-100">
                     <span className="text-[10px] text-slate-400 block">Department</span>
-                    <span className="font-medium text-slate-800 truncate block">{cand.department}</span>
+                    <span className="font-medium text-slate-800 truncate block">
+                      {cand.department}
+                      {cand.subDepartment ? ` · ${cand.subDepartment}` : ''}
+                    </span>
                   </div>
                   <div className="p-2 bg-slate-50 rounded border border-slate-100">
                     <span className="text-[10px] text-slate-400 block">Expected Joining Date</span>
@@ -253,7 +273,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                   <div className="p-2 bg-slate-50 rounded border border-slate-100">
                     <span className="text-[10px] text-slate-400 block">Offered CTC</span>
                     <span className="font-mono font-semibold text-slate-800 block">
-                      {isViewer ? '🔒 Confidential' : cand.offeredCTC || 'Confidential'}
+                      {cand.offeredCTC || 'Confidential'}
                     </span>
                   </div>
                 </div>
@@ -308,7 +328,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                       </div>
                     </div>
 
-                    {onSendReminder && !isViewer && (
+                    {onSendReminder && canEdit && (
                       <button
                         type="button"
                         onClick={e => {
@@ -355,8 +375,24 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                 </span>
 
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  {/* Individual 24h Document QR Button */}
+                  {onOpenQrModal && (
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        onOpenQrModal(cand);
+                      }}
+                      className="px-2.5 py-1.5 text-xs text-slate-950 bg-amber-400 hover:bg-amber-300 border border-amber-500 rounded font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                      title="Inspect missing documents & generate 24-hour candidate QR code"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>Generate Document QR</span>
+                    </button>
+                  )}
+
                   {/* Dedicated Link Control Trigger */}
-                  {!isViewer && (
+                  {canEdit && (
                     <button
                       type="button"
                       onClick={e => {
@@ -374,7 +410,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                       title="Manage secure document upload link for this candidate"
                     >
                       <Share2 className="w-3.5 h-3.5 text-amber-600" />
-                      <span>{hasActiveToken ? 'Upload Link' : 'Generate Link'}</span>
+                      <span>{hasActiveToken ? 'Portal Link' : 'Link'}</span>
                     </button>
                   )}
 
@@ -400,7 +436,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                     </button>
                   )}
 
-                  {onSendReminder && !isViewer && missingDocsCount > 0 && (
+                  {onSendReminder && canEdit && missingDocsCount > 0 && (
                     <button
                       type="button"
                       onClick={e => {
@@ -415,7 +451,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                     </button>
                   )}
 
-                  {onOpenOfferLetter && (
+                  {onOpenOfferLetter && (canEdit || Boolean(cand.offerLetter || (cand.savedOfferLetters && cand.savedOfferLetters.length > 0))) && (
                     <button
                       type="button"
                       onClick={e => {
@@ -423,10 +459,21 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                         onOpenOfferLetter(cand);
                       }}
                       className="px-2.5 py-1.5 text-xs text-slate-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded font-medium flex items-center gap-1 transition-colors"
-                      title="Open or generate executive offer letter"
+                      title={canEdit ? 'Open or generate executive offer letter' : 'Preview & download saved offer letter'}
                     >
                       <FileText className="w-3.5 h-3.5 text-amber-600" />
-                      <span>{cand.offerLetter ? 'Offer Letter' : 'Draft Offer'}</span>
+                      <span>
+                        {canEdit
+                          ? cand.offerLetter || (cand.savedOfferLetters && cand.savedOfferLetters.length > 0)
+                            ? 'Offer Letter'
+                            : 'Draft Offer'
+                          : 'Preview Offer'}
+                      </span>
+                      {cand.savedOfferLetters && cand.savedOfferLetters.length > 0 && (
+                        <span className="px-1 py-0.2 rounded bg-amber-200/80 text-amber-950 font-mono text-[9px] font-bold">
+                          {cand.savedOfferLetters.length} .docx
+                        </span>
+                      )}
                     </button>
                   )}
 
@@ -437,7 +484,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                     View Dossier
                   </button>
 
-                  {!isViewer && (
+                  {canEdit && (
                     <button
                       onClick={e => openConvertModal(e, cand)}
                       className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-600 rounded transition-colors flex items-center gap-1 shadow-xs"
@@ -611,7 +658,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                     </button>
                   )}
 
-                  {!isViewer &&
+                  {canEdit &&
                     !currentSelectedCand.uploadToken.isRevoked &&
                     !currentSelectedCand.uploadToken.revoked &&
                     !currentSelectedCand.uploadToken.isUsed && (
@@ -634,7 +681,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
             )}
 
             {/* Generation & Configuration Section */}
-            {!isViewer && (
+            {canEdit && (
               <div className="p-4 bg-slate-800/40 rounded-xl border border-slate-700/60 space-y-3.5">
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                   <KeyRound className="w-3.5 h-3.5 text-amber-400" />

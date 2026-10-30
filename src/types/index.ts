@@ -1,9 +1,7 @@
 export type UserRole =
-  | 'HR_ADMIN'
-  | 'HR_MANAGER'
-  | 'HR_EXECUTIVE'
-  | 'DEPT_HEAD_VIEWER'
-  | 'FINANCE_ADMIN';
+  | 'HR'
+  | 'Co-Founder'
+  | 'CEO';
 
 export interface CurrentUser {
   id: string;
@@ -26,6 +24,7 @@ export type MarketType = 'Gurgaon' | 'Dubai' | 'Dual Market';
 export type DocumentStatus =
   | 'Missing'
   | 'Not Submitted'
+  | 'Uploaded'
   | 'Submitted'
   | 'Under Review'
   | 'Verified'
@@ -56,6 +55,121 @@ export interface DocumentRecord {
   fileData?: string; // base64 or public url for immediate preview
   storagePath?: string; // secure disk storage relative path
   mimeType?: string; // e.g. application/pdf, image/png, etc.
+  uploadedVia?: 'QR' | 'HR' | 'Portal';
+}
+
+export interface SubDepartmentConfig {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DepartmentConfig {
+  id: string;
+  name: string;
+  description?: string;
+  marketFocus?: MarketType;
+  subDepartments: SubDepartmentConfig[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DepartmentWithCounts extends DepartmentConfig {
+  totalCount: number;
+  employeeCount: number;
+  candidateCount: number;
+  missingDocsCount: number;
+  subDepartmentCounts: Record<string, number>;
+}
+
+export interface QrDocumentTokenRecord {
+  id: string;
+  token: string;
+  tokenHash: string;
+  employeeId: string;
+  createdAt: string;
+  expiresAt: string;
+  createdBy: string;
+  createdByRole: UserRole;
+  targetDocKeys: string[];
+  uploadedDocKeys: string[];
+  revokedAt?: string;
+  revokedBy?: string;
+  revokeReason?: string;
+  lastOpenedAt?: string;
+  openCount: number;
+}
+
+export interface ProfileDocumentInspection {
+  totalChecklistCount: number;
+  requiredCount: number;
+  missingRequired: Array<{ key: string; title: string; category: DocumentCategory; status: DocumentStatus; required: boolean }>;
+  missingOptional: Array<{ key: string; title: string; category: DocumentCategory; status: DocumentStatus; required: boolean }>;
+  uploadedPendingVerification: Array<{ key: string; title: string; category: DocumentCategory; status: DocumentStatus; uploadedAt?: string; fileName?: string }>;
+  verified: Array<{ key: string; title: string; category: DocumentCategory; verifiedAt?: string; verifiedBy?: string }>;
+}
+
+export interface DocumentQrStatusInfo {
+  hasToken: boolean;
+  isActive: boolean;
+  isExpired: boolean;
+  isRevoked: boolean;
+  createdAt?: string;
+  expiresAt?: string;
+  remainingMs?: number;
+  createdBy?: string;
+  createdByRole?: UserRole;
+  targetDocKeys: string[];
+  uploadedDocKeys: string[];
+  openCount?: number;
+  lastOpenedAt?: string;
+  shareUrl?: string;
+  qrDataUrl?: string;
+}
+
+export interface PublicQrDocumentSlot {
+  key: string;
+  title: string;
+  category: DocumentCategory;
+  required: boolean;
+  status: 'Missing' | 'Uploaded' | 'Verified';
+  uploadedAt?: string;
+  fileName?: string;
+  fileSize?: string;
+  isLocked: boolean;
+}
+
+export interface PublicQrSessionData {
+  valid: boolean;
+  recipientName: string;
+  designation: string;
+  department: string;
+  subDepartment?: string;
+  companyName: string;
+  createdAt: string;
+  expiresAt: string;
+  remainingMs: number;
+  allowedFormats: string[];
+  maxFileSizeBytes: number;
+  documents: PublicQrDocumentSlot[];
+}
+
+export interface LiveQrUploadEvent {
+  uploadId: string;
+  employeeId: string;
+  employeeName: string;
+  department: string;
+  subDepartment?: string;
+  docKey?: string;
+  docTitle?: string;
+  fileName?: string;
+  fileSize?: string;
+  progress: number;
+  status: 'OPENED' | 'UPLOADING' | 'COMPLETED' | 'FAILED';
+  error?: string;
+  timestamp: string;
 }
 
 export interface UploadToken {
@@ -302,6 +416,81 @@ export interface OfferLetterData {
   emailSentBy?: string;
 }
 
+export interface SavedOfferLetterFile {
+  id: string;
+  refNo: string;
+  fileName: string;
+  fileSize: string;
+  storagePath: string;
+  generatedAt: string;
+  generatedBy: string;
+  generatedByRole: UserRole;
+  designation: string;
+  department: string;
+  annualCtc: number;
+  currency: 'INR' | 'AED';
+  offerSnapshot: OfferLetterData;
+}
+
+export type ReminderChannelStatus = 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
+
+export interface AssetReturnReminderAssetItem {
+  assetId: string;
+  assetTag: string;
+  name: string;
+  type: AssetCategory;
+  serialNumber?: string;
+  issueDate?: string;
+}
+
+export interface AssetReturnReminderRecord {
+  id: string;
+  idempotencyKey: string;
+  personId: string;
+  personName: string;
+  personEmail: string;
+  personPhone: string;
+  isCandidate: boolean;
+  endDate: string;
+  formattedEndDate: string;
+  unreturnedAssets: AssetReturnReminderAssetItem[];
+  emailStatus: ReminderChannelStatus;
+  whatsappStatus: ReminderChannelStatus;
+  emailError?: string;
+  whatsappError?: string;
+  emailSentAt?: string;
+  whatsappSentAt?: string;
+  overallStatus:
+    | 'SENT'
+    | 'PARTIAL_FAILURE'
+    | 'RETRY_SCHEDULED'
+    | 'FAILED_PERMANENTLY'
+    | 'CANCELLED_ASSETS_RETURNED';
+  retryCount: number;
+  maxRetries: number;
+  nextRetryAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationDeliveryLog {
+  id: string;
+  timestamp: string;
+  category: 'ASSET_RETURN_REMINDER' | 'DOCUMENT_REMINDER' | 'OFFER_LETTER_EMAIL';
+  reminderId?: string;
+  personId: string;
+  personName: string;
+  channel: 'EMAIL' | 'WHATSAPP';
+  provider: string;
+  recipient: string;
+  status: 'SENT' | 'FAILED';
+  attemptNumber: number;
+  messageId?: string;
+  statusCode?: number;
+  error?: string;
+  summary: string;
+}
+
 export interface ProbationReview {
   id: string;
   reviewDate: string;
@@ -450,11 +639,14 @@ export interface Employee {
     phone: string;
   };
   familyDetails: FamilyMember[];
+  departmentId?: string;
   department: string;
+  subDepartment?: string;
   designation: string;
   reportingManager: string;
   joiningDate: string; // YYYY-MM-DD or text like 1 Sept 2026
   internshipCompletionDate?: string;
+  jobEndDate?: string;
   employmentStatus: EmploymentStatus;
   isCandidate: boolean; // true for upcoming candidates/pipeline joiners
   candidateStatus?: 'Interviewing' | 'Offer Extended' | 'Offer Accepted' | 'Joining Confirmed';
@@ -499,11 +691,13 @@ export interface Employee {
   profileCompletion: number; // 0-100%
   notes?: string;
   uploadToken?: UploadToken | null;
+  documentQrMeta?: Omit<DocumentQrStatusInfo, 'shareUrl' | 'qrDataUrl'> | null;
 
   // End-to-End Lifecycle Properties
   lifecycleStage?: LifecycleStage;
   interviews?: InterviewRound[];
   offerLetter?: OfferLetterData;
+  savedOfferLetters?: SavedOfferLetterFile[];
   probation?: ProbationRecord;
   exitClearance?: ExitClearanceRecord;
   fnfSettlement?: FullAndFinalSettlement;
@@ -543,7 +737,10 @@ export interface CompanyAsset {
   assignedEmployeeId?: string | null;
   assignedEmployeeName?: string | null;
   assignedEmployeeCode?: string | null;
+  lastAssignedEmployeeId?: string | null;
+  lastAssignedEmployeeName?: string | null;
   issueDate?: string;
+  expectedReturnDate?: string | null;
   returnDate?: string | null;
   condition: AssetCondition;
   status: AssetStatus;
@@ -584,7 +781,10 @@ export interface AuditLog {
     | 'OfferLetter'
     | 'SalaryStructure'
     | 'ExitClearance'
-    | 'Settlement';
+    | 'Settlement'
+    | 'Automation'
+    | 'Department'
+    | 'DocumentQR';
   entityName: string;
   details: string;
 }

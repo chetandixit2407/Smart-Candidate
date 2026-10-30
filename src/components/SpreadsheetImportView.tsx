@@ -44,7 +44,7 @@ export const SpreadsheetImportView: React.FC<SpreadsheetImportViewProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [summaryReport, setSummaryReport] = useState<ImportSummary | null>(null);
 
-  const isViewer = userRole === 'DEPT_HEAD_VIEWER';
+  const canEdit = userRole === 'HR' || userRole === 'Co-Founder';
 
   // 1. Generate & Download Sample Template: Chetan Information Sheet
   const handleDownloadChetanTemplate = () => {
@@ -313,7 +313,7 @@ export const SpreadsheetImportView: React.FC<SpreadsheetImportViewProps> = ({
               type="file"
               accept=".xlsx, .xls, .csv"
               onChange={handleFileChange}
-              disabled={isViewer || loading}
+              disabled={!canEdit || loading}
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
             <div className="p-3 bg-white rounded-full shadow-xs border border-slate-200 group-hover:scale-105 transition-transform">
@@ -327,10 +327,10 @@ export const SpreadsheetImportView: React.FC<SpreadsheetImportViewProps> = ({
             </p>
           </div>
 
-          {isViewer && (
+          {!canEdit && (
             <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 shrink-0" />
-              <span>Viewer Role Notice: You are currently in Department Head Viewer mode. Switch to HR Admin or HR Manager in the sidebar to perform real data imports.</span>
+              <span>Executive Read-Only Notice: CEO role has read-only access to directory imports. Switch to HR or Co-Founder in the sidebar to perform spreadsheet imports.</span>
             </div>
           )}
 
