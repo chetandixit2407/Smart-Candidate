@@ -327,6 +327,30 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
                     )}
                     <button
                       type="button"
+                        onClick={async e => {
+                          e.stopPropagation();
+                          try {
+                            setExportingId(emp.id);
+                            await api.downloadEmployeeProfileExcel(emp.id, emp.fullName, emp.employeeCode);
+                          } catch (err: unknown) {
+                            console.error('Export Excel failed:', err);
+                          } finally {
+                            setExportingId(null);
+                          }
+                        }}
+                        disabled={exportingId === emp.id}
+                        className="px-2 py-1 text-[11px] text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded font-semibold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                        title="Export Full Profile (Excel)"
+                      >
+                        {exportingId === emp.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin text-emerald-700" />
+                        ) : (
+                          <FileSpreadsheet className="w-3 h-3 text-emerald-700" />
+                        )}
+                        <span>Excel</span>
+                      </button>
+                    <button
+                      type="button"
                       onClick={e => {
                         e.stopPropagation();
                         onSelectEmployee(emp);

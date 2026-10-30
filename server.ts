@@ -25,7 +25,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+// Force port 3000 for AI Studio preview environment (override ambient container PORT=8080)
+function resolveServerPort(): number {
+  const args = process.argv.slice(2);
+  const portIdx = args.indexOf('--port');
+  if (portIdx !== -1 && args[portIdx + 1]) {
+    const parsed = parseInt(args[portIdx + 1], 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  return 3000;
+}
+const PORT = resolveServerPort();
 
 // Universal CORS & Security Headers
 app.use((req, res, next) => {
@@ -61,7 +71,7 @@ export function getLocalLanIpv4(): string | null {
 // Permanent public HTTPS application endpoint (deployed globally on Cloud Run)
 export const PERMANENT_PUBLIC_APP_URL =
   (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || '').trim() ||
-  'https://ais-pre-vtqywkmlbp4hnugfkn6ztw-912480930497.asia-southeast1.run.app';
+  'https://ais-pre-g663j6jdyfypjzdf3gijun-870296140886.asia-east1.run.app';
 
 export function isInvalidHostOrIp(hostOrUrl: string): boolean {
   if (!hostOrUrl) return true;
@@ -80,12 +90,28 @@ export function isInvalidHostOrIp(hostOrUrl: string): boolean {
   );
 }
 
-// Configurable base origin resolver (prioritizes permanent public HTTPS; strictly eliminates localhost, LAN IP, and 169.254 IPs)
+// Configurable base origin resolver (strictly eliminates localhost, LAN IP, and 169.254 IPs, enforcing permanent public HTTPS)
 export function resolveBaseOrigin(req: Request, clientOriginCandidate?: string, _preferLan?: boolean): string {
-  // 1. Client-provided origin candidate from browser (if HTTPS and valid non-LAN/non-local public origin)
+  // 1. Configured environment base URL (if valid public HTTPS)
+  const envBaseUrl = (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || process.env.APP_URL || '').trim();
+  if (envBaseUrl && !isInvalidHostOrIp(envBaseUrl)) {
+    try {
+      const parsed = new URL(envBaseUrl);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed.origin;
+      }
+    } catch {
+      // Fall back
+    }
+  }
+
+  // 2. Client-provided origin candidate from browser (transform dev URL to pre URL for universal mobile accessibility)
   if (clientOriginCandidate && typeof clientOriginCandidate === 'string') {
     try {
       const parsed = new URL(clientOriginCandidate.trim());
+      if (parsed.hostname.startsWith('ais-dev-')) {
+        return `https://${parsed.hostname.replace(/^ais-dev-/, 'ais-pre-')}`;
+      }
       if (
         (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
         !isInvalidHostOrIp(parsed.hostname)
@@ -97,24 +123,14 @@ export function resolveBaseOrigin(req: Request, clientOriginCandidate?: string, 
     }
   }
 
-  // 2. Incoming reverse proxy headers from Cloud Run / public hosting
+  // 3. Incoming reverse proxy headers from Cloud Run / public hosting
   const forwardedHost = ((req.headers['x-forwarded-host'] as string) || '').split(',')[0].trim();
   const forwardedProto = ((req.headers['x-forwarded-proto'] as string) || 'https').split(',')[0].trim();
   if (forwardedHost && !isInvalidHostOrIp(forwardedHost)) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
-
-  // 3. Configured environment base URL (if valid public HTTPS)
-  const envBaseUrl = (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || process.env.APP_URL || '').trim();
-  if (envBaseUrl && !isInvalidHostOrIp(envBaseUrl)) {
-    try {
-      const parsed = new URL(envBaseUrl);
-      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-        return parsed.origin;
-      }
-    } catch {
-      // Fall back
+    if (forwardedHost.startsWith('ais-dev-')) {
+      return `https://${forwardedHost.replace(/^ais-dev-/, 'ais-pre-')}`;
     }
+    return `${forwardedProto}://${forwardedHost}`;
   }
 
   // 4. Fallback strictly to PERMANENT_PUBLIC_APP_URL

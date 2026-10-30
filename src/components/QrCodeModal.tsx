@@ -37,7 +37,7 @@ interface QrCodeModalProps {
 
 // Permanent public HTTPS application endpoint (deployed globally on Cloud Run)
 export const PERMANENT_PUBLIC_APP_URL =
-  'https://ais-pre-vtqywkmlbp4hnugfkn6ztw-912480930497.asia-southeast1.run.app';
+  'https://ais-pre-g663j6jdyfypjzdf3gijun-870296140886.asia-east1.run.app';
 
 export function isInvalidHostOrIp(hostOrUrl: string): boolean {
   if (!hostOrUrl) return true;
@@ -60,6 +60,9 @@ export function getPublicShareOrigin(customCandidate?: string): string {
   if (customCandidate && customCandidate.trim()) {
     try {
       const parsed = new URL(customCandidate.trim());
+      if (parsed.hostname.startsWith('ais-dev-')) {
+        return `https://${parsed.hostname.replace(/^ais-dev-/, 'ais-pre-')}`;
+      }
       if (
         (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
         !isInvalidHostOrIp(parsed.hostname)
@@ -75,6 +78,9 @@ export function getPublicShareOrigin(customCandidate?: string): string {
       (origin.startsWith('https://') || origin.startsWith('http://')) &&
       !isInvalidHostOrIp(window.location.hostname)
     ) {
+      if (window.location.hostname.startsWith('ais-dev-')) {
+        return `https://${window.location.hostname.replace(/^ais-dev-/, 'ais-pre-')}`;
+      }
       return origin;
     }
   }

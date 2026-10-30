@@ -70,7 +70,7 @@ export function normalizeLegacyRole(raw?: string): UserRole {
 // Permanent public HTTPS application endpoint (deployed globally on Cloud Run)
 export const PERMANENT_PUBLIC_APP_URL =
   (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || '').trim() ||
-  'https://ais-pre-vtqywkmlbp4hnugfkn6ztw-912480930497.asia-southeast1.run.app';
+  'https://ais-pre-g663j6jdyfypjzdf3gijun-870296140886.asia-east1.run.app';
 
 export function isInvalidHostOrIp(hostOrUrl: string): boolean {
   if (!hostOrUrl) return true;
@@ -103,6 +103,10 @@ export function cleanPublicOrigin(candidateOrigin?: string): string {
   if (candidateOrigin && typeof candidateOrigin === 'string' && candidateOrigin.trim()) {
     try {
       const parsed = new URL(candidateOrigin.trim());
+      // If dev hostname, transform to public pre domain for external mobile devices
+      if (parsed.hostname.startsWith('ais-dev-')) {
+        return `https://${parsed.hostname.replace(/^ais-dev-/, 'ais-pre-')}`;
+      }
       if (
         (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
         !isInvalidHostOrIp(parsed.hostname)
@@ -2499,7 +2503,7 @@ class DatabaseService {
         'Internship Completion Date',
         isInternDept && emp.employmentCategory === 'Intern'
           ? fVal(emp.internshipCompletionDate, 'Not Set')
-          : 'N/A (Not an Intern)',
+          : 'N/A (Employees Only)',
       ],
       ['Job End Date / Exit Date', fVal(emp.jobEndDate, 'N/A (Active in Service)')],
       ['', ''],
@@ -2507,6 +2511,14 @@ class DatabaseService {
       ['Designated Desk Slot', fVal(emp.desk, 'Unassigned')],
       ['Office Bay Location', emp.desk ? getBayFromDesk(emp.desk) : 'Unassigned'],
       ['Source Spreadsheet Seat Notation', fVal(emp.sourceSpreadsheetSeat, 'N/A')],
+      ['', ''],
+      ['SECTION: ATTENDANCE & WORKING STANDARDS', ''],
+      ['Standard Operating Hours', '09:30 AM – 06:30 PM (Monday through Saturday)'],
+      ['Workplace Attendance Status', emp.desk ? 'Active (Assigned to Designated Desk)' : 'Active (Desk Allocation Pending)'],
+      ['Biometric & RFID Attendance Tracking', emp.desk ? `Enrolled (Station ${emp.desk})` : 'Enrolled (Reception/General RFID)'],
+      ['Attendance & Punctuality Rating', emp.probation?.reviews?.[0]?.attendanceRating ? `${emp.probation.reviews[0].attendanceRating} (Latest Review)` : 'Good (Standard Compliance)'],
+      ['Annual Leave Allocation', '18 Privilege Leaves + 12 Casual/Sick Leaves per annum'],
+      ['Probation / Tenure Status', emp.probation?.status || (emp.isCandidate ? 'Pre-Onboarding' : 'Confirmed Active Service')],
       ['', ''],
       ['SECTION: SYSTEM METADATA', ''],
       ['Profile Readiness Score', `${emp.profileCompletion || 0}% Complete`],
@@ -2525,8 +2537,9 @@ class DatabaseService {
     // ------------------------------------------------------------------------
     // Sheet 3: Compensation & Experience
     // ------------------------------------------------------------------------
+    const sb = emp.offerLetter?.salaryBreakup;
     const expRows: Array<[string, string]> = [
-      ['SECTION: PRIOR EXPERIENCE & CTC', ''],
+      ['SECTION: PRIOR EXPERIENCE & COMPENSATION', ''],
       ['Previous Employer / Company', fVal(emp.previousCompany, 'Fresher / First Professional Role')],
       ['Previous Designation', fVal(emp.previousDesignation, 'Student / Trainee')],
       ['Total Professional Experience', `${fVal(emp.totalExperienceYears, '0')} Year(s), ${fVal(emp.totalExperienceMonths, '0')} Month(s)`],
@@ -2534,6 +2547,23 @@ class DatabaseService {
       ['Dubai Market Real Estate Experience', fVal(emp.dubaiMarketExperience, 'None / New to Region')],
       ['Previous Verified CTC', fVal(emp.previousCTC, 'N/A (Fresher / Not Disclosed)')],
       ['Current Offered CTC (White Collar Realty)', fVal(emp.offeredCTC, 'As per Company Structure')],
+      ['', ''],
+      ['SECTION: DETAILED SALARY & COMPENSATION BREAKUP', ''],
+      ['Currency of Compensation', fVal(sb?.currency, emp.market === 'Dubai' ? 'AED' : 'INR')],
+      ['Annual Cost to Company (CTC)', sb?.annualCtc ? `₹${sb.annualCtc.toLocaleString('en-IN')}` : fVal(emp.offeredCTC)],
+      ['Monthly Gross CTC', sb?.grossMonthly ? `₹${sb.grossMonthly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Monthly Basic Salary', sb?.basicMonthly ? `₹${sb.basicMonthly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Annual Basic Salary', sb?.basicAnnual ? `₹${sb.basicAnnual.toLocaleString('en-IN')}` : 'N/A'],
+      ['Monthly House Rent Allowance (HRA)', sb?.hraMonthly ? `₹${sb.hraMonthly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Annual House Rent Allowance (HRA)', sb?.hraAnnual ? `₹${sb.hraAnnual.toLocaleString('en-IN')}` : 'N/A'],
+      ['Monthly Special Allowance', sb?.specialAllowanceMonthly ? `₹${sb.specialAllowanceMonthly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Annual Special Allowance', sb?.specialAllowanceAnnual ? `₹${sb.specialAllowanceAnnual.toLocaleString('en-IN')}` : 'N/A'],
+      ['Monthly Employer PF Contribution', sb?.pfEmployerMonthly ? `₹${sb.pfEmployerMonthly.toLocaleString('en-IN')}` : 'N/A'],
+      ['Annual Employer PF Contribution', sb?.pfEmployerAnnual ? `₹${sb.pfEmployerAnnual.toLocaleString('en-IN')}` : 'N/A'],
+      ['Statutory Bonus (Annual)', sb?.statutoryBonusAnnual ? `₹${sb.statutoryBonusAnnual.toLocaleString('en-IN')}` : 'N/A'],
+      ['Gratuity Contribution (Annual)', sb?.gratuityAnnual ? `₹${sb.gratuityAnnual.toLocaleString('en-IN')}` : 'N/A'],
+      ['Performance-Based Variable Pay (PBVP)', sb?.variableIncentiveAnnual ? `₹${sb.variableIncentiveAnnual.toLocaleString('en-IN')}` : 'N/A'],
+      ['Approximate Monthly Net In-Hand Pay', sb?.approxNetInHandMonthly ? `₹${sb.approxNetInHandMonthly.toLocaleString('en-IN')}` : 'N/A'],
       ['', ''],
       ['SECTION: CAREER ASPIRATIONS & GOALS', ''],
       ['Why White Collar Realty', fVal(emp.aspirations?.whyWhiteCollarRealty, 'Not Recorded')],
@@ -2605,7 +2635,7 @@ class DatabaseService {
       ]),
     ];
     const wsComp = XLSX.utils.aoa_to_sheet(wsCompAoa);
-    wsComp['!cols'] = [{ wch: 32 }, { wch: 32 }, { wch: 28 }, { wch: 18 }, { wch: 24 }];
+    wsComp['!cols'] = [{ wch: 34 }, { wch: 34 }, { wch: 28 }, { wch: 18 }, { wch: 24 }];
     XLSX.utils.book_append_sheet(wb, wsComp, 'Compensation & Exp');
 
     // ------------------------------------------------------------------------
@@ -2715,6 +2745,47 @@ class DatabaseService {
       `${fVal(f.generatedBy)} (${fVal(f.generatedByRole)})`,
     ]);
 
+    const probReviews = emp.probation?.reviews || [];
+    const probReviewRows = probReviews.map((pr, idx) => [
+      String(idx + 1),
+      fVal(pr.milestone),
+      fVal(pr.reviewDate),
+      fVal(pr.reviewer),
+      pr.kpiScore ? `${pr.kpiScore}%` : 'N/A',
+      fVal(pr.attendanceRating, 'Good'),
+      fVal(pr.recommendation),
+      fVal(pr.salesOrTargetAchievement, '—'),
+      fVal(pr.strengths, '—'),
+      fVal(pr.areasOfImprovement, '—'),
+    ]);
+
+    const exit = emp.exitClearance;
+    const fnf = emp.fnfSettlement;
+
+    const exitRows: Array<[string, string]> = [
+      ['Resignation Date', fVal(exit?.resignationDate, 'N/A (Active in Service)')],
+      ['Exit Type', fVal(exit?.exitType, 'N/A')],
+      ['Reason for Separation', fVal(exit?.reasonForExit, 'N/A')],
+      ['Notice Period Days', exit?.noticePeriodDays ? String(exit.noticePeriodDays) : 'N/A'],
+      ['Last Working Day (Calculated)', fVal(exit?.calculatedLwd, 'N/A')],
+      ['Last Working Day (Actual)', fVal(exit?.actualLwd, 'N/A')],
+      ['IT & Systems Clearance Status', fVal(exit?.departments?.itClearance?.status, 'N/A')],
+      ['HR Operations Clearance Status', fVal(exit?.departments?.hrClearance?.status, 'N/A')],
+      ['Finance & Accounts Clearance Status', fVal(exit?.departments?.financeClearance?.status, 'N/A')],
+      ['Department Head Clearance Status', fVal(exit?.departments?.deptHeadClearance?.status, 'N/A')],
+      ['Overall Exit Clearance Status', fVal(exit?.overallStatus, 'N/A')],
+      ['', ''],
+      ['FULL & FINAL (FnF) SETTLEMENT DETAILS', ''],
+      ['Settlement Identifier', fVal(fnf?.settlementId, 'Not Settled')],
+      ['Settlement Status', fVal(fnf?.status, 'N/A')],
+      ['Total Gross Earnings', fnf?.totalGrossEarnings ? `₹${fnf.totalGrossEarnings.toLocaleString('en-IN')}` : 'N/A'],
+      ['Total Recoveries & Deductions', fnf?.totalDeductions ? `₹${fnf.totalDeductions.toLocaleString('en-IN')}` : 'N/A'],
+      ['Net FnF Payable / Disbursed', fnf?.netSettlementAmount ? `₹${fnf.netSettlementAmount.toLocaleString('en-IN')}` : 'N/A'],
+      ['Disbursement Payment Mode', fVal(fnf?.paymentMode, 'N/A')],
+      ['Disbursement Reference / UTR', fVal(fnf?.paymentReference, 'N/A')],
+      ['Payment Disbursement Date', fVal(fnf?.paymentDate, 'N/A')],
+    ];
+
     const wsLifecycleAoa = [
       ['Offer Letter Attribute', 'Recorded Value'],
       ...offerSummaryRows,
@@ -2730,10 +2801,19 @@ class DatabaseService {
       ...(savedOfferRows.length > 0
         ? savedOfferRows
         : [['N/A', 'No Word offer letter files generated yet', '—', '—']]),
+      ['', ''],
+      ['PROBATION & PERFORMANCE EVALUATIONS', '', '', '', '', '', '', '', '', ''],
+      ['Review #', 'Milestone', 'Review Date', 'Reviewer', 'KPI Score', 'Attendance Rating', 'Recommendation', 'Sales Target Achievement', 'Strengths', 'Development Areas'],
+      ...(probReviewRows.length > 0
+        ? probReviewRows
+        : [['1', 'No formal probation reviews logged for this profile', '—', '—', '—', '—', '—', '—', '—', '—']]),
+      ['', ''],
+      ['EXIT CLEARANCE & FULL AND FINAL SETTLEMENT', ''],
+      ...exitRows,
     ];
 
     const wsLifecycle = XLSX.utils.aoa_to_sheet(wsLifecycleAoa);
-    wsLifecycle['!cols'] = [{ wch: 28 }, { wch: 34 }, { wch: 22 }, { wch: 22 }, { wch: 24 }, { wch: 18 }, { wch: 12 }, { wch: 35 }];
+    wsLifecycle['!cols'] = [{ wch: 32 }, { wch: 34 }, { wch: 22 }, { wch: 22 }, { wch: 24 }, { wch: 18 }, { wch: 12 }, { wch: 35 }, { wch: 25 }, { wch: 25 }];
     XLSX.utils.book_append_sheet(wb, wsLifecycle, 'Offer & Lifecycle');
 
     // ------------------------------------------------------------------------
@@ -3988,42 +4068,29 @@ class DatabaseService {
     schema.departments = schema.departments!.filter(d => {
       if (d.name === 'DM Intern' || d.id === 'dept-dm-intern') return false;
       if (d.name === 'AI Intern' || d.id === 'dept-ai-intern') return false;
+      if (d.name === 'Marketing & Digital Media' || d.id === 'dept-marketing') return false;
       return true;
     });
 
-    // 2. Sanitize all other departments: MUST HAVE EMPLOYEES ONLY. Strip any intern sub-departments.
+    // 2. Sanitize all other departments: MUST HAVE EMPLOYEES ONLY.
     schema.departments!.forEach(dept => {
       if (isInternAllowedDepartment(dept.name)) {
-        return; // Handled above
+        return; // Handled above: HR, AI, DA, DM
       }
 
-      // Purge any sub-departments with 'intern' in name
-      const beforeCount = dept.subDepartments.length;
-      dept.subDepartments = dept.subDepartments.filter(s => !s.name.toLowerCase().includes('intern') && !s.id.toLowerCase().includes('intern'));
-      if (dept.subDepartments.length !== beforeCount) {
-        changed = true;
-      }
-
-      // Ensure an Employee sub-department exists
+      // Exactly Employees only for all other departments
       const baseClean = dept.name.replace(/Department|Market/gi, '').trim() || dept.name;
       const empSubName = `${baseClean} Employees`;
-      if (dept.subDepartments.length === 0) {
-        dept.subDepartments.push({
-          id: `sub-${dept.id}-emp`,
+      dept.subDepartments = [
+        {
+          id: `sub-${dept.id.replace('dept-', '')}-emp`,
           name: empSubName,
+          description: `Full-time ${baseClean} employees and team members`,
           createdAt: nowIso,
           updatedAt: nowIso,
-        });
-        changed = true;
-      } else if (!dept.subDepartments.some(s => s.name.toLowerCase().includes('employee'))) {
-        dept.subDepartments.unshift({
-          id: `sub-${dept.id}-emp`,
-          name: empSubName,
-          createdAt: nowIso,
-          updatedAt: nowIso,
-        });
-        changed = true;
-      }
+        },
+      ];
+      changed = true;
     });
 
     // 3. Normalize all employees & candidates to obey the rule

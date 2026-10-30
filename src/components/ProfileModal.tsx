@@ -368,8 +368,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               ) : (
                 <>
                   <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden sm:inline">Export Profile (Excel)</span>
-                  <span className="sm:hidden">Excel</span>
+                  <span className="hidden sm:inline">Export Full Profile (Excel)</span>
+                  <span className="sm:hidden">Export (Excel)</span>
                 </>
               )}
             </button>
@@ -516,12 +516,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-50 whitespace-nowrap"
-                >
-                  Edit Profile
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExportExcel}
+                    disabled={isExportingExcel}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-md text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors"
+                    title="Export Full Profile (Excel) with 8 comprehensive sheets"
+                  >
+                    {isExportingExcel ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
+                    ) : (
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                    )}
+                    <span>Export Full Profile (Excel)</span>
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-50 whitespace-nowrap"
+                  >
+                    Edit Profile
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -792,6 +808,51 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       })()
                     ) : (
                       <p className="text-xs text-slate-800 mt-1">{employee.subDepartment || 'General'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-500">Employment Category</label>
+                    {isEditing ? (
+                      (() => {
+                        const isCurrentInternAllowed = isInternAllowedDepartment(formData.department || employee.department);
+                        return (
+                          <div className="mt-1">
+                            <select
+                              value={formData.employmentCategory || 'Employee'}
+                              onChange={e => {
+                                const nextCat = e.target.value as Employee['employmentCategory'];
+                                setFormData({
+                                  ...formData,
+                                  employmentCategory: nextCat,
+                                  employmentStatus: nextCat === 'Intern' ? 'Intern' : (formData.employmentStatus === 'Intern' ? 'Full-Time' : formData.employmentStatus),
+                                });
+                              }}
+                              className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded bg-white text-slate-900"
+                            >
+                              <option value="Employee">Employee</option>
+                              {isCurrentInternAllowed && <option value="Intern">Intern</option>}
+                              <option value="Consultant">Consultant</option>
+                              <option value="Contractor">Contractor</option>
+                            </select>
+                            {!isCurrentInternAllowed && (
+                              <p className="text-[10px] text-slate-500 mt-0.5">
+                                Intern category is strictly restricted to HR, AI, DA, and DM.
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <p className="text-xs font-semibold text-slate-800 mt-1 flex items-center gap-1.5">
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                          employee.employmentCategory === 'Intern'
+                            ? 'bg-purple-50 text-purple-700 border-purple-200'
+                            : 'bg-slate-100 text-slate-800 border-slate-200'
+                        }`}>
+                          {employee.employmentCategory || 'Employee'}
+                        </span>
+                      </p>
                     )}
                   </div>
 
