@@ -67,10 +67,32 @@ export function normalizeLegacyRole(raw?: string): UserRole {
   return 'HR';
 }
 
-// Permanent public HTTPS application endpoint (deployed globally on Cloud Run)
-export const PERMANENT_PUBLIC_APP_URL =
-  (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || '').trim() ||
-  'https://ais-pre-g663j6jdyfypjzdf3gijun-870296140886.asia-east1.run.app';
+// Permanent public HTTPS application endpoint (deployed container or configured public domain)
+export function getPermanentPublicAppUrl(): string {
+  const envUrl = (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || '').trim();
+  if (envUrl && !isInvalidHostOrIp(envUrl)) {
+    try {
+      const parsed = new URL(envUrl);
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+        return parsed.origin;
+      }
+    } catch {}
+  }
+
+  const appUrl = (process.env.APP_URL || '').trim();
+  if (appUrl) {
+    try {
+      const parsed = new URL(appUrl);
+      if (!isInvalidHostOrIp(parsed.hostname)) {
+        return parsed.origin;
+      }
+    } catch {}
+  }
+
+  return 'https://ais-dev-yjzfez2popqx6klg7wyifs-86309533096.asia-southeast1.run.app';
+}
+
+export const PERMANENT_PUBLIC_APP_URL = getPermanentPublicAppUrl();
 
 export function isInvalidHostOrIp(hostOrUrl: string): boolean {
   if (!hostOrUrl) return true;
@@ -90,6 +112,7 @@ export function isInvalidHostOrIp(hostOrUrl: string): boolean {
 }
 
 export function cleanPublicOrigin(candidateOrigin?: string): string {
+  // 1. Explicitly configured public domain via env
   const envUrl = (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || '').trim();
   if (envUrl && !isInvalidHostOrIp(envUrl)) {
     try {
@@ -100,13 +123,10 @@ export function cleanPublicOrigin(candidateOrigin?: string): string {
     } catch {}
   }
 
+  // 2. Candidate origin from client request
   if (candidateOrigin && typeof candidateOrigin === 'string' && candidateOrigin.trim()) {
     try {
       const parsed = new URL(candidateOrigin.trim());
-      // If dev hostname, transform to public pre domain for external mobile devices
-      if (parsed.hostname.startsWith('ais-dev-')) {
-        return `https://${parsed.hostname.replace(/^ais-dev-/, 'ais-pre-')}`;
-      }
       if (
         (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
         !isInvalidHostOrIp(parsed.hostname)
@@ -116,7 +136,7 @@ export function cleanPublicOrigin(candidateOrigin?: string): string {
     } catch {}
   }
 
-  return PERMANENT_PUBLIC_APP_URL;
+  return getPermanentPublicAppUrl();
 }
 
 // Exactly and ONLY these 4 departments can have Intern sub-departments or Intern categories
@@ -165,6 +185,234 @@ export function normalizeStandardDepartmentName(rawDept?: string): string {
     return 'DM';
   }
   return rawDept.trim();
+}
+
+export interface ClassifiedDepartment {
+  departmentId: string;
+  department: string;
+  subDepartment: string;
+  employmentCategory: 'Employee' | 'Intern' | 'Consultant' | 'Contractor';
+  isIntern: boolean;
+}
+
+export function classifyPersonByJobRole(
+  emp: {
+    fullName?: string;
+    designation?: string;
+    department?: string;
+    departmentId?: string;
+    subDepartment?: string;
+    employmentStatus?: string;
+    employmentCategory?: string;
+    market?: MarketType;
+    isCandidate?: boolean;
+  },
+  availableDepartments?: DepartmentConfig[]
+): ClassifiedDepartment {
+  const desig = (emp.designation || '').trim();
+  const desigLower = desig.toLowerCase();
+  const currentDeptLower = (emp.department || '').trim().toLowerCase();
+  const statusLower = (emp.employmentStatus || '').trim().toLowerCase();
+  const catLower = (emp.employmentCategory || '').trim().toLowerCase();
+  const subLower = (emp.subDepartment || '').trim().toLowerCase();
+
+  // Helper to match whole words in designation to prevent false positives (e.g. Aanya matching AI)
+  const hasWord = (word: string) => {
+    const regex = new RegExp(`\\b${word}\\b`, 'i');
+    return regex.test(desig);
+  };
+
+  const isInternIndicated =
+    desigLower.includes('intern') ||
+    desigLower.includes('trainee') ||
+    statusLower === 'intern' ||
+    catLower === 'intern' ||
+    subLower.includes('intern');
+
+  // 1. DATA ANALYTICS (DA) - Check DA first so 'DA Intern' is never caught by AI
+  const isDA =
+    hasWord('DA') ||
+    desigLower.includes('data analyst') ||
+    desigLower.includes('data analytics') ||
+    desigLower.includes('business intelligence') ||
+    hasWord('BI') ||
+    desigLower.includes('bi developer') ||
+    desigLower.includes('data pipeline') ||
+    (currentDeptLower === 'da' && !hasWord('AI'));
+
+  if (isDA) {
+    const isIntern = isInternIndicated;
+    return {
+      departmentId: 'dept-da',
+      department: 'DA',
+      subDepartment: isIntern ? 'DA Interns' : 'DA Employees',
+      employmentCategory: isIntern ? 'Intern' : 'Employee',
+      isIntern,
+    };
+  }
+
+  // 2. ARTIFICIAL INTELLIGENCE (AI)
+  // Whole word \bAI\b, Artificial Intelligence, Machine Learning, ML, LLM, Agentic AI, AI Data Research
+  // Strict rule: NEVER classify someone into AI just because their name, profile or other unrelated text has 'ai'
+  const isAI =
+    hasWord('AI') ||
+    desigLower.includes('artificial intelligence') ||
+    desigLower.includes('machine learning') ||
+    hasWord('ML') ||
+    desigLower.includes('prompt engineer') ||
+    desigLower.includes('llm') ||
+    desigLower.includes('agentic') ||
+    (currentDeptLower === 'ai' && !desigLower.includes('luxury') && !desigLower.includes('property') && !desigLower.includes('consultant'));
+
+  if (isAI) {
+    const isIntern = isInternIndicated;
+    return {
+      departmentId: 'dept-ai',
+      department: 'AI',
+      subDepartment: isIntern ? 'AI Interns' : 'AI Employees',
+      employmentCategory: isIntern ? 'Intern' : 'Employee',
+      isIntern,
+    };
+  }
+
+  // 3. DIGITAL MARKETING (DM)
+  const isDM =
+    hasWord('DM') ||
+    desigLower.includes('digital marketing') ||
+    desigLower.includes('performance marketing') ||
+    desigLower.includes('social media') ||
+    desigLower.includes('creative lead') ||
+    desigLower.includes('brand strategy') ||
+    desigLower.includes('seo') ||
+    desigLower.includes('content creator') ||
+    desigLower.includes('media buyer') ||
+    currentDeptLower === 'dm' ||
+    currentDeptLower.includes('digital marketing');
+
+  if (isDM) {
+    const isIntern = isInternIndicated;
+    return {
+      departmentId: 'dept-dm',
+      department: 'DM',
+      subDepartment: isIntern ? 'DM Interns' : 'DM Employees',
+      employmentCategory: isIntern ? 'Intern' : 'Employee',
+      isIntern,
+    };
+  }
+
+  // 4. HUMAN RESOURCES (HR)
+  const isHR =
+    hasWord('HR') ||
+    desigLower.includes('human resources') ||
+    desigLower.includes('people operations') ||
+    desigLower.includes('talent acquisition') ||
+    desigLower.includes('recruiter') ||
+    desigLower.includes('onboarding specialist') ||
+    currentDeptLower === 'hr' ||
+    currentDeptLower.includes('human resources');
+
+  if (isHR) {
+    const isIntern = isInternIndicated;
+    return {
+      departmentId: 'dept-hr',
+      department: 'HR',
+      subDepartment: isIntern ? 'HR Interns' : 'HR Employees',
+      employmentCategory: isIntern ? 'Intern' : 'Employee',
+      isIntern,
+    };
+  }
+
+  // 5. EXECUTIVE LEADERSHIP (Interns strictly forbidden)
+  const isExecutive =
+    hasWord('CEO') ||
+    hasWord('COO') ||
+    hasWord('CFO') ||
+    desigLower.includes('co-founder') ||
+    desigLower.includes('founder') ||
+    desigLower.includes('managing director') ||
+    desigLower.includes('c-suite') ||
+    currentDeptLower.includes('executive') ||
+    currentDeptLower.includes('leadership');
+
+  if (isExecutive) {
+    return {
+      departmentId: 'dept-executive',
+      department: 'Executive Leadership',
+      subDepartment: 'Executive Leadership Employees',
+      employmentCategory: 'Employee',
+      isIntern: false,
+    };
+  }
+
+  // 6. ADMINISTRATION & OPERATIONS (Interns strictly forbidden)
+  const isAdminOps =
+    desigLower.includes('admin manager') ||
+    desigLower.includes('pantry') ||
+    desigLower.includes('office admin') ||
+    desigLower.includes('facility') ||
+    desigLower.includes('it administrator') ||
+    desigLower.includes('operations manager') ||
+    desigLower.includes('housekeeping') ||
+    currentDeptLower.includes('administration') ||
+    currentDeptLower.includes('operations');
+
+  if (isAdminOps) {
+    return {
+      departmentId: 'dept-admin-ops',
+      department: 'Administration & Operations',
+      subDepartment: 'Administration & Operations Employees',
+      employmentCategory: 'Employee',
+      isIntern: false,
+    };
+  }
+
+  // 7. DUBAI MARKET (Interns strictly forbidden)
+  // E.g., Aanya Kapoor: 'Luxury Portfolio Advisor - Dubai International Desk'
+  const isDubai =
+    desigLower.includes('dubai') ||
+    desigLower.includes('uae') ||
+    desigLower.includes('gulf') ||
+    desigLower.includes('international desk') ||
+    desigLower.includes('downtown dubai') ||
+    desigLower.includes('palm jumeirah') ||
+    emp.market === 'Dubai' ||
+    currentDeptLower.includes('dubai');
+
+  if (isDubai) {
+    return {
+      departmentId: 'dept-dubai-market',
+      department: 'Dubai Market',
+      subDepartment: 'Dubai Employees',
+      employmentCategory: 'Employee',
+      isIntern: false,
+    };
+  }
+
+  // 8. CUSTOM DEPARTMENTS (e.g. Global NRI Desk) - Interns strictly forbidden
+  if (availableDepartments && availableDepartments.length > 0) {
+    const customMatch = availableDepartments.find(
+      d => (emp.departmentId && d.id === emp.departmentId) || (emp.department && d.name.toLowerCase() === currentDeptLower)
+    );
+    if (customMatch && !['dept-hr', 'dept-ai', 'dept-da', 'dept-dm', 'dept-gurgaon-market', 'dept-dubai-market', 'dept-admin-ops', 'dept-executive'].includes(customMatch.id)) {
+      const cleanBase = customMatch.name.replace(/Department|Market/gi, '').trim() || customMatch.name;
+      return {
+        departmentId: customMatch.id,
+        department: customMatch.name,
+        subDepartment: customMatch.subDepartments?.[0]?.name || `${cleanBase} Employees`,
+        employmentCategory: 'Employee',
+        isIntern: false,
+      };
+    }
+  }
+
+  // 9. GURGAON MARKET (Default real estate brokerage advisory) - Interns strictly forbidden
+  return {
+    departmentId: 'dept-gurgaon-market',
+    department: 'Gurgaon Market',
+    subDepartment: 'Gurgaon Employees',
+    employmentCategory: 'Employee',
+    isIntern: false,
+  };
 }
 
 interface DatabaseSchema {
@@ -560,10 +808,29 @@ class DatabaseService {
       empData.market ||
       (empData.department?.toLowerCase().includes('dubai') ? 'Dubai' : 'Gurgaon');
 
+    const autoClassification = classifyPersonByJobRole(
+      {
+        fullName: empData.fullName,
+        designation: empData.designation,
+        department: empData.department,
+        departmentId: empData.departmentId,
+        subDepartment: empData.subDepartment,
+        employmentStatus: empData.employmentStatus,
+        employmentCategory: empData.employmentCategory,
+        market: resolvedMarket,
+        isCandidate: isCand,
+      },
+      this.data.departments
+    );
+
+    const targetDeptId = empData.departmentId || (!empData.department ? autoClassification.departmentId : undefined);
+    const targetDeptName = empData.department || autoClassification.department;
+    const targetSub = empData.subDepartment || autoClassification.subDepartment;
+
     const resolvedDept = this.resolveAndEnsureDepartment(
-      empData.departmentId,
-      empData.department || (resolvedMarket === 'Dubai' ? 'Dubai Market' : 'Gurgaon Market'),
-      empData.subDepartment,
+      targetDeptId,
+      targetDeptName,
+      targetSub,
       resolvedMarket
     );
 
@@ -695,11 +962,35 @@ class DatabaseService {
       updatedAt: new Date().toISOString(),
     };
 
-    if (updates.department !== undefined || updates.departmentId !== undefined || updates.subDepartment !== undefined) {
+    if (updates.department !== undefined || updates.departmentId !== undefined || updates.subDepartment !== undefined || updates.designation !== undefined) {
+      let targetDeptName = updates.department !== undefined ? updates.department : existing.department;
+      let targetDeptId = updates.departmentId !== undefined ? updates.departmentId : existing.departmentId;
+      let targetSub = updates.subDepartment !== undefined ? updates.subDepartment : existing.subDepartment;
+
+      if (updates.designation !== undefined && updates.department === undefined && updates.departmentId === undefined) {
+        const auto = classifyPersonByJobRole(
+          {
+            fullName: merged.fullName,
+            designation: updates.designation,
+            department: existing.department,
+            departmentId: existing.departmentId,
+            market: merged.market,
+            isCandidate: merged.isCandidate,
+            employmentStatus: merged.employmentStatus,
+            employmentCategory: merged.employmentCategory,
+          },
+          this.data.departments
+        );
+        targetDeptName = auto.department;
+        targetDeptId = auto.departmentId;
+        targetSub = auto.subDepartment;
+        merged.employmentCategory = auto.employmentCategory;
+      }
+
       const resolvedDept = this.resolveAndEnsureDepartment(
-        updates.departmentId !== undefined ? updates.departmentId : (updates.department !== undefined ? undefined : existing.departmentId),
-        updates.department !== undefined ? updates.department : existing.department,
-        updates.subDepartment !== undefined ? updates.subDepartment : existing.subDepartment,
+        targetDeptId,
+        targetDeptName,
+        targetSub,
         merged.market
       );
       merged.departmentId = resolvedDept.departmentId;
@@ -711,10 +1002,14 @@ class DatabaseService {
       if (merged.employmentCategory === 'Intern') {
         merged.employmentCategory = 'Employee';
       }
-      if (merged.employmentStatus === 'Intern') {
+      if (merged.employmentStatus?.toLowerCase() === 'intern') {
         merged.employmentStatus = merged.isCandidate ? 'Offer Accepted' : 'Full-Time';
       }
       merged.internshipCompletionDate = undefined;
+      if (!merged.subDepartment || merged.subDepartment.toLowerCase().includes('intern')) {
+        const cleanBase = merged.department.replace(/Department|Market/gi, '').trim() || merged.department;
+        merged.subDepartment = `${cleanBase} Employees`;
+      }
     }
 
     if (!merged.documents || Object.keys(merged.documents).length === 0) {
@@ -4093,70 +4388,58 @@ class DatabaseService {
       changed = true;
     });
 
-    // 3. Normalize all employees & candidates to obey the rule
+    // 3. Audit and automatically classify ALL employees & candidates using actual job role/designation
     schema.employees.forEach(emp => {
-      // First normalize legacy department names
-      const normDept = normalizeStandardDepartmentName(emp.department);
-      if (normDept !== emp.department) {
-        emp.department = normDept;
+      const classification = classifyPersonByJobRole(
+        {
+          fullName: emp.fullName,
+          designation: emp.designation,
+          department: emp.department,
+          departmentId: emp.departmentId,
+          subDepartment: emp.subDepartment,
+          employmentStatus: emp.employmentStatus,
+          employmentCategory: emp.employmentCategory,
+          market: emp.market,
+          isCandidate: emp.isCandidate,
+        },
+        schema.departments
+      );
+
+      if (emp.departmentId !== classification.departmentId) {
+        emp.departmentId = classification.departmentId;
+        changed = true;
+      }
+      if (emp.department !== classification.department) {
+        emp.department = classification.department;
+        changed = true;
+      }
+      if (emp.subDepartment !== classification.subDepartment) {
+        emp.subDepartment = classification.subDepartment;
+        changed = true;
+      }
+      if (emp.employmentCategory !== classification.employmentCategory) {
+        emp.employmentCategory = classification.employmentCategory;
         changed = true;
       }
 
-      const isAllowedInternDept = isInternAllowedDepartment(emp.department);
-
-      // Check if employee designation or status is intern
-      const desigLower = (emp.designation || '').toLowerCase();
-      const statusLower = (emp.employmentStatus || '').toLowerCase();
-      const hasInternDesignation = desigLower.includes('intern') || desigLower.includes('trainee');
-
-      if (isAllowedInternDept) {
-        // Find standardized department config
-        const dObj = schema.departments!.find(d => d.name === emp.department);
-        if (dObj) emp.departmentId = dObj.id;
-
-        const isInternPerson =
-          emp.employmentCategory === 'Intern' ||
-          statusLower === 'intern' ||
-          hasInternDesignation;
-
-        if (isInternPerson) {
-          emp.employmentCategory = 'Intern';
-          emp.subDepartment = `${emp.department} Interns`;
-          changed = true;
-        } else {
-          if (!emp.employmentCategory || emp.employmentCategory === 'Intern') {
-            emp.employmentCategory = 'Employee';
-            changed = true;
-          }
-          if (!emp.subDepartment || emp.subDepartment.toLowerCase().includes('intern')) {
-            emp.subDepartment = `${emp.department} Employees`;
-            changed = true;
-          }
-        }
-      } else {
-        // NON-INTERN DEPARTMENT: STRICTLY NO INTERN CATEGORIES ALLOWED
+      // Enforce strict restriction: Only HR, AI, DA, and DM can have Interns
+      if (!isInternAllowedDepartment(emp.department)) {
         if (emp.employmentCategory === 'Intern') {
           emp.employmentCategory = 'Employee';
           changed = true;
         }
-        if (statusLower === 'intern') {
+        if (emp.employmentStatus?.toLowerCase() === 'intern') {
           emp.employmentStatus = emp.isCandidate ? 'Upcoming Joiner' : 'Full-Time';
           changed = true;
         }
         if (emp.internshipCompletionDate) {
-          emp.internshipCompletionDate = '';
+          emp.internshipCompletionDate = undefined;
           changed = true;
         }
-
-        const dObj = schema.departments!.find(d => d.name.toLowerCase() === emp.department.toLowerCase());
-        if (dObj) {
-          emp.departmentId = dObj.id;
-          emp.department = dObj.name;
-          const empSub = dObj.subDepartments.find(s => s.name.toLowerCase().includes('employee'))?.name || dObj.subDepartments[0]?.name || `${dObj.name} Employees`;
-          if (!emp.subDepartment || emp.subDepartment.toLowerCase().includes('intern')) {
-            emp.subDepartment = empSub;
-            changed = true;
-          }
+        if (!emp.subDepartment || emp.subDepartment.toLowerCase().includes('intern')) {
+          const cleanBase = emp.department.replace(/Department|Market/gi, '').trim() || emp.department;
+          emp.subDepartment = `${cleanBase} Employees`;
+          changed = true;
         }
       }
 
@@ -4204,9 +4487,11 @@ class DatabaseService {
     }
 
     let resolvedSub: string | undefined = undefined;
+    const isAllowedIntern = isInternAllowedDepartment(dept.name);
+
     if (subDepartmentName && subDepartmentName.trim()) {
       let cleanSub = subDepartmentName.trim();
-      if (!isInternAllowedDepartment(dept.name) && cleanSub.toLowerCase().includes('intern')) {
+      if (!isAllowedIntern && cleanSub.toLowerCase().includes('intern')) {
         cleanSub =
           dept.subDepartments.find(s => s.name.toLowerCase().includes('employee'))?.name ||
           `${dept.name.replace(/Department|Market/gi, '').trim()} Employees`;
@@ -4224,6 +4509,14 @@ class DatabaseService {
         });
         dept.updatedAt = nowIso;
         resolvedSub = cleanSub;
+      }
+    } else {
+      if (!isAllowedIntern) {
+        resolvedSub =
+          dept.subDepartments.find(s => s.name.toLowerCase().includes('employee'))?.name ||
+          `${dept.name.replace(/Department|Market/gi, '').trim()} Employees`;
+      } else {
+        resolvedSub = dept.subDepartments[0]?.name || `${dept.name} Employees`;
       }
     }
 
@@ -4813,6 +5106,7 @@ class DatabaseService {
     if (includeSecretShare && latest && meta.isActive && latest.token) {
       const cleanOrigin = cleanPublicOrigin(baseOrigin);
       const shareUrl = `${cleanOrigin}/qr-upload/${latest.token}`;
+      qrStatus.token = latest.token;
       qrStatus.shareUrl = shareUrl;
       qrStatus.qrDataUrl = await QRCode.toDataURL(shareUrl, {
         width: 340,
@@ -4925,6 +5219,7 @@ class DatabaseService {
 
     const qrStatus: DocumentQrStatusInfo = {
       ...emp.documentQrMeta,
+      token: rawToken,
       shareUrl,
       qrDataUrl,
     };

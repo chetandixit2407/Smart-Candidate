@@ -35,9 +35,14 @@ interface QrCodeModalProps {
   onQrUpdated?: () => void;
 }
 
-// Permanent public HTTPS application endpoint (deployed globally on Cloud Run)
+// Permanent public HTTPS application endpoint (defaults to live container URL or window location)
 export const PERMANENT_PUBLIC_APP_URL =
-  'https://ais-pre-g663j6jdyfypjzdf3gijun-870296140886.asia-east1.run.app';
+  typeof window !== 'undefined' && window.location?.origin && !isInvalidHostOrIp(window.location.hostname)
+    ? window.location.origin
+    : 'https://ais-dev-yjzfez2popqx6klg7wyifs-86309533096.asia-southeast1.run.app';
+
+export const SHARED_APP_PREVIEW_URL =
+  'https://ais-pre-yjzfez2popqx6klg7wyifs-86309533096.asia-southeast1.run.app';
 
 export function isInvalidHostOrIp(hostOrUrl: string): boolean {
   if (!hostOrUrl) return true;
@@ -60,9 +65,6 @@ export function getPublicShareOrigin(customCandidate?: string): string {
   if (customCandidate && customCandidate.trim()) {
     try {
       const parsed = new URL(customCandidate.trim());
-      if (parsed.hostname.startsWith('ais-dev-')) {
-        return `https://${parsed.hostname.replace(/^ais-dev-/, 'ais-pre-')}`;
-      }
       if (
         (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
         !isInvalidHostOrIp(parsed.hostname)
@@ -78,9 +80,6 @@ export function getPublicShareOrigin(customCandidate?: string): string {
       (origin.startsWith('https://') || origin.startsWith('http://')) &&
       !isInvalidHostOrIp(window.location.hostname)
     ) {
-      if (window.location.hostname.startsWith('ais-dev-')) {
-        return `https://${window.location.hostname.replace(/^ais-dev-/, 'ais-pre-')}`;
-      }
       return origin;
     }
   }
@@ -116,14 +115,40 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  // Configurable public base URL
+  // Configurable public base URL & format
   const [customOriginInput, setCustomOriginInput] = useState('');
   const [showCustomConfig, setShowCustomConfig] = useState(false);
+  const [urlFormat, setUrlFormat] = useState<'path' | 'query'>('path');
+
+  // Domain health status
+  const [domainCheck, setDomainCheck] = useState<{ checked: boolean; ok: boolean; status: number } | null>(null);
 
   // Client-rendered QR image data URL
   const [renderedQrDataUrl, setRenderedQrDataUrl] = useState<string | null>(null);
 
   const activeOrigin = useMemo(() => getPublicShareOrigin(customOriginInput), [customOriginInput]);
+
+  // Check whether the active origin returns 200 or 404
+  useEffect(() => {
+    let cancel = false;
+    if (!activeOrigin) return;
+    setDomainCheck(null);
+    fetch(`/api/system/check-domain?url=${encodeURIComponent(activeOrigin)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (!cancel) {
+          setDomainCheck({ checked: true, ok: Boolean(d.ok), status: d.status || 0 });
+        }
+      })
+      .catch(() => {
+        if (!cancel) {
+          setDomainCheck({ checked: true, ok: true, status: 200 });
+        }
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [activeOrigin]);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -170,27 +195,23 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
 
   // Extract raw token string
   const tokenString = useMemo(() => {
+    if (qrStatus?.token) return qrStatus.token;
     if (!qrStatus?.shareUrl) return null;
-    const match = qrStatus.shareUrl.match(/\/qr-upload\/([a-fA-F0-9]{64})/);
+    const match = qrStatus.shareUrl.match(/(?:\/qr-upload\/|\/qr\/|[?&]qr=)([a-zA-Z0-9_-]{20,80})/i);
     return match ? match[1] : null;
-  }, [qrStatus?.shareUrl]);
+  }, [qrStatus?.token, qrStatus?.shareUrl]);
 
-  // Effective share URL: Strictly uses verified public HTTPS origin, never localhost or LAN
+  // Effective share URL: Uses verified origin and chosen format
   const effectiveShareUrl = useMemo(() => {
     if (!tokenString) {
       if (!qrStatus?.shareUrl) return '';
-      try {
-        const parsed = new URL(qrStatus.shareUrl);
-        if (isInvalidHostOrIp(parsed.hostname)) {
-          return `${activeOrigin}/qr-upload/`;
-        }
-        return qrStatus.shareUrl;
-      } catch {
-        return qrStatus.shareUrl;
-      }
+      return qrStatus.shareUrl;
+    }
+    if (urlFormat === 'query') {
+      return `${activeOrigin}/?qr=${tokenString}`;
     }
     return `${activeOrigin}/qr-upload/${tokenString}`;
-  }, [tokenString, qrStatus?.shareUrl, activeOrigin]);
+  }, [tokenString, qrStatus?.shareUrl, activeOrigin, urlFormat]);
 
   // Re-generate high-contrast QR code data URL whenever the effective URL changes
   useEffect(() => {
@@ -443,53 +464,132 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
                   )}
                 </div>
 
-                {/* Permanent Public HTTPS Domain Notice */}
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-950 space-y-2">
-                  <div className="font-semibold flex items-center justify-between text-emerald-900">
+
+
+                {/* Public Domain & Route Configuration */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-800 space-y-2.5">
+                  <div className="font-semibold flex items-center justify-between text-slate-900">
                     <span className="flex items-center gap-1.5">
                       <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
-                      Global Public HTTPS Scanning (Any Phone / Any Network)
+                      Public Candidate Scanning Domain
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowCustomConfig(!showCustomConfig)}
-                      className="text-[10px] text-emerald-700 hover:text-emerald-900 underline flex items-center gap-1 cursor-pointer"
+                      className="text-[10px] text-slate-600 hover:text-slate-900 underline flex items-center gap-1 cursor-pointer"
                     >
                       <Settings className="w-3 h-3" />
-                      <span>{showCustomConfig ? 'Hide Config' : 'Domain Config'}</span>
+                      <span>{showCustomConfig ? 'Hide Settings' : 'Configure Domain'}</span>
                     </button>
                   </div>
-                  <p className="text-[11px] leading-relaxed text-emerald-800">
-                    Never generates unroutable localhost or LAN IP addresses. White Collar Realty embeds the live global Cloud Run HTTPS domain (<strong>{activeOrigin}</strong>). Anyone scanning this QR code from an iPhone, Android, or mobile cellular data network anywhere in the world will immediately reach the candidate&apos;s upload portal.
-                  </p>
+
+                  {/* Active Domain & Live Ping Status */}
+                  <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white border border-slate-200">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase font-bold text-slate-500">Active Host</p>
+                      <p className="text-[11px] font-mono font-semibold text-slate-800 truncate">{activeOrigin}</p>
+                    </div>
+                    {domainCheck ? (
+                      domainCheck.ok ? (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold shrink-0 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          HTTP {domainCheck.status} OK
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-semibold shrink-0 flex items-center gap-1" title="The current host returned 404. Switch to Live URL or publish your app.">
+                          <AlertTriangle className="w-3 h-3 text-rose-500" />
+                          HTTP {domainCheck.status || 'Offline'}
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-[10px] text-slate-400 animate-pulse shrink-0">Checking...</span>
+                    )}
+                  </div>
+
+                  {/* URL Route Format Selector */}
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60">
+                    <span className="text-[11px] font-medium text-slate-600">Link URL Format:</span>
+                    <div className="flex items-center gap-1 bg-slate-200/70 p-0.5 rounded-lg text-[10px] font-medium">
+                      <button
+                        type="button"
+                        onClick={() => setUrlFormat('path')}
+                        className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                          urlFormat === 'path' ? 'bg-white shadow-xs text-slate-900 font-bold' : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Path (/qr-upload/...)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUrlFormat('query')}
+                        className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                          urlFormat === 'query' ? 'bg-white shadow-xs text-slate-900 font-bold' : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Query (/?qr=...)
+                      </button>
+                    </div>
+                  </div>
 
                   {showCustomConfig && (
-                    <div className="pt-2 border-t border-emerald-200/60 space-y-1.5">
-                      <label className="block text-[10px] font-semibold text-emerald-900">
-                        Override Public Domain (e.g., custom HTTPS domain or APP_BASE_URL):
+                    <div className="pt-2 border-t border-slate-200 space-y-2">
+                      <label className="block text-[10px] font-semibold text-slate-700">
+                        Select or Enter Public Domain Preset:
                       </label>
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          value={customOriginInput}
-                          onChange={e => setCustomOriginInput(e.target.value)}
-                          placeholder={PERMANENT_PUBLIC_APP_URL}
-                          className="flex-1 px-2.5 py-1 text-xs border border-emerald-300 bg-white rounded-lg text-slate-900 font-mono"
-                        />
-                        {customOriginInput && (
-                          <button
-                            type="button"
-                            onClick={() => setCustomOriginInput('')}
-                            className="px-2 py-1 text-[10px] rounded bg-emerald-200 hover:bg-emerald-300 text-emerald-900 font-semibold"
-                          >
-                            Reset Default
-                          </button>
-                        )}
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setCustomOriginInput(PERMANENT_PUBLIC_APP_URL)}
+                          className={`p-1.5 rounded-lg border text-left text-[10px] transition-colors cursor-pointer ${
+                            activeOrigin === PERMANENT_PUBLIC_APP_URL
+                              ? 'border-emerald-500 bg-emerald-50/50 text-emerald-900 font-semibold'
+                              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className="block font-bold">1. Live App Container</span>
+                          <span className="text-[9px] text-slate-500 truncate block">Instant active workspace</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCustomOriginInput(SHARED_APP_PREVIEW_URL)}
+                          className={`p-1.5 rounded-lg border text-left text-[10px] transition-colors cursor-pointer ${
+                            activeOrigin === SHARED_APP_PREVIEW_URL
+                              ? 'border-emerald-500 bg-emerald-50/50 text-emerald-900 font-semibold'
+                              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className="block font-bold">2. Shared Public Preview</span>
+                          <span className="text-[9px] text-slate-500 truncate block">Active after &quot;Share&quot; click</span>
+                        </button>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block text-[10px] text-slate-500 font-medium">
+                          Or custom HTTPS domain / tunnel (e.g. from APP_BASE_URL):
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={customOriginInput}
+                            onChange={e => setCustomOriginInput(e.target.value)}
+                            placeholder={PERMANENT_PUBLIC_APP_URL}
+                            className="flex-1 px-2.5 py-1 text-xs border border-slate-300 bg-white rounded-lg text-slate-900 font-mono"
+                          />
+                          {customOriginInput && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomOriginInput('')}
+                              className="px-2 py-1 text-[10px] rounded bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold cursor-pointer"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2 pt-1 text-[11px] text-emerald-700 font-medium">
+                  <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-500 font-medium">
                     <span>Security:</span>
                     <span>Opaque 256-bit token · 24h Expiry · Zero PII in URL · Real-time SSE Sync</span>
                   </div>

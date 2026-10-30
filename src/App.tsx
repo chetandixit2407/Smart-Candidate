@@ -39,14 +39,15 @@ import {
 
 function detectPublicQrTokenFromLocation(): string | null {
   if (typeof window === 'undefined') return null;
-  const pathMatch = window.location.pathname.match(/^\/qr-upload\/([a-fA-F0-9]{64})\/?$/);
+  const path = window.location.pathname.trim();
+  const pathMatch = path.match(/^\/(?:qr-upload|qr)\/([a-zA-Z0-9_-]{20,80})\/?$/i);
   if (pathMatch && pathMatch[1]) {
     return pathMatch[1];
   }
   const searchParams = new URLSearchParams(window.location.search);
-  const queryQr = searchParams.get('qr');
-  if (queryQr && /^[a-fA-F0-9]{64}$/.test(queryQr.trim())) {
-    return queryQr.trim();
+  const queryToken = searchParams.get('qr') || searchParams.get('token') || searchParams.get('qrToken');
+  if (queryToken && /^[a-zA-Z0-9_-]{20,80}$/.test(queryToken.trim())) {
+    return queryToken.trim();
   }
   return null;
 }

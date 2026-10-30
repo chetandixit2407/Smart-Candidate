@@ -6,7 +6,7 @@ import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
 import * as XLSX from 'xlsx';
-import { db, QR_MAX_FILE_SIZE_BYTES } from './server/database.ts';
+import { db, QR_MAX_FILE_SIZE_BYTES, getPermanentPublicAppUrl } from './server/database.ts';
 import { ALL_DESK_CODES, mapSpreadsheetSeatToStandardDesk } from './server/seedData.ts';
 import { WCR_ORIGINAL_OFFER_SECTIONS, buildOfferLetterData } from './server/lifecycleEngine.ts';
 import { generateWcrOfferLetterDocx } from './server/wordGenerator.ts';
@@ -69,9 +69,7 @@ export function getLocalLanIpv4(): string | null {
 }
 
 // Permanent public HTTPS application endpoint (deployed globally on Cloud Run)
-export const PERMANENT_PUBLIC_APP_URL =
-  (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || '').trim() ||
-  'https://ais-pre-g663j6jdyfypjzdf3gijun-870296140886.asia-east1.run.app';
+export const PERMANENT_PUBLIC_APP_URL = getPermanentPublicAppUrl();
 
 export function isInvalidHostOrIp(hostOrUrl: string): boolean {
   if (!hostOrUrl) return true;
@@ -93,7 +91,7 @@ export function isInvalidHostOrIp(hostOrUrl: string): boolean {
 // Configurable base origin resolver (strictly eliminates localhost, LAN IP, and 169.254 IPs, enforcing permanent public HTTPS)
 export function resolveBaseOrigin(req: Request, clientOriginCandidate?: string, _preferLan?: boolean): string {
   // 1. Configured environment base URL (if valid public HTTPS)
-  const envBaseUrl = (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || process.env.APP_URL || '').trim();
+  const envBaseUrl = (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || '').trim();
   if (envBaseUrl && !isInvalidHostOrIp(envBaseUrl)) {
     try {
       const parsed = new URL(envBaseUrl);
@@ -105,13 +103,10 @@ export function resolveBaseOrigin(req: Request, clientOriginCandidate?: string, 
     }
   }
 
-  // 2. Client-provided origin candidate from browser (transform dev URL to pre URL for universal mobile accessibility)
+  // 2. Client-provided origin candidate from browser (e.g. window.location.origin)
   if (clientOriginCandidate && typeof clientOriginCandidate === 'string') {
     try {
       const parsed = new URL(clientOriginCandidate.trim());
-      if (parsed.hostname.startsWith('ais-dev-')) {
-        return `https://${parsed.hostname.replace(/^ais-dev-/, 'ais-pre-')}`;
-      }
       if (
         (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
         !isInvalidHostOrIp(parsed.hostname)
@@ -123,19 +118,61 @@ export function resolveBaseOrigin(req: Request, clientOriginCandidate?: string, 
     }
   }
 
-  // 3. Incoming reverse proxy headers from Cloud Run / public hosting
+  // 3. Container environment APP_URL
+  const appUrl = (process.env.APP_URL || '').trim();
+  if (appUrl) {
+    try {
+      const parsed = new URL(appUrl);
+      if (!isInvalidHostOrIp(parsed.hostname)) {
+        return parsed.origin;
+      }
+    } catch {
+      // Fall back
+    }
+  }
+
+  // 4. Incoming reverse proxy headers from Cloud Run / public hosting
   const forwardedHost = ((req.headers['x-forwarded-host'] as string) || '').split(',')[0].trim();
   const forwardedProto = ((req.headers['x-forwarded-proto'] as string) || 'https').split(',')[0].trim();
   if (forwardedHost && !isInvalidHostOrIp(forwardedHost)) {
-    if (forwardedHost.startsWith('ais-dev-')) {
-      return `https://${forwardedHost.replace(/^ais-dev-/, 'ais-pre-')}`;
-    }
     return `${forwardedProto}://${forwardedHost}`;
   }
 
-  // 4. Fallback strictly to PERMANENT_PUBLIC_APP_URL
+  // 5. Fallback strictly to PERMANENT_PUBLIC_APP_URL
   return PERMANENT_PUBLIC_APP_URL;
 }
+
+// Diagnostic endpoint to test if a candidate upload public domain is reachable or returns 404
+app.get('/api/system/check-domain', async (req: Request, res: Response) => {
+  const targetUrl = ((req.query.url as string) || '').trim();
+  if (!targetUrl) {
+    res.status(400).json({ error: 'url parameter required' });
+    return;
+  }
+  try {
+    const parsed = new URL(targetUrl);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      res.status(400).json({ error: 'Only http and https protocols are supported' });
+      return;
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const probe = await fetch(parsed.origin, { method: 'HEAD', signal: controller.signal });
+    clearTimeout(timeout);
+    res.json({
+      url: parsed.origin,
+      status: probe.status,
+      ok: probe.status >= 200 && probe.status < 400,
+    });
+  } catch (err: any) {
+    res.json({
+      url: targetUrl,
+      status: 0,
+      ok: false,
+      error: err.message || 'Connection failed',
+    });
+  }
+});
 
 // --------------------------------------------------------------------------
 // Public Streaming Binary QR Upload Endpoint (Registered BEFORE express.json)
@@ -2278,9 +2315,26 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+
+    // Deep link & page refresh fallback for client-side routes (/qr-upload/:token, /qr/:token, etc.)
+    app.use('*', async (req, res, next) => {
+      if (req.path.startsWith('/api/') || req.path.includes('.')) {
+        return next();
+      }
+      try {
+        const template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
+        const html = await vite.transformIndexHtml(req.originalUrl, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+      } catch (err) {
+        next(err);
+      }
+    });
   } else {
     app.use(express.static(path.resolve(__dirname, 'dist')));
-    app.get('*', (req, res) => {
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api/') || req.path.includes('.')) {
+        return next();
+      }
       res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
     });
   }

@@ -467,7 +467,7 @@
       "profileCompletion": 92,
       "createdAt": "2020-01-15T09:00:00Z",
       "updatedAt": "2026-10-25T10:00:00Z",
-      "subDepartment": "Founder & C-Suite",
+      "subDepartment": "Executive Leadership Employees",
       "departmentId": "dept-executive",
       "documentQrMeta": {
         "hasToken": false,
@@ -476,7 +476,8 @@
         "isRevoked": false,
         "targetDocKeys": [],
         "uploadedDocKeys": []
-      }
+      },
+      "employmentCategory": "Employee"
     },
     {
       "id": "emp-kimmi-mam",
@@ -610,7 +611,7 @@
       "profileCompletion": 90,
       "createdAt": "2020-01-15T09:00:00Z",
       "updatedAt": "2026-10-25T10:00:00Z",
-      "subDepartment": "Founder & C-Suite",
+      "subDepartment": "Executive Leadership Employees",
       "departmentId": "dept-executive",
       "documentQrMeta": {
         "hasToken": false,
@@ -619,7 +620,8 @@
         "isRevoked": false,
         "targetDocKeys": [],
         "uploadedDocKeys": []
-      }
+      },
+      "employmentCategory": "Employee"
     },
     {
       "id": "emp-abhishek",
@@ -750,7 +752,7 @@
       "profileCompletion": 88,
       "createdAt": "2026-10-07T09:00:00Z",
       "updatedAt": "2026-10-25T10:00:00Z",
-      "subDepartment": "Golf Course Road Luxury",
+      "subDepartment": "Gurgaon Employees",
       "departmentId": "dept-gurgaon-market",
       "documentQrMeta": {
         "hasToken": false,
@@ -759,7 +761,8 @@
         "isRevoked": false,
         "targetDocKeys": [],
         "uploadedDocKeys": []
-      }
+      },
+      "employmentCategory": "Employee"
     },
     {
       "id": "emp-nisha",
@@ -886,7 +889,7 @@
       "profileCompletion": 92,
       "createdAt": "2026-05-07T09:00:00Z",
       "updatedAt": "2026-10-26T12:00:00Z",
-      "subDepartment": "Talent & Onboarding",
+      "subDepartment": "HR Employees",
       "departmentId": "dept-hr",
       "documentQrMeta": {
         "hasToken": false,
@@ -1023,7 +1026,7 @@
       "profileCompletion": 85,
       "createdAt": "2025-03-20T09:00:00Z",
       "updatedAt": "2026-10-25T11:00:00Z",
-      "subDepartment": "Golf Course Road Luxury",
+      "subDepartment": "Gurgaon Employees",
       "departmentId": "dept-gurgaon-market",
       "documentQrMeta": {
         "hasToken": false,
@@ -1032,7 +1035,8 @@
         "isRevoked": false,
         "targetDocKeys": [],
         "uploadedDocKeys": []
-      }
+      },
+      "employmentCategory": "Employee"
     },
     {
       "id": "emp-sameer",
@@ -1159,7 +1163,7 @@
       "profileCompletion": 86,
       "createdAt": "2025-02-10T09:00:00Z",
       "updatedAt": "2026-10-24T14:00:00Z",
-      "subDepartment": "Office Administration",
+      "subDepartment": "Administration & Operations Employees",
       "departmentId": "dept-admin-ops",
       "documentQrMeta": {
         "hasToken": false,
@@ -1168,7 +1172,8 @@
         "isRevoked": false,
         "targetDocKeys": [],
         "uploadedDocKeys": []
-      }
+      },
+      "employmentCategory": "Employee"
     },
     {
       "id": "emp-sandeep",
@@ -1295,7 +1300,7 @@
       "profileCompletion": 80,
       "createdAt": "2026-03-24T09:00:00Z",
       "updatedAt": "2026-10-20T10:00:00Z",
-      "subDepartment": "Facility & Pantry Support",
+      "subDepartment": "Administration & Operations Employees",
       "departmentId": "dept-admin-ops",
       "documentQrMeta": {
         "hasToken": false,
@@ -1304,7 +1309,8 @@
         "isRevoked": false,
         "targetDocKeys": [],
         "uploadedDocKeys": []
-      }
+      },
+      "employmentCategory": "Employee"
     },
     {
       "id": "emp-ekansh",
@@ -1431,7 +1437,7 @@
       "profileCompletion": 86,
       "createdAt": "2025-01-25T09:00:00Z",
       "updatedAt": "2026-10-22T11:00:00Z",
-      "subDepartment": "Performance & Brand Media",
+      "subDepartment": "DM Employees",
       "departmentId": "dept-dm",
       "documentQrMeta": {
         "hasToken": false,
@@ -1568,7 +1574,7 @@
       "profileCompletion": 82,
       "createdAt": "2026-07-16T09:00:00Z",
       "updatedAt": "2026-10-23T15:00:00Z",
-      "subDepartment": "DLF & Micro-Markets",
+      "subDepartment": "Gurgaon Employees",
       "departmentId": "dept-gurgaon-market",
       "documentQrMeta": {
         "hasToken": false,
@@ -1577,7 +1583,8 @@
         "isRevoked": false,
         "targetDocKeys": [],
         "uploadedDocKeys": []
-      }
+      },
+      "employmentCategory": "Employee"
     },
     {
       "id": "emp-shaquib",
@@ -1711,7 +1718,7 @@
       "profileCompletion": 87,
       "createdAt": "2026-09-01T09:00:00Z",
       "updatedAt": "2026-10-24T16:00:00Z",
-      "subDepartment": "Downtown & Palm Jumeirah",
+      "subDepartment": "Dubai Employees",
       "departmentId": "dept-dubai-market",
       "documentQrMeta": {
         "hasToken": false,
@@ -1720,7 +1727,8 @@
         "isRevoked": false,
         "targetDocKeys": [],
         "uploadedDocKeys": []
-      }
+      },
+      "employmentCategory": "Employee"
     },
     {
       "id": "emp-pooja",
@@ -2291,7 +2299,7 @@
         "phone": "9729815828"
       },
       "familyDetails": [],
-      "department": "AI",
+      "department": "DA",
       "designation": "DA Intern",
       "reportingManager": "Kimmi Mam",
       "joiningDate": "2026-09-28",
@@ -2400,8 +2408,8 @@
       "profileCompletion": 76,
       "createdAt": "2026-09-28T09:00:00Z",
       "updatedAt": "2026-10-29T09:54:16.882Z",
-      "subDepartment": "AI Interns",
-      "departmentId": "dept-ai",
+      "subDepartment": "DA Interns",
+      "departmentId": "dept-da",
       "documentQrMeta": {
         "hasToken": false,
         "isActive": false,
@@ -2568,7 +2576,7 @@
       "notes": "Key producer for luxury high-ticket transactions in Gurgaon and Dubai.",
       "createdAt": "2024-04-10T09:00:00Z",
       "updatedAt": "2026-10-28T15:00:00Z",
-      "subDepartment": "Golf Course Road Luxury",
+      "subDepartment": "Gurgaon Employees",
       "departmentId": "dept-gurgaon-market",
       "documentQrMeta": {
         "hasToken": false,
@@ -2577,7 +2585,8 @@
         "isRevoked": false,
         "targetDocKeys": [],
         "uploadedDocKeys": []
-      }
+      },
+      "employmentCategory": "Employee"
     },
     {
       "id": "cand-vikram-malhotra",
@@ -2688,8 +2697,14 @@
           "key": "edu_12th",
           "title": "12th / Intermediate Marksheet",
           "category": "Education",
-          "status": "Missing",
-          "required": true
+          "status": "Uploaded",
+          "required": true,
+          "fileName": "Vikram_12th_Certificate.pdf",
+          "fileSize": "76 B",
+          "mimeType": "application/pdf",
+          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_12th_1793355724365_Vikram_12th_Certificate.pdf",
+          "uploadedAt": "2026-10-30T10:22:04.365Z",
+          "uploadedVia": "QR"
         },
         "edu_graduation": {
           "key": "edu_graduation",
@@ -2741,10 +2756,10 @@
           "required": false
         }
       },
-      "profileCompletion": 88,
+      "profileCompletion": 89,
       "notes": "Offer letter signed. Relieving letter expected by Nov 10.",
       "createdAt": "2026-10-20T10:00:00Z",
-      "updatedAt": "2026-10-30T09:31:21.288Z",
+      "updatedAt": "2026-10-30T10:22:04.365Z",
       "uploadToken": {
         "token": "wcr-upl-j106ir23-mvtfzmpw",
         "employeeId": "cand-vikram-malhotra",
@@ -3101,30 +3116,30 @@
       "lastReminderChannel": "BOTH",
       "reminderDeadline": "2026-10-30T11:10:38.287Z",
       "isOverdueForDocuments": false,
-      "subDepartment": "Golf Course Road Luxury",
+      "subDepartment": "Gurgaon Employees",
       "departmentId": "dept-gurgaon-market",
       "documentQrMeta": {
         "hasToken": true,
         "isActive": true,
         "isExpired": false,
         "isRevoked": false,
-        "createdAt": "2026-10-30T09:31:21.239Z",
-        "expiresAt": "2026-10-31T09:31:21.239Z",
-        "remainingMs": 86399951,
-        "createdBy": "HR Admin",
+        "createdAt": "2026-10-30T10:22:04.199Z",
+        "expiresAt": "2026-10-31T10:22:04.199Z",
+        "remainingMs": 84291306,
+        "createdBy": "Nisha (HR)",
         "createdByRole": "HR",
         "targetDocKeys": [
-          "edu_10th",
           "edu_12th",
           "edu_graduation",
           "photograph"
         ],
         "uploadedDocKeys": [
-          "edu_10th"
+          "edu_12th"
         ],
         "openCount": 1,
-        "lastOpenedAt": "2026-10-30T09:31:21.277Z"
-      }
+        "lastOpenedAt": "2026-10-30T10:22:04.291Z"
+      },
+      "employmentCategory": "Employee"
     },
     {
       "id": "cand-aanya-kapoor",
@@ -3149,7 +3164,7 @@
           "phone": "9811200113"
         }
       ],
-      "department": "AI",
+      "department": "Dubai Market",
       "designation": "Luxury Portfolio Advisor - Dubai International Desk",
       "reportingManager": "Shaquib (Dubai Team)",
       "joiningDate": "2026-11-20",
@@ -3216,15 +3231,27 @@
           "key": "passport",
           "title": "Passport Copy (First & Last Page)",
           "category": "Identity",
-          "status": "Missing",
-          "required": true
+          "status": "Uploaded",
+          "required": true,
+          "fileName": "passport_sample.pdf",
+          "fileSize": "47 B",
+          "mimeType": "application/pdf",
+          "storagePath": "secure_uploads/cand-aanya-kapoor/passport_1793357549519_passport_sample.pdf",
+          "uploadedAt": "2026-10-30T10:52:29.519Z",
+          "uploadedVia": "QR"
         },
         "edu_10th": {
           "key": "edu_10th",
           "title": "10th Marksheet & Passing Certificate",
           "category": "Education",
-          "status": "Missing",
-          "required": true
+          "status": "Uploaded",
+          "required": true,
+          "fileName": "aanya_10th_certificate.pdf",
+          "fileSize": "63 B",
+          "mimeType": "application/pdf",
+          "storagePath": "secure_uploads/cand-aanya-kapoor/edu_10th_1793357838421_aanya_10th_certificate.pdf",
+          "uploadedAt": "2026-10-30T10:57:18.421Z",
+          "uploadedVia": "QR"
         },
         "edu_12th": {
           "key": "edu_12th",
@@ -3290,10 +3317,10 @@
           "required": true
         }
       },
-      "profileCompletion": 87,
+      "profileCompletion": 89,
       "notes": "Relocating to Gurgaon office for dual-market luxury brokerage.",
       "createdAt": "2026-10-22T14:00:00Z",
-      "updatedAt": "2026-10-29T11:11:45.447Z",
+      "updatedAt": "2026-10-30T10:57:18.421Z",
       "uploadToken": {
         "token": "wcr-upl-ba7du5n2-mvtdoo78",
         "employeeId": "cand-aanya-kapoor",
@@ -3439,17 +3466,32 @@
         }
       ],
       "lifecycleStage": "Offer Extended",
-      "subDepartment": "AI Interns",
-      "departmentId": "dept-ai",
+      "subDepartment": "Dubai Employees",
+      "departmentId": "dept-dubai-market",
       "documentQrMeta": {
-        "hasToken": false,
-        "isActive": false,
+        "hasToken": true,
+        "isActive": true,
         "isExpired": false,
         "isRevoked": false,
-        "targetDocKeys": [],
-        "uploadedDocKeys": []
+        "createdAt": "2026-10-30T10:57:06.510Z",
+        "expiresAt": "2026-10-31T10:57:06.510Z",
+        "remainingMs": 86388089,
+        "createdBy": "HR User",
+        "createdByRole": "HR",
+        "targetDocKeys": [
+          "edu_10th",
+          "edu_12th",
+          "edu_graduation",
+          "photograph",
+          "dubai_visa_eid"
+        ],
+        "uploadedDocKeys": [
+          "edu_10th"
+        ],
+        "openCount": 1,
+        "lastOpenedAt": "2026-10-30T10:57:12.800Z"
       },
-      "employmentCategory": "Intern"
+      "employmentCategory": "Employee"
     },
     {
       "id": "cand-rohan-verma",
@@ -3587,7 +3629,7 @@
       "notes": "Final semester college clearance obtained.",
       "createdAt": "2026-10-25T09:00:00Z",
       "updatedAt": "2026-10-28T11:00:00Z",
-      "subDepartment": "Trainee Desk",
+      "subDepartment": "Gurgaon Employees",
       "departmentId": "dept-gurgaon-market",
       "documentQrMeta": {
         "hasToken": false,
@@ -3596,7 +3638,8 @@
         "isRevoked": false,
         "targetDocKeys": [],
         "uploadedDocKeys": []
-      }
+      },
+      "employmentCategory": "Employee"
     },
     {
       "id": "cand-simran-kaur",
@@ -3775,7 +3818,7 @@
       "familyDetails": [],
       "departmentId": "dept-uae-luxury-advisory-9atn",
       "department": "Global NRI Desk",
-      "subDepartment": "Dubai Marina",
+      "subDepartment": "Global NRI Desk Employees",
       "designation": "Portfolio Consultant",
       "reportingManager": "Management",
       "joiningDate": "2026-11-15",
@@ -3883,7 +3926,7 @@
         "isRevoked": false,
         "createdAt": "2026-10-30T06:18:16.004Z",
         "expiresAt": "2026-10-31T06:18:16.004Z",
-        "remainingMs": 74814778,
+        "remainingMs": 69663111,
         "createdBy": "Neha Kapoor",
         "createdByRole": "HR",
         "targetDocKeys": [
@@ -3900,7 +3943,8 @@
       },
       "profileCompletion": 16,
       "createdAt": "2026-10-30T06:18:15.977Z",
-      "updatedAt": "2026-10-30T06:18:16.004Z"
+      "updatedAt": "2026-10-30T06:18:16.004Z",
+      "employmentCategory": "Employee"
     }
   ],
   "assets": [
@@ -4260,6 +4304,72 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1793357838424-mq10q",
+      "timestamp": "2026-10-30T10:57:18.424Z",
+      "actor": "Aanya Kapoor (QR Upload)",
+      "actorRole": "HR",
+      "action": "Document Uploaded via 24h QR",
+      "entityType": "DocumentQR",
+      "entityId": "cand-aanya-kapoor-edu_10th",
+      "entityName": "Aanya Kapoor - 10th Marksheet & Passing Certificate",
+      "details": "Uploaded 'aanya_10th_certificate.pdf' (63 B, application/pdf) via candidate-specific QR. Status automatically updated: Missing -> Uploaded."
+    },
+    {
+      "id": "log-1793357826580-wu77e",
+      "timestamp": "2026-10-30T10:57:06.580Z",
+      "actor": "HR User",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Generated candidate-specific 24-hour Document QR (5 missing required doc(s) detected; expires 10/31/2026, 10:57:06 AM)."
+    },
+    {
+      "id": "log-1793357549523-sqs06",
+      "timestamp": "2026-10-30T10:52:29.523Z",
+      "actor": "Aanya Kapoor (QR Upload)",
+      "actorRole": "HR",
+      "action": "Document Uploaded via 24h QR",
+      "entityType": "DocumentQR",
+      "entityId": "cand-aanya-kapoor-passport",
+      "entityName": "Aanya Kapoor - Passport Copy (First & Last Page)",
+      "details": "Uploaded 'passport_sample.pdf' (47 B, application/pdf) via candidate-specific QR. Status automatically updated: Missing -> Uploaded."
+    },
+    {
+      "id": "log-1793357521455-yzp1c",
+      "timestamp": "2026-10-30T10:52:01.455Z",
+      "actor": "HR User",
+      "actorRole": "HR",
+      "action": "Document QR Generated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-aanya-kapoor",
+      "entityName": "Aanya Kapoor",
+      "details": "Generated candidate-specific 24-hour Document QR (6 missing required doc(s) detected; expires 10/31/2026, 10:52:01 AM)."
+    },
+    {
+      "id": "log-1793355724369-8gmer",
+      "timestamp": "2026-10-30T10:22:04.369Z",
+      "actor": "Vikram Malhotra (QR Upload)",
+      "actorRole": "HR",
+      "action": "Document Uploaded via 24h QR",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra-edu_12th",
+      "entityName": "Vikram Malhotra - 12th / Intermediate Marksheet",
+      "details": "Uploaded 'Vikram_12th_Certificate.pdf' (76 B, application/pdf) via candidate-specific QR. Status automatically updated: Missing -> Uploaded."
+    },
+    {
+      "id": "log-1793355724265-y1nuo",
+      "timestamp": "2026-10-30T10:22:04.265Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (3 missing required doc(s) detected; expires 10/31/2026, 10:22:04 AM)."
+    },
     {
       "id": "log-1793352681291-3hque",
       "timestamp": "2026-10-30T09:31:21.291Z",
@@ -5846,7 +5956,7 @@
     }
   },
   "version": 3,
-  "lastUpdated": "2026-10-30T09:31:21.291Z",
+  "lastUpdated": "2026-10-30T10:57:18.424Z",
   "salaryStructures": [
     {
       "id": "role-bde",
@@ -6579,6 +6689,74 @@
   "notificationDeliveryLogs": [],
   "qrDocumentTokens": [
     {
+      "id": "qrt-1793357826510-efad76",
+      "token": "11a3c2be717b4159fdf8874ab18c1e468f24485844029655cf62c4750f49c63a",
+      "tokenHash": "4964304cc7c4b3d2d818ca44d8535d3b52c064c8b8fa854c30733525a7ac3428",
+      "employeeId": "cand-aanya-kapoor",
+      "createdAt": "2026-10-30T10:57:06.510Z",
+      "expiresAt": "2026-10-31T10:57:06.510Z",
+      "createdBy": "HR User",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph",
+        "dubai_visa_eid"
+      ],
+      "uploadedDocKeys": [
+        "edu_10th"
+      ],
+      "openCount": 1,
+      "lastOpenedAt": "2026-10-30T10:57:12.800Z"
+    },
+    {
+      "id": "qrt-1793357521390-d6355c",
+      "token": "d55f01d446fce65258e2ff727446fd03e472b4290bafce470a63775dd6221b7b",
+      "tokenHash": "4e4a09fad54bae93d992705396de0b29208fd7cd36859001feecc07f36025c13",
+      "employeeId": "cand-aanya-kapoor",
+      "createdAt": "2026-10-30T10:52:01.390Z",
+      "expiresAt": "2026-10-31T10:52:01.390Z",
+      "createdBy": "HR User",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "passport",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph",
+        "dubai_visa_eid"
+      ],
+      "uploadedDocKeys": [
+        "passport"
+      ],
+      "openCount": 1,
+      "lastOpenedAt": "2026-10-30T10:52:07.336Z",
+      "revokedAt": "2026-10-30T10:57:06.510Z",
+      "revokedBy": "HR User",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
+    },
+    {
+      "id": "qrt-1793355724199-b7fbe1",
+      "token": "c6f7e4c67ab5c8caee06b74880a3f43b0c57ac0f20b11f58a3497e571a4197dc",
+      "tokenHash": "90af897c3dd7778b2b7c19c7c77c3022c08b9eb614e7c6d3675d330d691cb5a5",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-10-30T10:22:04.199Z",
+      "expiresAt": "2026-10-31T10:22:04.199Z",
+      "createdBy": "Nisha (HR)",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "edu_12th",
+        "edu_graduation",
+        "photograph"
+      ],
+      "uploadedDocKeys": [
+        "edu_12th"
+      ],
+      "openCount": 1,
+      "lastOpenedAt": "2026-10-30T10:22:04.291Z"
+    },
+    {
       "id": "qrt-1793352681239-0d4b83",
       "token": "237eacdcf0ca7c6fe7109da5fcc6eda96caaf340729fa412446544c1f6df0a69",
       "tokenHash": "97dece7d2e009e7148ef9ffd565522e3d0e3050a9862f107cd7e198594c1d1b8",
@@ -6596,8 +6774,11 @@
       "uploadedDocKeys": [
         "edu_10th"
       ],
-      "openCount": 1,
-      "lastOpenedAt": "2026-10-30T09:31:21.277Z"
+      "openCount": 2,
+      "lastOpenedAt": "2026-10-30T10:11:58.970Z",
+      "revokedAt": "2026-10-30T10:22:04.199Z",
+      "revokedBy": "Nisha (HR)",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
     },
     {
       "id": "qrt-1793352670992-c895ea",
@@ -6963,8 +7144,8 @@
           "id": "sub-gurgaon-market-emp",
           "name": "Gurgaon Employees",
           "description": "Full-time Gurgaon employees and team members",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -6980,8 +7161,8 @@
           "id": "sub-dubai-market-emp",
           "name": "Dubai Employees",
           "description": "Full-time Dubai employees and team members",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -6996,14 +7177,14 @@
         {
           "id": "sub-ai-emp",
           "name": "AI Employees",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         },
         {
           "id": "sub-ai-intern",
           "name": "AI Interns",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7018,14 +7199,14 @@
         {
           "id": "sub-dm-emp",
           "name": "DM Employees",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         },
         {
           "id": "sub-dm-intern",
           "name": "DM Interns",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7040,14 +7221,14 @@
         {
           "id": "sub-hr-emp",
           "name": "HR Employees",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         },
         {
           "id": "sub-hr-intern",
           "name": "HR Interns",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7063,8 +7244,8 @@
           "id": "sub-executive-emp",
           "name": "Executive Leadership Employees",
           "description": "Full-time Executive Leadership employees and team members",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7080,8 +7261,8 @@
           "id": "sub-admin-ops-emp",
           "name": "Administration & Operations Employees",
           "description": "Full-time Administration & Operations employees and team members",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7097,8 +7278,8 @@
           "id": "sub-uae-luxury-advisory-9atn-emp",
           "name": "Global NRI Desk Employees",
           "description": "Full-time Global NRI Desk employees and team members",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         }
       ],
       "createdAt": "2026-10-30T06:18:15.957Z",
@@ -7113,14 +7294,14 @@
         {
           "id": "sub-da-emp",
           "name": "DA Employees",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         },
         {
           "id": "sub-da-intern",
           "name": "DA Interns",
-          "createdAt": "2026-10-30T09:27:52.511Z",
-          "updatedAt": "2026-10-30T09:27:52.511Z"
+          "createdAt": "2026-10-30T10:56:55.568Z",
+          "updatedAt": "2026-10-30T10:56:55.568Z"
         }
       ],
       "createdAt": "2026-10-30T09:05:33.312Z",

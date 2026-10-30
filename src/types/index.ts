@@ -117,6 +117,7 @@ export interface ProfileDocumentInspection {
 }
 
 export interface DocumentQrStatusInfo {
+  token?: string;
   hasToken: boolean;
   isActive: boolean;
   isExpired: boolean;
