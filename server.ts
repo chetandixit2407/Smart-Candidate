@@ -3,6 +3,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import * as XLSX from 'xlsx';
 import { db, QR_MAX_FILE_SIZE_BYTES } from './server/database.ts';
@@ -24,36 +25,95 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 4000;
 
-app.use((_req, res, next) => {
+// Universal CORS & Security Headers
+app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Actor, X-Role, X-Mime-Type, X-File-Name, X-Forwarded-Proto, X-Forwarded-Host');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204);
+    return;
+  }
   next();
 });
 
-function resolveBaseOrigin(req: Request, clientOriginCandidate?: string): string {
+// Helper: Detect the primary local network IPv4 address (e.g., 192.168.x.x) so mobile devices on the same Wi-Fi can scan and open QR links
+export function getLocalLanIpv4(): string | null {
+  try {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const net of interfaces[name] || []) {
+        if ((net.family === 'IPv4' || (net as any).family === 4) && !net.internal) {
+          return net.address;
+        }
+      }
+    }
+  } catch {
+    // Ignore error
+  }
+  return null;
+}
+
+// Permanent public HTTPS application endpoint (deployed globally on Cloud Run)
+export const PERMANENT_PUBLIC_APP_URL =
+  (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || '').trim() ||
+  'https://ais-pre-7vffypp3ujgs3jlohgugve-77684867572.asia-southeast1.run.app';
+
+// Configurable base origin resolver (prioritizes permanent public HTTPS; eliminates unroutable LAN/link-local 169.254 IPs)
+export function resolveBaseOrigin(req: Request, clientOriginCandidate?: string, _preferLan?: boolean): string {
+  // 1. Client-provided origin candidate from browser (if HTTPS and valid public origin)
   if (clientOriginCandidate && typeof clientOriginCandidate === 'string') {
     try {
-      const parsed = new URL(clientOriginCandidate);
+      const parsed = new URL(clientOriginCandidate.trim());
+      if (
+        (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
+        !parsed.hostname.includes('169.254.') &&
+        !parsed.hostname.startsWith('127.') &&
+        parsed.hostname !== 'localhost'
+      ) {
+        return parsed.origin;
+      }
+    } catch {
+      // Fall back
+    }
+  }
+
+  // 2. Incoming reverse proxy headers from Cloud Run / public hosting
+  const forwardedHost = ((req.headers['x-forwarded-host'] as string) || '').split(',')[0].trim();
+  const forwardedProto = ((req.headers['x-forwarded-proto'] as string) || 'https').split(',')[0].trim();
+  if (
+    forwardedHost &&
+    !forwardedHost.includes('169.254.') &&
+    !forwardedHost.startsWith('127.') &&
+    !forwardedHost.includes('localhost')
+  ) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  // 3. Configured environment base URL (if valid public HTTPS)
+  const envBaseUrl = (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || process.env.APP_URL || '').trim();
+  if (
+    envBaseUrl &&
+    !envBaseUrl.includes('169.254.') &&
+    !envBaseUrl.includes('localhost') &&
+    !envBaseUrl.includes('127.0.0.1')
+  ) {
+    try {
+      const parsed = new URL(envBaseUrl);
       if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
         return parsed.origin;
       }
     } catch {
-      // Fall back to request headers / APP_URL
+      // Fall back
     }
   }
-  const envUrl = (process.env.APP_URL || '').trim();
-  if (envUrl) {
-    try {
-      return new URL(envUrl).origin;
-    } catch {
-      // Ignore malformed APP_URL
-    }
-  }
-  const proto = ((req.headers['x-forwarded-proto'] as string) || req.protocol || 'http').split(',')[0].trim();
-  const host = ((req.headers['x-forwarded-host'] as string) || req.get('host') || `localhost:${PORT}`).split(',')[0].trim();
-  return `${proto}://${host}`;
+
+  // 4. Fallback strictly to PERMANENT_PUBLIC_APP_URL
+  return PERMANENT_PUBLIC_APP_URL;
 }
 
 // --------------------------------------------------------------------------
@@ -536,6 +596,37 @@ app.delete('/api/departments/:id/sub-departments/:subId', (req: Request, res: Re
 });
 
 // --------------------------------------------------------------------------
+// Employment Categories Dynamic CRUD Endpoints
+// --------------------------------------------------------------------------
+app.get('/api/employment-categories', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, ALL_ROLES);
+  if (!auth) return;
+  res.json({ categories: db.getEmploymentCategories() });
+});
+
+app.post('/api/employment-categories', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const result = db.createEmploymentCategory(req.body?.name || '', auth.actor, auth.role);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.status(201).json(result);
+});
+
+app.delete('/api/employment-categories/:name', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+  const result = db.deleteEmploymentCategory(req.params.name, auth.actor, auth.role);
+  if (!result.success) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json(result);
+});
+
+// --------------------------------------------------------------------------
 // Individual 24-Hour Document QR Endpoints (Protected HR + Public Candidate)
 // --------------------------------------------------------------------------
 app.get('/api/public/document-qr/:token', (req: Request, res: Response) => {
@@ -555,25 +646,46 @@ app.get('/api/public/document-qr/:token', (req: Request, res: Response) => {
   res.json(result.session);
 });
 
+app.get('/api/system/network-info', (req: Request, res: Response) => {
+  const defaultOrigin = resolveBaseOrigin(req);
+  res.json({
+    port: PORT,
+    defaultOrigin,
+    permanentPublicAppUrl: PERMANENT_PUBLIC_APP_URL,
+    configuredBaseUrl: process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || PERMANENT_PUBLIC_APP_URL,
+  });
+});
+
 app.get('/api/employees/:id/document-qr', async (req: Request, res: Response) => {
   const auth = authenticateRequest(req, res, ALL_ROLES);
   if (!auth) return;
 
-  const baseOrigin = resolveBaseOrigin(req, req.query.clientOrigin as string | undefined);
+  const customOrigin = (req.query.customOrigin as string) || (req.query.clientOrigin as string | undefined);
+  const baseOrigin = resolveBaseOrigin(req, customOrigin);
   const canViewSecret = auth.role === 'HR' || auth.role === 'Co-Founder';
   const status = await db.getEmployeeDocumentQrStatus(req.params.id, baseOrigin, canViewSecret);
   if (!status) {
     res.status(404).json({ error: 'Employee or candidate profile not found.' });
     return;
   }
-  res.json(status);
+
+  res.json({
+    ...status,
+    networkInfo: {
+      port: PORT,
+      defaultOrigin: baseOrigin,
+      permanentPublicAppUrl: PERMANENT_PUBLIC_APP_URL,
+      configuredBaseUrl: PERMANENT_PUBLIC_APP_URL,
+    },
+  });
 });
 
 app.post('/api/employees/:id/document-qr', async (req: Request, res: Response) => {
   const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
   if (!auth) return;
 
-  const baseOrigin = resolveBaseOrigin(req, req.body?.clientOrigin);
+  const customOrigin = req.body?.customOrigin || req.body?.clientOrigin;
+  const baseOrigin = resolveBaseOrigin(req, customOrigin);
   const result = await db.generateEmployeeDocumentQr(
     req.params.id,
     baseOrigin,
@@ -590,7 +702,15 @@ app.post('/api/employees/:id/document-qr', async (req: Request, res: Response) =
     return;
   }
 
-  res.status(201).json(result);
+  res.status(201).json({
+    ...result,
+    networkInfo: {
+      port: PORT,
+      defaultOrigin: baseOrigin,
+      permanentPublicAppUrl: PERMANENT_PUBLIC_APP_URL,
+      configuredBaseUrl: PERMANENT_PUBLIC_APP_URL,
+    },
+  });
 });
 
 app.post('/api/employees/:id/document-qr/revoke', (req: Request, res: Response) => {
@@ -734,6 +854,18 @@ app.post('/api/employees/:id/documents/:docKey/upload', (req: Request, res: Resp
     return;
   }
   res.json(updated);
+});
+
+app.delete('/api/employees/:id/documents/:docKey', (req: Request, res: Response) => {
+  const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
+  if (!auth) return;
+
+  const result = db.deleteEmployeeDocumentFile(req.params.id, req.params.docKey, auth.actor, auth.role);
+  if (!result.success) {
+    res.status(404).json({ error: result.message });
+    return;
+  }
+  res.json(result);
 });
 
 // Helper to handle secure document serving and downloading
@@ -2101,9 +2233,27 @@ async function startServer() {
 
   startAutomationScheduler();
 
+  const lanIp = getLocalLanIpv4();
+
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[SERVER] White Collar Realty HR System running at http://0.0.0.0:${PORT}`);
+    console.log(`[SERVER] White Collar Realty HR System running at http://localhost:${PORT}`);
+    console.log(`[SERVER] Available on local network at http://${lanIp || '127.0.0.1'}:${PORT}`);
   });
+
+  // Secondary port listener on 3000: guarantees 100% compatibility with preview environments without port conflict
+  if (PORT !== 3000) {
+    try {
+      const secondaryServer = app.listen(3000, '0.0.0.0', () => {
+        console.log(`[SERVER] Preview compatibility listener active at http://0.0.0.0:3000`);
+      });
+      secondaryServer.on('error', (err: any) => {
+        // Port 3000 may be busy or skipped in local environments; ignore gracefully
+        console.log(`[SERVER] Port 3000 preview fallback skipped (${err.message})`);
+      });
+    } catch {
+      // Ignore
+    }
+  }
 }
 
 startServer().catch(err => {

@@ -263,7 +263,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-2 sm:p-4 md:p-6 overflow-y-auto">
       <div className="relative w-full max-w-5xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[94vh] my-auto">
         {/* Modal Header */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+        <div className="px-3.5 sm:px-6 py-3 sm:py-4 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             {avatarUrl ? (
               <img
@@ -277,7 +277,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 {employee.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
               </div>
             )}
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-semibold tracking-tight text-white truncate">
                   {employee.fullName}
@@ -303,7 +303,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2.5 shrink-0 flex-wrap w-full sm:w-auto">
             {/* Completion Gauge */}
             <div className="hidden lg:flex flex-col items-end mr-1">
               <div className="flex items-center gap-1.5 text-xs">

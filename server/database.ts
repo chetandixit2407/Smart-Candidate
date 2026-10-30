@@ -71,6 +71,7 @@ interface DatabaseSchema {
   assets: CompanyAsset[];
   auditLogs: AuditLog[];
   departments?: DepartmentConfig[];
+  employmentCategories?: string[];
   qrDocumentTokens?: QrDocumentTokenRecord[];
   salaryStructures?: RoleSalaryStructure[];
   assetReturnReminders?: AssetReturnReminderRecord[];
@@ -923,6 +924,59 @@ class DatabaseService {
     return emp;
   }
 
+  public deleteEmployeeDocumentFile(
+    employeeId: string,
+    docKey: string,
+    actor: string,
+    actorRole: UserRole
+  ): { success: boolean; employee?: Employee; message: string } {
+    const emp = this.data.employees.find(e => e.id === employeeId);
+    if (!emp || !emp.documents || !emp.documents[docKey]) {
+      return { success: false, message: 'Document slot not found.' };
+    }
+
+    const doc = emp.documents[docKey];
+    if (doc.storagePath) {
+      try {
+        const diskPath = path.resolve(DATA_DIR, doc.storagePath);
+        if (diskPath.startsWith(SECURE_UPLOADS_DIR + path.sep) && fs.existsSync(diskPath)) {
+          fs.unlinkSync(diskPath);
+        }
+      } catch (err) {
+        console.warn(`[STORAGE] Could not delete disk file for ${employeeId}/${docKey}:`, err);
+      }
+    }
+
+    const oldFileName = doc.fileName || docKey;
+    doc.fileName = undefined;
+    doc.fileSize = undefined;
+    doc.fileData = undefined;
+    doc.storagePath = undefined;
+    doc.mimeType = undefined;
+    doc.uploadedAt = undefined;
+    doc.status = 'Missing';
+    doc.reviewNotes = `Attachment removed by ${actor} (${actorRole}) on ${new Date().toLocaleDateString()}`;
+
+    emp.profileCompletion = calculateCompletion(emp);
+    emp.updatedAt = new Date().toISOString();
+    this.persist();
+
+    this.logAudit(
+      actor,
+      actorRole,
+      'Document Removed',
+      emp.isCandidate ? 'Candidate' : 'Employee',
+      emp.id,
+      emp.fullName,
+      `Deleted file attachment '${oldFileName}' for '${doc.title}'. Document checklist status reset to Missing.`
+    );
+
+    this.broadcast('DOCUMENT_STATUS_CHANGED', { employeeId: emp.id, docKey, doc, profileCompletion: emp.profileCompletion });
+    this.broadcast('ALERT_UPDATED', { candidateId: emp.id });
+    this.broadcast('EMPLOYEE_UPDATED', emp);
+    return { success: true, employee: emp, message: `Attachment for '${doc.title}' deleted successfully.` };
+  }
+
   // --- Candidate Document Upload Links ---
   public generateUploadToken(
     candidateId: string,
@@ -1711,7 +1765,7 @@ class DatabaseService {
       token = generated.token?.token;
     }
 
-    const host = process.env.PUBLIC_APP_URL || '';
+    const host = (process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || process.env.APP_URL || '').trim().replace(/\/+$/, '');
     const uploadUrl = token ? `/upload-portal/${token}` : '';
     const fullUploadUrl = token ? `${host ? host : ''}/upload-portal/${token}` : '';
 
@@ -3164,64 +3218,94 @@ class DatabaseService {
   // ==========================================================================
   // Department & Sub-Department Management Engine
   // ==========================================================================
-  private inferLegacyDepartmentMigration(emp: Employee): { department: string; subDepartment?: string } | null {
+  private inferLegacyDepartmentMigration(emp: Employee): { department: string; subDepartment?: string; category?: 'Employee' | 'Intern' | 'Consultant' | 'Contractor' } | null {
     const desig = (emp.designation || '').toLowerCase();
     const dept = (emp.department || '').toLowerCase();
+    const isIntern =
+      emp.employmentStatus === 'Intern' ||
+      desig.includes('intern') ||
+      desig.includes('trainee') ||
+      dept.includes('intern');
 
     if (
-      desig.includes('ai intern') ||
-      desig.includes('da intern') ||
-      desig.includes('ai data') ||
-      (dept.includes('technology') && emp.employmentStatus === 'Intern')
+      desig.includes('da ') ||
+      desig.includes('data analyst') ||
+      desig.includes('analytics') ||
+      dept === 'da department' ||
+      dept === 'data analytics'
     ) {
       return {
-        department: 'AI Intern',
-        subDepartment: desig.includes('da intern') ? 'Data Analytics & Insights' : 'AI & ML Engineering',
-      };
-    }
-
-    if (desig.includes('dm intern')) {
-      return {
-        department: 'DM Intern',
-        subDepartment: emp.fullName.toLowerCase().includes('tanishq') ? 'Performance Campaigns' : 'Social Media & Content',
-      };
-    }
-
-    if (desig.includes('dubai') || emp.market === 'Dubai') {
-      return {
-        department: 'Dubai Market',
-        subDepartment: desig.includes('international') || desig.includes('advisor') ? 'International Advisory Desk' : 'Downtown & Palm Jumeirah',
+        department: 'DA Department',
+        subDepartment: isIntern ? 'DA Interns' : 'DA Employees',
+        category: isIntern ? 'Intern' : 'Employee',
       };
     }
 
     if (
+      desig.includes('ai ') ||
+      desig.includes('artificial intelligence') ||
+      dept === 'ai intern' ||
+      dept === 'ai department' ||
+      (dept.includes('tech') && isIntern)
+    ) {
+      return {
+        department: 'AI Department',
+        subDepartment: isIntern ? 'AI Interns' : 'AI Employees',
+        category: isIntern ? 'Intern' : 'Employee',
+      };
+    }
+
+    if (desig.includes('dm ') || dept.includes('dm') || dept.includes('marketing')) {
+      return {
+        department: 'Digital Marketing Department',
+        subDepartment: isIntern ? 'DM Interns' : 'DM Employees',
+        category: isIntern ? 'Intern' : 'Employee',
+      };
+    }
+
+    if (desig.includes('dubai') || emp.market === 'Dubai' || dept.includes('dubai')) {
+      return {
+        department: 'Dubai Market',
+        subDepartment: isIntern ? 'Dubai Interns' : 'Dubai Employees',
+        category: isIntern ? 'Intern' : 'Employee',
+      };
+    }
+
+    if (
+      dept.includes('gurgaon') ||
       dept === 'sales & investments' ||
       dept === 'sales & leadership' ||
       dept === 'luxury residential & investments'
     ) {
-      let sub = 'Golf Course Road Luxury';
-      if (desig.includes('trainee')) sub = 'Trainee Desk';
-      else if (emp.fullName.toLowerCase() === 'adil') sub = 'DLF & Micro-Markets';
-      return { department: 'Gurgaon Market', subDepartment: sub };
-    }
-
-    if (dept === 'administration & facilities' || dept === 'operations & pantry support') {
       return {
-        department: 'Administration & Operations',
-        subDepartment: desig.includes('pantry') ? 'Facility & Pantry Support' : 'Office Administration',
+        department: 'Gurgaon Market',
+        subDepartment: isIntern ? 'Gurgaon Interns' : 'Gurgaon Employees',
+        category: isIntern ? 'Intern' : 'Employee',
       };
     }
 
-    if (dept === 'human resources') {
-      return { department: 'Human Resources', subDepartment: 'Talent & Onboarding' };
+    if (dept === 'administration & facilities' || dept === 'operations & pantry support' || dept.includes('admin') || dept.includes('operations')) {
+      return {
+        department: 'Administration & IT',
+        subDepartment: isIntern ? 'Admin & IT Interns' : 'Admin & IT Employees',
+        category: isIntern ? 'Intern' : 'Employee',
+      };
     }
 
-    if (dept === 'executive leadership') {
-      return { department: 'Executive Leadership', subDepartment: 'Founder & C-Suite' };
+    if (dept.includes('human resources') || dept === 'hr') {
+      return {
+        department: 'Human Resources',
+        subDepartment: isIntern ? 'HR Interns' : 'HR Employees',
+        category: isIntern ? 'Intern' : 'Employee',
+      };
     }
 
-    if (dept === 'marketing & digital media') {
-      return { department: 'Marketing & Digital Media', subDepartment: 'Performance & Brand Media' };
+    if (dept.includes('executive') || dept.includes('founder') || dept.includes('leadership')) {
+      return {
+        department: 'Executive Leadership',
+        subDepartment: 'Executive Leadership',
+        category: 'Employee',
+      };
     }
 
     return null;
@@ -3236,18 +3320,124 @@ class DatabaseService {
       changed = true;
     }
 
+    if (!schema.employmentCategories || !Array.isArray(schema.employmentCategories)) {
+      schema.employmentCategories = ['Employee', 'Intern', 'Consultant', 'Contractor'];
+      changed = true;
+    }
+
     if (!schema.qrDocumentTokens || !Array.isArray(schema.qrDocumentTokens)) {
       schema.qrDocumentTokens = [];
       changed = true;
     }
 
+    // Ensure AI Department and DA Department exist and have proper sub-departments
+    let aiDept = schema.departments!.find(d => d.name === 'AI Department' || d.id === 'dept-ai' || d.name === 'AI Intern');
+    if (!aiDept) {
+      aiDept = {
+        id: 'dept-ai',
+        name: 'AI Department',
+        description: 'Artificial intelligence engineering, agentic automation, and LLM solutions.',
+        marketFocus: 'Gurgaon',
+        subDepartments: [
+          { id: 'sub-ai-emp', name: 'AI Employees', createdAt: nowIso, updatedAt: nowIso },
+          { id: 'sub-ai-intern', name: 'AI Interns', createdAt: nowIso, updatedAt: nowIso },
+        ],
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      };
+      schema.departments!.unshift(aiDept);
+      changed = true;
+    } else {
+      if (aiDept.name !== 'AI Department') {
+        aiDept.name = 'AI Department';
+        changed = true;
+      }
+      if (!aiDept.subDepartments.some(s => s.name === 'AI Employees')) {
+        aiDept.subDepartments.unshift({ id: 'sub-ai-emp', name: 'AI Employees', createdAt: nowIso, updatedAt: nowIso });
+        changed = true;
+      }
+      if (!aiDept.subDepartments.some(s => s.name === 'AI Interns')) {
+        aiDept.subDepartments.push({ id: 'sub-ai-intern', name: 'AI Interns', createdAt: nowIso, updatedAt: nowIso });
+        changed = true;
+      }
+    }
+
+    let daDept = schema.departments!.find(d => d.name === 'DA Department' || d.id === 'dept-da');
+    if (!daDept) {
+      daDept = {
+        id: 'dept-da',
+        name: 'DA Department',
+        description: 'Data analytics, business intelligence, real estate metrics, and market forecasting.',
+        marketFocus: 'Gurgaon',
+        subDepartments: [
+          { id: 'sub-da-emp', name: 'DA Employees', createdAt: nowIso, updatedAt: nowIso },
+          { id: 'sub-da-intern', name: 'DA Interns', createdAt: nowIso, updatedAt: nowIso },
+        ],
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      };
+      const aiIdx = schema.departments!.findIndex(d => d.id === 'dept-ai');
+      schema.departments!.splice(aiIdx + 1, 0, daDept);
+      changed = true;
+    } else {
+      if (!daDept.subDepartments.some(s => s.name === 'DA Employees')) {
+        daDept.subDepartments.unshift({ id: 'sub-da-emp', name: 'DA Employees', createdAt: nowIso, updatedAt: nowIso });
+        changed = true;
+      }
+      if (!daDept.subDepartments.some(s => s.name === 'DA Interns')) {
+        daDept.subDepartments.push({ id: 'sub-da-intern', name: 'DA Interns', createdAt: nowIso, updatedAt: nowIso });
+        changed = true;
+      }
+    }
+
+    // Ensure all departments have Employees and Interns sub-departments
+    schema.departments!.forEach(dept => {
+      const baseName = dept.name.replace(/Department|Market/gi, '').trim();
+      const empSubName = `${baseName} Employees`;
+      const internSubName = `${baseName} Interns`;
+
+      if (dept.name !== 'Executive Leadership') {
+        if (!dept.subDepartments.some(s => s.name.toLowerCase().includes('employee') || s.name === empSubName)) {
+          dept.subDepartments.unshift({
+            id: `sub-${dept.id}-emp`,
+            name: empSubName,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          });
+          changed = true;
+        }
+        if (!dept.subDepartments.some(s => s.name.toLowerCase().includes('intern') || s.name === internSubName)) {
+          dept.subDepartments.push({
+            id: `sub-${dept.id}-intern`,
+            name: internSubName,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          });
+          changed = true;
+        }
+      }
+    });
+
     schema.employees.forEach(emp => {
-      if (migrateLegacyLabels) {
+      const isIntern =
+        emp.employmentStatus === 'Intern' ||
+        (emp.designation || '').toLowerCase().includes('intern') ||
+        (emp.designation || '').toLowerCase().includes('trainee');
+
+      if (!emp.employmentCategory) {
+        emp.employmentCategory = isIntern ? 'Intern' : 'Employee';
+        changed = true;
+      }
+
+      if (migrateLegacyLabels || emp.department === 'AI Intern' || (emp.department === 'AI Department' && !emp.subDepartment)) {
         const mapped = this.inferLegacyDepartmentMigration(emp);
         if (mapped) {
           emp.department = mapped.department;
-          if (!emp.subDepartment && mapped.subDepartment) {
+          if (mapped.subDepartment) {
             emp.subDepartment = mapped.subDepartment;
+          }
+          if (mapped.category) {
+            emp.employmentCategory = mapped.category;
           }
           changed = true;
         }
@@ -3272,7 +3462,10 @@ class DatabaseService {
             name: cleanName,
             description: `${cleanName} team & profiles`,
             marketFocus: emp.market || 'Gurgaon',
-            subDepartments: [],
+            subDepartments: [
+              { id: `sub-${slug}-emp`, name: `${cleanName} Employees`, createdAt: nowIso, updatedAt: nowIso },
+              { id: `sub-${slug}-intern`, name: `${cleanName} Interns`, createdAt: nowIso, updatedAt: nowIso },
+            ],
             createdAt: nowIso,
             updatedAt: nowIso,
           };
@@ -3306,6 +3499,12 @@ class DatabaseService {
           emp.subDepartment = subTrimmed;
           changed = true;
         }
+      } else {
+        // Assign default sub-department based on category
+        const subEmp = matchedDept.subDepartments.find(s => s.name.toLowerCase().includes('employee'))?.name;
+        const subInt = matchedDept.subDepartments.find(s => s.name.toLowerCase().includes('intern'))?.name;
+        emp.subDepartment = isIntern ? (subInt || matchedDept.subDepartments[0]?.name) : (subEmp || matchedDept.subDepartments[0]?.name);
+        changed = true;
       }
     });
 
@@ -3767,6 +3966,44 @@ class DatabaseService {
     return { success: true, department: allWithCounts.find(d => d.id === dept.id) };
   }
 
+  // --- Employment Categories Dynamic CRUD ---
+  public getEmploymentCategories(): string[] {
+    if (!this.data.employmentCategories || !Array.isArray(this.data.employmentCategories) || this.data.employmentCategories.length === 0) {
+      this.data.employmentCategories = ['Employee', 'Intern', 'Consultant', 'Contractor'];
+      this.persist();
+    }
+    return this.data.employmentCategories;
+  }
+
+  public createEmploymentCategory(name: string, actor: string, actorRole: UserRole): { success: boolean; categories: string[]; error?: string } {
+    const clean = name.trim();
+    if (!clean) return { success: false, categories: this.getEmploymentCategories(), error: 'Category name is required.' };
+    const current = this.getEmploymentCategories();
+    if (current.some(c => c.toLowerCase() === clean.toLowerCase())) {
+      return { success: false, categories: current, error: `Category '${clean}' already exists.` };
+    }
+    current.push(clean);
+    this.data.employmentCategories = current;
+    this.persist();
+    this.logAudit(actor, actorRole, 'Category Created', 'Department', clean, clean, `Created employment category '${clean}'.`);
+    this.broadcast('CATEGORIES_UPDATED', current);
+    return { success: true, categories: current };
+  }
+
+  public deleteEmploymentCategory(name: string, actor: string, actorRole: UserRole): { success: boolean; categories: string[]; error?: string } {
+    const clean = name.trim();
+    let current = this.getEmploymentCategories();
+    if (['Employee', 'Intern'].includes(clean)) {
+      return { success: false, categories: current, error: `Core category '${clean}' cannot be deleted.` };
+    }
+    current = current.filter(c => c.toLowerCase() !== clean.toLowerCase());
+    this.data.employmentCategories = current;
+    this.persist();
+    this.logAudit(actor, actorRole, 'Category Removed', 'Department', clean, clean, `Removed employment category '${clean}'.`);
+    this.broadcast('CATEGORIES_UPDATED', current);
+    return { success: true, categories: current };
+  }
+
   // ==========================================================================
   // Individual 24-Hour Document QR & Secure Candidate Upload Engine
   // ==========================================================================
@@ -3886,7 +4123,10 @@ class DatabaseService {
     const qrStatus: DocumentQrStatusInfo = { ...meta };
 
     if (includeSecretShare && latest && meta.isActive && latest.token) {
-      const cleanOrigin = baseOrigin.replace(/\/+$/, '');
+      let cleanOrigin = baseOrigin.replace(/\/+$/, '');
+      if (cleanOrigin.includes('169.254.') || cleanOrigin.includes('localhost') || cleanOrigin.includes('127.0.0.1')) {
+        cleanOrigin = 'https://ais-pre-7vffypp3ujgs3jlohgugve-77684867572.asia-southeast1.run.app';
+      }
       const shareUrl = `${cleanOrigin}/qr-upload/${latest.token}`;
       qrStatus.shareUrl = shareUrl;
       qrStatus.qrDataUrl = await QRCode.toDataURL(shareUrl, {
@@ -3986,7 +4226,10 @@ class DatabaseService {
     emp.updatedAt = nowIso;
     this.persist();
 
-    const cleanOrigin = baseOrigin.replace(/\/+$/, '');
+    let cleanOrigin = baseOrigin.replace(/\/+$/, '');
+    if (cleanOrigin.includes('169.254.') || cleanOrigin.includes('localhost') || cleanOrigin.includes('127.0.0.1')) {
+      cleanOrigin = 'https://ais-pre-7vffypp3ujgs3jlohgugve-77684867572.asia-southeast1.run.app';
+    }
     const shareUrl = `${cleanOrigin}/qr-upload/${rawToken}`;
     const qrDataUrl = await QRCode.toDataURL(shareUrl, {
       width: 340,

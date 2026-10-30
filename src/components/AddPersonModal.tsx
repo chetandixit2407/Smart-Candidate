@@ -64,6 +64,10 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
     department: initialDeptName,
     departmentId: initialDeptObj?.id,
     subDepartment: initialSubDept,
+    employmentCategory:
+      initialDeptName.toLowerCase().includes('intern') || initialSubDept.toLowerCase().includes('intern')
+        ? 'Intern'
+        : 'Employee',
     designation: 'Property Consultant',
     reportingManager: 'Varun Batra',
     joiningDate: new Date().toISOString().split('T')[0],
@@ -137,9 +141,12 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
         {
           ...formData,
           isCandidate,
+          employmentCategory:
+            formData.employmentCategory ||
+            (formData.subDepartment?.toLowerCase().includes('intern') || isInternDept ? 'Intern' : 'Employee'),
           employmentStatus: isCandidate
             ? 'Upcoming Joiner'
-            : isInternDept
+            : formData.employmentCategory === 'Intern' || isInternDept
               ? 'Intern'
               : 'Full-Time',
           candidateStatus: isCandidate ? 'Offer Accepted' : undefined,
@@ -342,6 +349,28 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
                     className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded"
                   />
                 )}
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-700">
+                  Employment Category *
+                </label>
+                <select
+                  value={formData.employmentCategory || 'Employee'}
+                  onChange={e => {
+                    const cat = e.target.value as any;
+                    setFormData({
+                      ...formData,
+                      employmentCategory: cat,
+                    });
+                  }}
+                  className="mt-1 w-full px-3 py-1.5 text-xs border border-slate-300 rounded bg-white font-medium"
+                >
+                  <option value="Employee">Employee (Full-Time Regular)</option>
+                  <option value="Intern">Intern (Cohort / Stipend Trainee)</option>
+                  <option value="Consultant">Consultant (Professional / Advisory)</option>
+                  <option value="Contractor">Contractor (Fixed-Term Agreement)</option>
+                </select>
               </div>
 
               <div>

@@ -1081,11 +1081,60 @@ class ApiService {
     return data;
   }
 
+  // --- Dynamic Employment Categories ---
+  public async getEmploymentCategories(): Promise<string[]> {
+    const res = await fetch('/api/employment-categories', { headers: this.getHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch employment categories');
+    const data = await res.json();
+    return data.categories || [];
+  }
+
+  public async createEmploymentCategory(name: string): Promise<string[]> {
+    const res = await fetch('/api/employment-categories', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to create employment category');
+    return data.categories || [];
+  }
+
+  public async deleteEmploymentCategory(name: string): Promise<string[]> {
+    const res = await fetch(`/api/employment-categories/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete employment category');
+    return data.categories || [];
+  }
+
+  // --- System Network Info for LAN & QR Sharing ---
+  public async getNetworkInfo(): Promise<{
+    port: number;
+    lanIp: string | null;
+    lanOrigin: string | null;
+    defaultOrigin: string;
+    configuredBaseUrl: string | null;
+  }> {
+    const res = await fetch('/api/system/network-info', {
+      headers: this.getHeaders(),
+    });
+    return await res.json();
+  }
+
   // --- Individual 24-Hour Document QR (Protected HR / Co-Founder) ---
   public async getEmployeeDocumentQr(
-    employeeId: string
-  ): Promise<{ inspection: ProfileDocumentInspection; qrStatus: DocumentQrStatusInfo }> {
-    const query = new URLSearchParams({ clientOrigin: window.location.origin });
+    employeeId: string,
+    options?: { preferLan?: boolean; customOrigin?: string }
+  ): Promise<{ inspection: ProfileDocumentInspection; qrStatus: DocumentQrStatusInfo; networkInfo?: any }> {
+    const query = new URLSearchParams({
+      clientOrigin: options?.customOrigin || window.location.origin,
+    });
+    if (options?.preferLan) query.set('preferLan', 'true');
+    if (options?.customOrigin) query.set('customOrigin', options.customOrigin);
+
     const res = await fetch(`/api/employees/${encodeURIComponent(employeeId)}/document-qr?${query.toString()}`, {
       headers: this.getHeaders(),
     });
@@ -1096,19 +1145,20 @@ class ApiService {
 
   public async generateEmployeeDocumentQr(
     employeeId: string,
-    options?: { includeOptionalMissing?: boolean; customDocKeys?: string[] }
+    options?: { includeOptionalMissing?: boolean; customDocKeys?: string[]; preferLan?: boolean; customOrigin?: string }
   ): Promise<{
     success: boolean;
     inspection: ProfileDocumentInspection;
     qrStatus: DocumentQrStatusInfo;
     message: string;
+    networkInfo?: any;
   }> {
     const res = await fetch(`/api/employees/${encodeURIComponent(employeeId)}/document-qr`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
         ...(options || {}),
-        clientOrigin: window.location.origin,
+        clientOrigin: options?.customOrigin || window.location.origin,
       }),
     });
     const data = await res.json();

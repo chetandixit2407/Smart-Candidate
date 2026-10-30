@@ -112,13 +112,13 @@ export const TopNav: React.FC<TopNavProps> = ({
         )}
       </div>
 
-      {/* Zone 3: Primary Actions */}
-      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+      {/* Zone 3: Primary Actions (Responsive without horizontal overflow) */}
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {/* Milestone & Compliance 2-Day Alerts Bell */}
         {onOpenAlertsModal && (
           <button
             onClick={onOpenAlertsModal}
-            className={`relative inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+            className={`relative inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
               alertsCount > 0
                 ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 animate-pulse'
                 : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
@@ -126,7 +126,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             title="View 2-Day Advance Alerts for Birthdays & Internship Completions"
           >
             <Bell className={`w-3.5 h-3.5 ${alertsCount > 0 ? 'text-amber-600' : 'text-slate-500'}`} />
-            <span className="hidden sm:inline">2-Day Alerts</span>
+            <span className="hidden md:inline">2-Day Alerts</span>
             {alertsCount > 0 && (
               <span className="px-1.5 py-0.2 bg-amber-500 text-slate-950 rounded-full font-mono text-[10px] font-bold">
                 {alertsCount}
@@ -141,17 +141,17 @@ export const TopNav: React.FC<TopNavProps> = ({
             <button
               type="button"
               onClick={() => api.downloadExcelExport('single-sheet')}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors rounded-l-lg border-r border-slate-200"
-              title="Export all employees and candidates in one single worksheet sorted alphabetically by name"
+              className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors rounded-l-lg border-r border-slate-200"
+              title="Export all employees and candidates in master Excel"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="hidden md:inline">Export Master Excel</span>
-              <span className="inline md:hidden">Excel</span>
+              <span className="hidden lg:inline">Master Excel</span>
+              <span className="hidden sm:inline lg:hidden">Excel</span>
             </button>
             <button
               type="button"
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="px-1.5 sm:px-2 py-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-r-lg transition-colors"
+              className="px-1.5 py-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-r-lg transition-colors"
               title="Choose Excel format"
               aria-label="Export options"
             >
@@ -208,7 +208,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           <button
             type="button"
             onClick={onOpenOfferGenerator}
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-blue-900 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors whitespace-nowrap shadow-xs"
+            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-blue-900 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors whitespace-nowrap shadow-xs"
             title="Generate Offer Letter (.docx)"
           >
             <FileText className="w-3.5 h-3.5 text-blue-700 shrink-0" />
@@ -221,16 +221,17 @@ export const TopNav: React.FC<TopNavProps> = ({
           <div className="flex items-center gap-1 sm:gap-1.5">
             <button
               onClick={() => onOpenAddModal(false)}
-              className="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap shadow-sm"
+              className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap shadow-xs"
               title="Add Employee"
             >
               <Plus className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Add </span>
-              <span>Employee</span>
+              <span className="hidden xs:inline">Employee</span>
+              <span className="xs:hidden inline">Emp</span>
             </button>
             <button
               onClick={() => onOpenAddModal(true)}
-              className="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs font-medium text-amber-900 bg-amber-100 border border-amber-300 rounded-lg hover:bg-amber-200 transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-amber-900 bg-amber-100 border border-amber-300 rounded-lg hover:bg-amber-200 transition-colors whitespace-nowrap"
               title="Add Candidate"
             >
               <Plus className="w-3.5 h-3.5 text-amber-800" />

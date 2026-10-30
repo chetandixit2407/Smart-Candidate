@@ -19,6 +19,8 @@ export type EmploymentStatus =
   | 'Upcoming Joiner'
   | 'Ex-Employee';
 
+export type EmploymentCategory = 'Employee' | 'Intern' | 'Consultant' | 'Contractor';
+
 export type MarketType = 'Gurgaon' | 'Dubai' | 'Dual Market';
 
 export type DocumentStatus =
@@ -648,6 +650,7 @@ export interface Employee {
   internshipCompletionDate?: string;
   jobEndDate?: string;
   employmentStatus: EmploymentStatus;
+  employmentCategory?: EmploymentCategory;
   isCandidate: boolean; // true for upcoming candidates/pipeline joiners
   candidateStatus?: 'Interviewing' | 'Offer Extended' | 'Offer Accepted' | 'Joining Confirmed';
   market: MarketType;

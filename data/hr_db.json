@@ -2647,8 +2647,14 @@
           "key": "pan_card",
           "title": "PAN Card",
           "category": "Financial & Tax",
-          "status": "Missing",
-          "required": true
+          "status": "Uploaded",
+          "required": true,
+          "fileName": "candidate_pan.pdf",
+          "fileSize": "48 B",
+          "mimeType": "application/pdf",
+          "storagePath": "secure_uploads/cand-vikram-malhotra/pan_card_1793343761431_candidate_pan.pdf",
+          "uploadedAt": "2026-10-30T07:02:41.431Z",
+          "uploadedVia": "QR"
         },
         "passport": {
           "key": "passport",
@@ -2721,10 +2727,10 @@
           "required": false
         }
       },
-      "profileCompletion": 87,
+      "profileCompletion": 88,
       "notes": "Offer letter signed. Relieving letter expected by Nov 10.",
       "createdAt": "2026-10-20T10:00:00Z",
-      "updatedAt": "2026-10-29T11:10:44.267Z",
+      "updatedAt": "2026-10-30T07:02:41.431Z",
       "uploadToken": {
         "token": "wcr-upl-j106ir23-mvtfzmpw",
         "employeeId": "cand-vikram-malhotra",
@@ -3084,12 +3090,27 @@
       "subDepartment": "Golf Course Road Luxury",
       "departmentId": "dept-gurgaon-market",
       "documentQrMeta": {
-        "hasToken": false,
-        "isActive": false,
+        "hasToken": true,
+        "isActive": true,
         "isExpired": false,
         "isRevoked": false,
-        "targetDocKeys": [],
-        "uploadedDocKeys": []
+        "createdAt": "2026-10-30T07:02:41.411Z",
+        "expiresAt": "2026-10-31T07:02:41.411Z",
+        "remainingMs": 86399975,
+        "createdBy": "Nisha (HR)",
+        "createdByRole": "HR",
+        "targetDocKeys": [
+          "pan_card",
+          "edu_10th",
+          "edu_12th",
+          "edu_graduation",
+          "photograph"
+        ],
+        "uploadedDocKeys": [
+          "pan_card"
+        ],
+        "openCount": 2,
+        "lastOpenedAt": "2026-10-30T07:02:41.436Z"
       }
     },
     {
@@ -3847,7 +3868,7 @@
         "isRevoked": false,
         "createdAt": "2026-10-30T06:18:16.004Z",
         "expiresAt": "2026-10-31T06:18:16.004Z",
-        "remainingMs": 86399975,
+        "remainingMs": 83734602,
         "createdBy": "Neha Kapoor",
         "createdByRole": "HR",
         "targetDocKeys": [
@@ -4224,6 +4245,94 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1793343761433-wwlnq",
+      "timestamp": "2026-10-30T07:02:41.433Z",
+      "actor": "Vikram Malhotra (QR Upload)",
+      "actorRole": "HR",
+      "action": "Document Uploaded via 24h QR",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra-pan_card",
+      "entityName": "Vikram Malhotra - PAN Card",
+      "details": "Uploaded 'candidate_pan.pdf' (48 B, application/pdf) via candidate-specific QR. Status automatically updated: Missing -> Uploaded."
+    },
+    {
+      "id": "log-1793343761421-37plg",
+      "timestamp": "2026-10-30T07:02:41.422Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (5 missing required doc(s) detected; expires 10/31/2026, 7:02:41 AM)."
+    },
+    {
+      "id": "log-1793343706230-gg9yi",
+      "timestamp": "2026-10-30T07:01:46.230Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (5 missing required doc(s) detected; expires 10/31/2026, 7:01:46 AM)."
+    },
+    {
+      "id": "log-1793343688061-x2c1z",
+      "timestamp": "2026-10-30T07:01:28.061Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (5 missing required doc(s) detected; expires 10/31/2026, 7:01:28 AM)."
+    },
+    {
+      "id": "log-1793343674587-bvd66",
+      "timestamp": "2026-10-30T07:01:14.587Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (5 missing required doc(s) detected; expires 10/31/2026, 7:01:14 AM)."
+    },
+    {
+      "id": "log-1793343600153-l6wy6",
+      "timestamp": "2026-10-30T07:00:00.153Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Document QR Generated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (5 missing required doc(s) detected; expires 10/31/2026, 7:00:00 AM)."
+    },
+    {
+      "id": "log-1793342496934-4h0zy",
+      "timestamp": "2026-10-30T06:41:36.934Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Sub-Department Updated",
+      "entityType": "Department",
+      "entityId": "dept-ai-intern",
+      "entityName": "AI Intern / AI & ML Engineering",
+      "details": "Updated sub-department 'AI & ML Engineering' in AI Intern."
+    },
+    {
+      "id": "log-1793342457407-8q4er",
+      "timestamp": "2026-10-30T06:40:57.407Z",
+      "actor": "Nisha (HR)",
+      "actorRole": "HR",
+      "action": "Missing Documents HR Alert Dismissed",
+      "entityType": "Candidate",
+      "entityId": "all-missing-docs",
+      "entityName": "HR Alert: Candidate Missing Documents",
+      "details": "Dismissed 5 missing-document alert(s) on dashboard."
+    },
     {
       "id": "log-1793341096023-dcir5",
       "timestamp": "2026-10-30T06:18:16.023Z",
@@ -5633,9 +5742,30 @@
       "details": "Issued MacBook Pro 16\" to Chetan Dixit for AI modeling at Desk C2."
     }
   ],
-  "acknowledgedAlerts": {},
+  "acknowledgedAlerts": {
+    "missing-docs-cand-vikram-malhotra": {
+      "dismissedAt": "2026-10-30T06:40:57.405Z",
+      "dismissedBy": "Nisha (HR)"
+    },
+    "missing-docs-cand-aanya-kapoor": {
+      "dismissedAt": "2026-10-30T06:40:57.405Z",
+      "dismissedBy": "Nisha (HR)"
+    },
+    "missing-docs-cand-rohan-verma": {
+      "dismissedAt": "2026-10-30T06:40:57.405Z",
+      "dismissedBy": "Nisha (HR)"
+    },
+    "missing-docs-cand-simran-kaur": {
+      "dismissedAt": "2026-10-30T06:40:57.405Z",
+      "dismissedBy": "Nisha (HR)"
+    },
+    "missing-docs-cand-1793341095977-37ex": {
+      "dismissedAt": "2026-10-30T06:40:57.405Z",
+      "dismissedBy": "Nisha (HR)"
+    }
+  },
   "version": 3,
-  "lastUpdated": "2026-10-30T06:18:16.029Z",
+  "lastUpdated": "2026-10-30T07:02:41.436Z",
   "salaryStructures": [
     {
       "id": "role-bde",
@@ -6368,6 +6498,117 @@
   "notificationDeliveryLogs": [],
   "qrDocumentTokens": [
     {
+      "id": "qrt-1793343761411-8c703e",
+      "token": "208578a0679d62dc5e2e4e5ce7aad2f180e8d8e2efcdd5f15e538dc6c1964898",
+      "tokenHash": "d330b44651200e11007a3113273d119627de5c479a6102c8685ef1e7a38c97f1",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-10-30T07:02:41.411Z",
+      "expiresAt": "2026-10-31T07:02:41.411Z",
+      "createdBy": "Nisha (HR)",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "pan_card",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph"
+      ],
+      "uploadedDocKeys": [
+        "pan_card"
+      ],
+      "openCount": 2,
+      "lastOpenedAt": "2026-10-30T07:02:41.436Z"
+    },
+    {
+      "id": "qrt-1793343706220-71ece7",
+      "token": "0208547144e6b4d6e48bc1acdf080b9c1c9a84ab9d85678c3c6ec2fa63a91ef4",
+      "tokenHash": "25a7eaef971c0b5316faccf56fab193804515f7bbd9263ee1938a739f97dda5f",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-10-30T07:01:46.220Z",
+      "expiresAt": "2026-10-31T07:01:46.220Z",
+      "createdBy": "Nisha (HR)",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "pan_card",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 2,
+      "lastOpenedAt": "2026-10-30T07:01:59.531Z",
+      "revokedAt": "2026-10-30T07:02:41.411Z",
+      "revokedBy": "Nisha (HR)",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
+    },
+    {
+      "id": "qrt-1793343688050-666101",
+      "token": "ae84c7af6f1010d63a1376ab059b056013ba9e08af2015e2959ecc9e10087177",
+      "tokenHash": "b5b3891b2d03ee4639f3ec4602368ea55c872405cdb95c303990defcb7eafd18",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-10-30T07:01:28.050Z",
+      "expiresAt": "2026-10-31T07:01:28.050Z",
+      "createdBy": "Nisha (HR)",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "pan_card",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 0,
+      "revokedAt": "2026-10-30T07:01:46.220Z",
+      "revokedBy": "Nisha (HR)",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
+    },
+    {
+      "id": "qrt-1793343674573-889791",
+      "token": "48655a1b500d80abd16c64eacd916a748d4371ec3ff0c6e316cf44c16e5153c4",
+      "tokenHash": "0bfa53313a1a265b224ab8ec2d6ac5e7fd20f2f1aae2bc74c9659267ffac3860",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-10-30T07:01:14.573Z",
+      "expiresAt": "2026-10-31T07:01:14.573Z",
+      "createdBy": "Nisha (HR)",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "pan_card",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 0,
+      "revokedAt": "2026-10-30T07:01:28.050Z",
+      "revokedBy": "Nisha (HR)",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
+    },
+    {
+      "id": "qrt-1793343600123-ab5456",
+      "token": "a787b8434a159d7301ebb0d76dc1355fa92fd8a0633ba08cd1d9d4de13b7213c",
+      "tokenHash": "8a6cc971a2de3778112fea58a217b958254b977b6032c64c2c653fc1f740e223",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-10-30T07:00:00.123Z",
+      "expiresAt": "2026-10-31T07:00:00.123Z",
+      "createdBy": "Nisha (HR)",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "pan_card",
+        "edu_10th",
+        "edu_12th",
+        "edu_graduation",
+        "photograph"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 0,
+      "revokedAt": "2026-10-30T07:01:14.573Z",
+      "revokedBy": "Nisha (HR)",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
+    },
+    {
       "id": "qrt-1793341096004-68c07b",
       "token": "0220912994f6b0b8643d6cfae3fc3ba3f76e31077725cba05094a77a63bfa289",
       "tokenHash": "43a1adf1262a84ffa6ca7e975a232235454c66adc7cb00f5f96716714a90525d",
@@ -6586,7 +6827,7 @@
           "name": "AI & ML Engineering",
           "description": "Lead scoring, recommendation engines, and AI automation",
           "createdAt": "2026-01-01T09:00:00Z",
-          "updatedAt": "2026-01-01T09:00:00Z"
+          "updatedAt": "2026-10-30T06:41:36.931Z"
         },
         {
           "id": "sub-ai-da",
@@ -6597,7 +6838,7 @@
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
-      "updatedAt": "2026-01-01T09:00:00Z"
+      "updatedAt": "2026-10-30T06:41:36.931Z"
     },
     {
       "id": "dept-dm-intern",

@@ -25,10 +25,18 @@ import {
 } from '../types/index.js';
 import { api } from '../services/api.js';
 
+import {
+  Tag,
+} from 'lucide-react';
+
 interface DepartmentsViewProps {
   departments: DepartmentWithCounts[];
   employees: Employee[];
   userRole: UserRole;
+  activeDeptId?: string;
+  activeSubDept?: string;
+  onSelectDeptAndSub?: (deptId: string, subDept: string) => void;
+  openCreateDeptTrigger?: number;
   onSelectPerson: (person: Employee) => void;
   onOpenQrModal: (person: Employee) => void;
   onOpenAddPersonInDepartment: (isCandidate: boolean, departmentName: string, subDepartmentName?: string) => void;
@@ -40,6 +48,10 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
   departments,
   employees,
   userRole,
+  activeDeptId,
+  activeSubDept,
+  onSelectDeptAndSub,
+  openCreateDeptTrigger,
   onSelectPerson,
   onOpenQrModal,
   onOpenAddPersonInDepartment,
@@ -48,11 +60,17 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
 }) => {
   const canManage = userRole === 'HR' || userRole === 'Co-Founder';
 
-  const [selectedDeptId, setSelectedDeptId] = useState<string>(() => departments[0]?.id || '');
-  const [selectedSubDept, setSelectedSubDept] = useState<string>('All');
+  const [selectedDeptId, setSelectedDeptId] = useState<string>(() => activeDeptId || departments[0]?.id || '');
+  const [selectedSubDept, setSelectedSubDept] = useState<string>(() => activeSubDept || 'All');
   const [searchQuery, setSearchQuery] = useState('');
   const [personTypeFilter, setPersonTypeFilter] = useState<'ALL' | 'EMPLOYEE' | 'CANDIDATE'>('ALL');
   const [docFilter, setDocFilter] = useState<'ALL' | 'MISSING' | 'UPLOADED_REVIEW' | 'VERIFIED'>('ALL');
+
+  // Dynamic Employment Categories Management
+  const [categories, setCategories] = useState<string[]>(['Employee', 'Intern', 'Consultant', 'Contractor']);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryLoading, setCategoryLoading] = useState(false);
 
   // Modals / Inline Forms for Department & Sub-Department CRUD
   const [showCreateDeptModal, setShowCreateDeptModal] = useState(false);
@@ -76,6 +94,33 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
 
   const [busy, setBusy] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+
+  // Load employment categories on mount
+  useEffect(() => {
+    api.getEmploymentCategories()
+      .then(cats => {
+        if (cats && cats.length > 0) setCategories(cats);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Listen to openCreateDeptTrigger from Sidebar
+  useEffect(() => {
+    if (openCreateDeptTrigger) {
+      setFeedbackError(null);
+      setShowCreateDeptModal(true);
+    }
+  }, [openCreateDeptTrigger]);
+
+  // Sync when activeDeptId or activeSubDept passed from Sidebar
+  useEffect(() => {
+    if (activeDeptId && departments.some(d => d.id === activeDeptId)) {
+      setSelectedDeptId(activeDeptId);
+    }
+    if (activeSubDept !== undefined) {
+      setSelectedSubDept(activeSubDept);
+    }
+  }, [activeDeptId, activeSubDept, departments]);
 
   useEffect(() => {
     if (departments.length > 0 && !departments.some(d => d.id === selectedDeptId)) {
@@ -273,6 +318,37 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
     }
   };
 
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+    setCategoryLoading(true);
+    setFeedbackError(null);
+    try {
+      const updated = await api.createEmploymentCategory(newCategoryName.trim());
+      setCategories(updated);
+      setNewCategoryName('');
+      onEmployeesRefresh();
+    } catch (err: any) {
+      setFeedbackError(err.message || 'Failed to add category');
+    } finally {
+      setCategoryLoading(false);
+    }
+  };
+
+  const handleDeleteCategory = async (catName: string) => {
+    setCategoryLoading(true);
+    setFeedbackError(null);
+    try {
+      const updated = await api.deleteEmploymentCategory(catName);
+      setCategories(updated);
+      onEmployeesRefresh();
+    } catch (err: any) {
+      setFeedbackError(err.message || 'Failed to delete category');
+    } finally {
+      setCategoryLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Top Summary Bar */}
@@ -285,22 +361,37 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
             </h2>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Dedicated rosters, counts, search, filters, and 24-hour Document QR controls across Dubai Market, Gurgaon Market, AI Intern, DM Intern, and corporate teams.
+            Dedicated rosters, counts, search, filters, and 24-hour Document QR controls across Dubai Market, Gurgaon Market, AI Department, DA Department, and corporate units.
           </p>
         </div>
 
         {canManage && (
-          <button
-            type="button"
-            onClick={() => {
-              setFeedbackError(null);
-              setShowCreateDeptModal(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-colors shrink-0"
-          >
-            <Plus className="w-4 h-4 text-amber-400" />
-            Create Department
-          </button>
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                setFeedbackError(null);
+                setShowCategoryModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              title="Manage Dynamic Employment Categories (Employee, Intern, Consultant, Contractor)"
+            >
+              <Tag className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>Employment Categories ({categories.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFeedbackError(null);
+                setShowCreateDeptModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-colors shrink-0 cursor-pointer"
+            >
+              <Plus className="w-4 h-4 text-amber-400" />
+              Create Department
+            </button>
+          </div>
         )}
       </div>
 
@@ -821,10 +912,102 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
                     )}
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <>
+                    {/* Mobile Card List */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                      {filteredMembers.map(person => {
+                        const docs = Object.values(person.documents || {});
+                        const missingReqCount = docs.filter(
+                          d =>
+                            d.required &&
+                            (d.status === 'Missing' || d.status === 'Not Submitted' || d.status === 'Rejected')
+                        ).length;
+                        const uploadedReviewCount = docs.filter(
+                          d => d.status === 'Uploaded' || d.status === 'Submitted' || d.status === 'Under Review'
+                        ).length;
+                        const qrMeta = person.documentQrMeta;
+
+                        return (
+                          <div
+                            key={person.id}
+                            onClick={() => onSelectPerson(person)}
+                            className="p-3.5 space-y-2 hover:bg-slate-50 transition-colors cursor-pointer"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-8 h-8 rounded-full bg-slate-900 text-amber-300 flex items-center justify-center font-bold text-xs shrink-0">
+                                  {person.fullName.charAt(0)}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-slate-900 text-xs truncate">{person.fullName}</p>
+                                  <p className="text-[11px] text-slate-500 font-mono truncate">
+                                    {person.employeeCode} {person.desk ? `· Desk ${person.desk}` : ''}
+                                  </p>
+                                </div>
+                              </div>
+                              <span
+                                className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold shrink-0 ${
+                                  person.isCandidate
+                                    ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                    : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                }`}
+                              >
+                                {person.isCandidate ? 'Candidate' : person.employmentStatus}
+                              </span>
+                            </div>
+
+                            <div className="text-[11px] text-slate-600 truncate">
+                              {person.designation} · {person.subDepartment || 'General Department'}
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[11px]">
+                              <div>
+                                {missingReqCount > 0 ? (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-rose-700">
+                                    <FileWarning className="w-3.5 h-3.5 text-rose-600" />
+                                    {missingReqCount} Missing
+                                  </span>
+                                ) : uploadedReviewCount > 0 ? (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-indigo-700">
+                                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                                    {uploadedReviewCount} Uploaded
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                                    <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" />
+                                    Verified
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenQrModal(person)}
+                                  className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-semibold flex items-center gap-1"
+                                >
+                                  <QrCode className="w-3 h-3 text-amber-400" />
+                                  QR
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => onSelectPerson(person)}
+                                  className="px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] font-semibold"
+                                >
+                                  Dossier
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Desktop View Table */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                           <th className="py-2.5 px-4">Person</th>
                           <th className="py-2.5 px-3">Role & Sub-Department</th>
                           <th className="py-2.5 px-3">Type</th>
@@ -942,8 +1125,9 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
                           );
                         })}
                       </tbody>
-                    </table>
-                  </div>
+                      </table>
+                    </div>
+                  </>
                 )}
               </div>
             </>
@@ -1092,6 +1276,114 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
                   className="px-4 py-2 rounded-lg bg-rose-600 text-white font-semibold hover:bg-rose-700 disabled:opacity-50"
                 >
                   {busy ? 'Deleting...' : 'Confirm Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Dynamic Employment Categories Management */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in duration-150">
+            <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4 text-amber-400" />
+                <h3 className="text-sm font-bold tracking-tight">Employment Categories</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCategoryModal(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-md"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              <p className="text-slate-600 leading-relaxed">
+                HR can configure custom employment categories dynamically (e.g. Employee, Intern, Consultant, Contractor). Each active profile is categorized to allow targeted rosters, policies, and permissions.
+              </p>
+
+              {/* Existing Categories List */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                  Active Categories ({categories.length})
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {categories.map(cat => {
+                    const memberCount = employees.filter(
+                      e => (e.employmentCategory || (e.employmentStatus === 'Intern' ? 'Intern' : 'Employee')) === cat
+                    ).length;
+                    const isSystem = ['Employee', 'Intern'].includes(cat);
+
+                    return (
+                      <div
+                        key={cat}
+                        className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/80"
+                      >
+                        <div className="min-w-0">
+                          <span className="font-semibold text-slate-900 truncate block">{cat}</span>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {memberCount} active profile{memberCount === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                        {!isSystem && canManage && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCategory(cat)}
+                            disabled={categoryLoading}
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                            title={`Delete category "${cat}"`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {isSystem && (
+                          <span className="text-[9px] font-semibold text-slate-400 uppercase bg-slate-200/80 px-1.5 py-0.5 rounded">
+                            Core
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Add New Category Form */}
+              {canManage && (
+                <form onSubmit={handleAddCategory} className="pt-3 border-t border-slate-200 space-y-2.5">
+                  <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Add New Employment Category
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="e.g. Retainer, Advisor, Partner"
+                      value={newCategoryName}
+                      onChange={e => setNewCategoryName(e.target.value)}
+                      className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-1 focus:ring-slate-900"
+                    />
+                    <button
+                      type="submit"
+                      disabled={categoryLoading || !newCategoryName.trim()}
+                      className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{categoryLoading ? 'Adding...' : 'Add Category'}</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryModal(false)}
+                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700 text-xs transition-colors"
+                >
+                  Close
                 </button>
               </div>
             </div>

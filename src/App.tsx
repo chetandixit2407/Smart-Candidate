@@ -97,6 +97,9 @@ export default function App() {
   const [offerPreviewSnapshot, setOfferPreviewSnapshot] = useState<OfferLetterData | null>(null);
   const [reminderCandidate, setReminderCandidate] = useState<Employee | null>(null);
   const [reminderInitialChannel, setReminderInitialChannel] = useState<'EMAIL' | 'WHATSAPP' | 'BOTH'>('BOTH');
+  const [selectedDeptId, setSelectedDeptId] = useState<string>('');
+  const [selectedSubDept, setSelectedSubDept] = useState<string>('All');
+  const [openCreateDeptTrigger, setOpenCreateDeptTrigger] = useState<number>(0);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [addModalIsCandidate, setAddModalIsCandidate] = useState<boolean>(false);
   const [addModalDefaultDept, setAddModalDefaultDept] = useState<string | undefined>(undefined);
@@ -820,6 +823,20 @@ export default function App() {
         pendingDocCount={pendingDocCount}
         upcomingCount={candidates.length}
         departmentsCount={departments.length}
+        departments={departments}
+        selectedDepartmentId={selectedDeptId}
+        selectedSubDepartmentName={selectedSubDept}
+        onSelectDepartment={(deptId, subDeptName) => {
+          setSelectedDeptId(deptId);
+          setSelectedSubDept(subDeptName || 'All');
+          setCurrentTab('departments');
+        }}
+        onOpenCreateDepartment={() => {
+          setSelectedDeptId('');
+          setSelectedSubDept('All');
+          setCurrentTab('departments');
+          setOpenCreateDeptTrigger(prev => prev + 1);
+        }}
         sseConnected={sseConnected}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
@@ -851,6 +868,28 @@ export default function App() {
           onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
         />
 
+        {/* Top Notification / Alert Banner - Contained strictly inside content area, never overlapping sidebar or top header */}
+        <HRAlertsFloatingBanner
+          alerts={alerts}
+          onViewProfile={personId => {
+            const person = allEmployees.find(p => p.id === personId);
+            if (person) {
+              setSelectedPerson(person);
+            }
+          }}
+          onSendReminder={(candidateId, channel) => {
+            handleOpenReminderModal(candidateId, channel);
+          }}
+          onDismissAlert={async alertId => {
+            await api.dismissAlert(alertId);
+            await refreshAlerts();
+            showToast('Alert dismissed');
+          }}
+          onDismissAllMissingDocs={handleDismissAllMissingDocs}
+          userRole={userRole}
+          onOpenFullModal={() => setShowAlertsPopup(true)}
+        />
+
         {/* Viewport View Container */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 w-full min-w-0 overflow-x-hidden">
           <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 w-full min-w-0">
@@ -876,6 +915,13 @@ export default function App() {
                 departments={departments}
                 employees={allEmployees}
                 userRole={userRole}
+                activeDeptId={selectedDeptId}
+                activeSubDept={selectedSubDept}
+                onSelectDeptAndSub={(deptId, subDept) => {
+                  setSelectedDeptId(deptId);
+                  setSelectedSubDept(subDept);
+                }}
+                openCreateDeptTrigger={openCreateDeptTrigger}
                 onSelectPerson={setSelectedPerson}
                 onOpenQrModal={setQrModalPerson}
                 onOpenAddPersonInDepartment={(isCand, deptName, subDeptName) => {
@@ -1140,28 +1186,6 @@ export default function App() {
           }}
         />
       )}
-
-      {/* Real-time HR In-App Floating Alert Popup for Missing Documents & Overdue Submissions */}
-      <HRAlertsFloatingBanner
-        alerts={alerts}
-        onViewProfile={personId => {
-          const person = allEmployees.find(p => p.id === personId);
-          if (person) {
-            setSelectedPerson(person);
-          }
-        }}
-        onSendReminder={(candidateId, channel) => {
-          handleOpenReminderModal(candidateId, channel);
-        }}
-        onDismissAlert={async alertId => {
-          await api.dismissAlert(alertId);
-          await refreshAlerts();
-          showToast('Alert dismissed');
-        }}
-        onDismissAllMissingDocs={handleDismissAllMissingDocs}
-        userRole={userRole}
-        onOpenFullModal={() => setShowAlertsPopup(true)}
-      />
 
       {/* Add Person Modal */}
       {showAddModal && (
