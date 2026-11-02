@@ -52,6 +52,21 @@ function detectPublicQrTokenFromLocation(): string | null {
   return null;
 }
 
+function detectCandidatePortalTokenFromLocation(): string | null {
+  if (typeof window === 'undefined') return null;
+  const path = window.location.pathname.trim();
+  const pathMatch = path.match(/^\/(?:upload-portal|candidate-portal|onboarding|register)\/([a-zA-Z0-9_-]{10,100})\/?$/i);
+  if (pathMatch && pathMatch[1]) {
+    return pathMatch[1];
+  }
+  const searchParams = new URLSearchParams(window.location.search);
+  const queryToken = searchParams.get('uploadToken') || searchParams.get('candidateToken');
+  if (queryToken && /^[a-zA-Z0-9_-]{10,100}$/.test(queryToken.trim())) {
+    return queryToken.trim();
+  }
+  return null;
+}
+
 export default function App() {
   // Public unauthenticated 24-Hour QR Document Upload route (does NOT require HR login)
   const [publicQrToken] = useState<string | null>(() => detectPublicQrTokenFromLocation());
@@ -75,10 +90,9 @@ export default function App() {
   const [liveQrUploads, setLiveQrUploads] = useState<Record<string, LiveQrUploadEvent>>({});
   const [liveQrFeed, setLiveQrFeed] = useState<LiveQrUploadEvent[]>([]);
 
-  // Candidate Self-Service Upload Portal Mode (legacy ?uploadToken=...)
+  // Candidate Self-Service Upload Portal Mode (direct URL or ?uploadToken=...)
   const [candidatePortalToken, setCandidatePortalToken] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return new URLSearchParams(window.location.search).get('uploadToken');
+    return detectCandidatePortalTokenFromLocation();
   });
 
   // Reset database confirmation modal
@@ -798,16 +812,21 @@ export default function App() {
     return <QrDocumentUploadPage token={publicQrToken} />;
   }
 
-  // If candidate accessed with ?uploadToken=..., render dedicated Candidate Upload Portal
+  // If candidate accessed with candidate onboarding registration link (/upload-portal/:token or ?uploadToken=...), render dedicated Candidate Portal
   if (candidatePortalToken) {
+    const isDirectCandidate = Boolean(detectCandidatePortalTokenFromLocation());
     return (
       <CandidateUploadPortal
         token={candidatePortalToken}
-        onExitPortal={() => {
-          setCandidatePortalToken(null);
-          window.history.replaceState({}, '', window.location.pathname);
-          refreshAllData();
-        }}
+        onExitPortal={
+          !isDirectCandidate
+            ? () => {
+                setCandidatePortalToken(null);
+                window.history.replaceState({}, '', window.location.pathname);
+                refreshAllData();
+              }
+            : undefined
+        }
       />
     );
   }

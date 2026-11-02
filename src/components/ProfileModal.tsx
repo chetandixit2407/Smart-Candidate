@@ -61,6 +61,7 @@ import {
 import { api } from '../services/api.js';
 import { LiveDocumentViewerModal } from './LiveDocumentViewerModal.js';
 import { LifecycleTimeline } from './LifecycleTimeline.js';
+import { COMPANY_CONFIG } from '../config/company.js';
 
 interface ProfileModalProps {
   employee: Employee;
@@ -1000,13 +1001,27 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       )}
                     </div>
                   )}
+
+                  {/* Corporate Work Location */}
+                  <div className="md:col-span-2 p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 mt-1">
+                    <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1.5 uppercase tracking-wider">
+                      <Building className="w-3.5 h-3.5 text-amber-600" />
+                      Official Corporate Office & Work Location
+                    </span>
+                    <p className="text-xs font-semibold text-slate-800 mt-1">
+                      {COMPANY_CONFIG.legalName}
+                    </p>
+                    <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                      {employee.market === 'Dubai' ? COMPANY_CONFIG.dubaiBranchAddress : COMPANY_CONFIG.officialAddress}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Addresses */}
               <div className="pt-4 border-t border-slate-200">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
-                  Residential Addresses
+                  Candidate Personal Residential Addresses
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">

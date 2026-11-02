@@ -2593,16 +2593,16 @@
       "employeeCode": "WCR-022 (Pending)",
       "fullName": "Vikram Malhotra",
       "email": "vikram.m.candidate@gmail.com",
-      "phone": "9811999887",
+      "phone": "+91 98119 99887",
       "dateOfBirth": "1993-04-12",
       "gender": "Male",
       "nationality": "Indian",
-      "currentAddress": "Tower 8, Ireo Grand Arch, Golf Course Extn Road, Gurgaon",
-      "permanentAddress": "Tower 8, Ireo Grand Arch, Golf Course Extn Road, Gurgaon",
+      "currentAddress": "Tower 8, Ireo Grand Arch, Golf Course Extn Road, Sector 58, Gurugram, Haryana 122002",
+      "permanentAddress": "Tower 8, Ireo Grand Arch, Golf Course Extn Road, Sector 58, Gurugram, Haryana 122002",
       "emergencyContact": {
         "name": "Kavita Malhotra",
         "relation": "Sister",
-        "phone": "9811999888"
+        "phone": "+91 98119 99888"
       },
       "familyDetails": [
         {
@@ -2654,24 +2654,27 @@
           "category": "Identity",
           "status": "Submitted",
           "required": true,
-          "fileName": "Vikram_Aadhaar.pdf",
-          "fileSize": "1.4 MB",
-          "fileData": "data:application/pdf;base64,JVBERi0xLjQK",
+          "fileName": "aadhaar_card_submitted.pdf",
+          "fileSize": "284 B",
+          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg==",
           "mimeType": "application/pdf",
-          "uploadedAt": "2026-10-29T08:35:46.588Z"
+          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "uploadedVia": "Portal",
+          "storagePath": "secure_uploads/cand-vikram-malhotra/aadhaar_card_1793597803585_aadhaar_card_submitted.pdf"
         },
         "pan_card": {
           "key": "pan_card",
           "title": "PAN Card",
           "category": "Financial & Tax",
-          "status": "Uploaded",
+          "status": "Submitted",
           "required": true,
-          "fileName": "candidate_pan.pdf",
-          "fileSize": "48 B",
+          "fileName": "pan_card_submitted.pdf",
+          "fileSize": "284 B",
           "mimeType": "application/pdf",
-          "storagePath": "secure_uploads/cand-vikram-malhotra/pan_card_1793343761431_candidate_pan.pdf",
-          "uploadedAt": "2026-10-30T07:02:41.431Z",
-          "uploadedVia": "QR"
+          "storagePath": "secure_uploads/cand-vikram-malhotra/pan_card_1793597803585_pan_card_submitted.pdf",
+          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "uploadedVia": "Portal",
+          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg=="
         },
         "passport": {
           "key": "passport",
@@ -2684,34 +2687,43 @@
           "key": "edu_10th",
           "title": "10th Marksheet & Passing Certificate",
           "category": "Education",
-          "status": "Uploaded",
+          "status": "Submitted",
           "required": true,
-          "fileName": "10th_marksheet_verified.pdf",
-          "fileSize": "76 B",
+          "fileName": "edu_10th_submitted.pdf",
+          "fileSize": "284 B",
           "mimeType": "application/pdf",
-          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_10th_1793352681288_10th_marksheet_verified.pdf",
-          "uploadedAt": "2026-10-30T09:31:21.288Z",
-          "uploadedVia": "QR"
+          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_10th_1793597803585_edu_10th_submitted.pdf",
+          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "uploadedVia": "Portal",
+          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg=="
         },
         "edu_12th": {
           "key": "edu_12th",
           "title": "12th / Intermediate Marksheet",
           "category": "Education",
-          "status": "Uploaded",
+          "status": "Submitted",
           "required": true,
-          "fileName": "Vikram_12th_Certificate.pdf",
-          "fileSize": "76 B",
+          "fileName": "edu_12th_submitted.pdf",
+          "fileSize": "284 B",
           "mimeType": "application/pdf",
-          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_12th_1793355724365_Vikram_12th_Certificate.pdf",
-          "uploadedAt": "2026-10-30T10:22:04.365Z",
-          "uploadedVia": "QR"
+          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_12th_1793597803585_edu_12th_submitted.pdf",
+          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "uploadedVia": "Portal",
+          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg=="
         },
         "edu_graduation": {
           "key": "edu_graduation",
           "title": "Graduation Degree & Final Marksheet",
           "category": "Education",
-          "status": "Missing",
-          "required": true
+          "status": "Submitted",
+          "required": true,
+          "fileName": "edu_graduation_submitted.pdf",
+          "fileSize": "284 B",
+          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg==",
+          "mimeType": "application/pdf",
+          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "uploadedVia": "Portal",
+          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_graduation_1793597803585_edu_graduation_submitted.pdf"
         },
         "prev_offer": {
           "key": "prev_offer",
@@ -2738,8 +2750,15 @@
           "key": "photograph",
           "title": "Passport Size Photograph (Hard Copy)",
           "category": "Photos & General",
-          "status": "Missing",
-          "required": true
+          "status": "Submitted",
+          "required": true,
+          "fileName": "photograph_submitted.pdf",
+          "fileSize": "284 B",
+          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg==",
+          "mimeType": "application/pdf",
+          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "uploadedVia": "Portal",
+          "storagePath": "secure_uploads/cand-vikram-malhotra/photograph_1793597803585_photograph_submitted.pdf"
         },
         "appraisal_letter": {
           "key": "appraisal_letter",
@@ -2756,23 +2775,26 @@
           "required": false
         }
       },
-      "profileCompletion": 89,
+      "profileCompletion": 96,
       "notes": "Offer letter signed. Relieving letter expected by Nov 10.",
       "createdAt": "2026-10-20T10:00:00Z",
-      "updatedAt": "2026-10-30T10:22:04.365Z",
+      "updatedAt": "2026-11-02T05:36:43.584Z",
       "uploadToken": {
-        "token": "wcr-upl-j106ir23-mvtfzmpw",
+        "token": "wcr-upl-a1dll3v7-mvyttmhn",
         "employeeId": "cand-vikram-malhotra",
         "candidateName": "Vikram Malhotra",
         "candidateEmail": "vikram.m.candidate@gmail.com",
-        "createdAt": "2026-10-29T11:10:38.276Z",
-        "expiresAt": "2026-11-05T11:10:38.276Z",
-        "isUsed": false,
+        "createdAt": "2026-11-02T05:36:43.547Z",
+        "expiresAt": "2026-11-09T05:36:43.547Z",
+        "isUsed": true,
         "revoked": false,
         "isRevoked": false,
-        "submissionCount": 0,
-        "isOneTime": false,
-        "expiryDays": 7
+        "submissionCount": 1,
+        "isOneTime": true,
+        "expiryDays": 7,
+        "usedAt": "2026-11-02T05:36:43.584Z",
+        "lastIdempotencyKey": "idem-1793597803581",
+        "lastSubmissionRef": "WCR-SUB-MVYTTMIO-0BBR"
       },
       "interviews": [
         {
@@ -3120,12 +3142,12 @@
       "departmentId": "dept-gurgaon-market",
       "documentQrMeta": {
         "hasToken": true,
-        "isActive": true,
-        "isExpired": false,
+        "isActive": false,
+        "isExpired": true,
         "isRevoked": false,
         "createdAt": "2026-10-30T10:22:04.199Z",
         "expiresAt": "2026-10-31T10:22:04.199Z",
-        "remainingMs": 84291306,
+        "remainingMs": 0,
         "createdBy": "Nisha (HR)",
         "createdByRole": "HR",
         "targetDocKeys": [
@@ -3139,7 +3161,18 @@
         "openCount": 1,
         "lastOpenedAt": "2026-10-30T10:22:04.291Z"
       },
-      "employmentCategory": "Employee"
+      "employmentCategory": "Employee",
+      "alternatePhone": "+91 98119 99888",
+      "bankDetails": {
+        "accountNo": "50100234567890",
+        "bankName": "HDFC Bank",
+        "ifscCode": "HDFC0000240"
+      },
+      "identityDetails": {
+        "aadhaarNo": "7890 1234 5678",
+        "panNo": "ABCDE1234F",
+        "passportNo": ""
+      }
     },
     {
       "id": "cand-aanya-kapoor",
@@ -3470,12 +3503,12 @@
       "departmentId": "dept-dubai-market",
       "documentQrMeta": {
         "hasToken": true,
-        "isActive": true,
-        "isExpired": false,
+        "isActive": false,
+        "isExpired": true,
         "isRevoked": false,
         "createdAt": "2026-10-30T10:57:06.510Z",
         "expiresAt": "2026-10-31T10:57:06.510Z",
-        "remainingMs": 86388089,
+        "remainingMs": 0,
         "createdBy": "HR User",
         "createdByRole": "HR",
         "targetDocKeys": [
@@ -3921,12 +3954,12 @@
       "savedOfferLetters": [],
       "documentQrMeta": {
         "hasToken": true,
-        "isActive": true,
-        "isExpired": false,
+        "isActive": false,
+        "isExpired": true,
         "isRevoked": false,
         "createdAt": "2026-10-30T06:18:16.004Z",
         "expiresAt": "2026-10-31T06:18:16.004Z",
-        "remainingMs": 69663111,
+        "remainingMs": 0,
         "createdBy": "Neha Kapoor",
         "createdByRole": "HR",
         "targetDocKeys": [
@@ -4304,6 +4337,28 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1793597803593-nq8c8",
+      "timestamp": "2026-11-02T05:36:43.593Z",
+      "actor": "Candidate Portal",
+      "actorRole": "HR",
+      "action": "Candidate Registration & Documents Submitted via Secure Link",
+      "entityType": "Candidate",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Submitted 6 genuine document(s) and completed registration (Ref: WCR-SUB-MVYTTMIO-0BBR). One-time registration link is now closed."
+    },
+    {
+      "id": "log-1793597803551-aixvq",
+      "timestamp": "2026-11-02T05:36:43.551Z",
+      "actor": "HR Manager",
+      "actorRole": "HR",
+      "action": "Upload Link Generated",
+      "entityType": "Candidate",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated single-use upload link (expires in 7 days on 11/9/2026)."
+    },
     {
       "id": "log-1793357838424-mq10q",
       "timestamp": "2026-10-30T10:57:18.424Z",
@@ -5956,7 +6011,7 @@
     }
   },
   "version": 3,
-  "lastUpdated": "2026-10-30T10:57:18.424Z",
+  "lastUpdated": "2026-11-02T05:36:43.593Z",
   "salaryStructures": [
     {
       "id": "role-bde",
@@ -7144,8 +7199,8 @@
           "id": "sub-gurgaon-market-emp",
           "name": "Gurgaon Employees",
           "description": "Full-time Gurgaon employees and team members",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7161,8 +7216,8 @@
           "id": "sub-dubai-market-emp",
           "name": "Dubai Employees",
           "description": "Full-time Dubai employees and team members",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7177,14 +7232,14 @@
         {
           "id": "sub-ai-emp",
           "name": "AI Employees",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         },
         {
           "id": "sub-ai-intern",
           "name": "AI Interns",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7199,14 +7254,14 @@
         {
           "id": "sub-dm-emp",
           "name": "DM Employees",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         },
         {
           "id": "sub-dm-intern",
           "name": "DM Interns",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7221,14 +7276,14 @@
         {
           "id": "sub-hr-emp",
           "name": "HR Employees",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         },
         {
           "id": "sub-hr-intern",
           "name": "HR Interns",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7244,8 +7299,8 @@
           "id": "sub-executive-emp",
           "name": "Executive Leadership Employees",
           "description": "Full-time Executive Leadership employees and team members",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7261,8 +7316,8 @@
           "id": "sub-admin-ops-emp",
           "name": "Administration & Operations Employees",
           "description": "Full-time Administration & Operations employees and team members",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7278,8 +7333,8 @@
           "id": "sub-uae-luxury-advisory-9atn-emp",
           "name": "Global NRI Desk Employees",
           "description": "Full-time Global NRI Desk employees and team members",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         }
       ],
       "createdAt": "2026-10-30T06:18:15.957Z",
@@ -7294,14 +7349,14 @@
         {
           "id": "sub-da-emp",
           "name": "DA Employees",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         },
         {
           "id": "sub-da-intern",
           "name": "DA Interns",
-          "createdAt": "2026-10-30T10:56:55.568Z",
-          "updatedAt": "2026-10-30T10:56:55.568Z"
+          "createdAt": "2026-11-02T05:35:51.597Z",
+          "updatedAt": "2026-11-02T05:35:51.597Z"
         }
       ],
       "createdAt": "2026-10-30T09:05:33.312Z",

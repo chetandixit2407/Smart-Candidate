@@ -1058,7 +1058,8 @@ app.get('/api/public/upload-portal/:token', (req: Request, res: Response) => {
   const token = req.params.token;
   const result = db.getPublicCandidateByToken(token);
   if (!result.valid) {
-    res.status(400).json({ error: result.error });
+    const status = (result as any).code === 'LINK_ALREADY_USED' ? 409 : (result as any).code === 'LINK_EXPIRED' || (result as any).code === 'LINK_REVOKED' ? 410 : 400;
+    res.status(status).json(result);
     return;
   }
   res.json(result);
@@ -1066,15 +1067,23 @@ app.get('/api/public/upload-portal/:token', (req: Request, res: Response) => {
 
 app.post('/api/public/upload-portal/:token/submit', (req: Request, res: Response) => {
   const token = req.params.token;
-  const { documents } = req.body;
+  const { documents, candidateInfo, idempotencyKey } = req.body || {};
   if (!documents || typeof documents !== 'object') {
-    res.status(400).json({ error: 'No documents provided for submission.' });
+    res.status(400).json({ success: false, code: 'INVALID_PAYLOAD', error: 'No documents provided for submission.' });
     return;
   }
 
-  const result = db.submitCandidateUpload(token, documents);
+  const result = db.submitCandidateUpload(token, documents, candidateInfo, idempotencyKey);
   if (!result.success) {
-    res.status(400).json(result);
+    const status =
+      result.code === 'LINK_ALREADY_USED'
+        ? 409
+        : result.code === 'LINK_EXPIRED' || result.code === 'LINK_REVOKED'
+        ? 410
+        : result.code === 'TRANSACTION_ERROR'
+        ? 500
+        : 400;
+    res.status(status).json(result);
     return;
   }
   res.json(result);

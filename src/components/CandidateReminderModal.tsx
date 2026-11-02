@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Employee, DocumentRecord, UserRole } from '../types/index.js';
 import { api } from '../services/api.js';
+import { COMPANY_CONFIG } from '../config/company.js';
 
 interface CandidateReminderModalProps {
   isOpen: boolean;
@@ -105,11 +106,11 @@ export const CandidateReminderModal: React.FC<CandidateReminderModalProps> = ({
       `To ensure timely preparation of your appointment docket and designated office desk, please upload high-resolution scanned copies within ${deadlineHours} hours via your private upload link:\n` +
       `${portalUrl}\n\n` +
       `Strict Submission Deadline: ${formattedDeadline}\n\n` +
-      `For any questions or clarification, please reply directly to this message or contact HR at hr@whitecollarrealty.com / +91 124-4349007.\n\n` +
+      `For any questions or clarification, please reply directly to this message or contact HR at ${COMPANY_CONFIG.hrEmail} / ${COMPANY_CONFIG.corporatePhone}.\n\n` +
       `Warm regards,\n` +
       `Corporate HR Team\n` +
-      `White Collar Realty Private Limited\n` +
-      `6th floor, TOWER-A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana`;
+      `${COMPANY_CONFIG.legalName}\n` +
+      `${COMPANY_CONFIG.officialAddress}`;
 
     setEmailSubject(subject);
     setMessageBody(body);

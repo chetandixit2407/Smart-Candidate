@@ -59,6 +59,7 @@ import {
   checkOfferMissingFields,
   DEFAULT_ROLE_SALARY_STRUCTURES,
 } from './lifecycleEngine.ts';
+import { COMPANY_CONFIG } from './companyConfig.ts';
 
 export function normalizeLegacyRole(raw?: string): UserRole {
   if (raw === 'HR' || raw === 'Co-Founder' || raw === 'CEO') return raw;
@@ -1477,34 +1478,33 @@ class DatabaseService {
   public getPublicCandidateByToken(token: string): {
     valid: boolean;
     error?: string;
-    candidate?: {
-      id: string;
-      fullName: string;
-      employeeCode: string;
-      email: string;
-      phone: string;
-      department: string;
-      designation: string;
-      market: string;
-      joiningDate: string;
-      documents: Record<string, any>;
-      tokenInfo: UploadToken;
-    };
+    code?: string;
+    isAlreadyUsed?: boolean;
+    candidateName?: string;
+    submittedAt?: string;
+    candidate?: any;
   } {
     const candidate = this.data.employees.find(e => e.uploadToken?.token === token);
     if (!candidate || !candidate.uploadToken) {
-      return { valid: false, error: 'Invalid or non-existent upload link.' };
+      return { valid: false, code: 'INVALID_TOKEN', error: 'Invalid or non-existent upload link.' };
     }
 
     const t = candidate.uploadToken;
     if (t.revoked || t.isRevoked) {
-      return { valid: false, error: 'This upload link has been revoked by the HR compliance team.' };
+      return { valid: false, code: 'LINK_REVOKED', error: 'This registration link has been revoked by the HR compliance team.' };
     }
-    if (t.isOneTime !== false && t.isUsed) {
-      return { valid: false, error: 'This one-time upload link has already been submitted and is now closed.' };
+    if (t.isUsed) {
+      return {
+        valid: false,
+        code: 'LINK_ALREADY_USED',
+        isAlreadyUsed: true,
+        candidateName: candidate.fullName,
+        submittedAt: t.usedAt,
+        error: 'This registration link has already been submitted and completed.',
+      };
     }
     if (new Date() > new Date(t.expiresAt)) {
-      return { valid: false, error: 'This upload link has expired. Please contact White Collar Realty HR to generate a fresh link.' };
+      return { valid: false, code: 'LINK_EXPIRED', error: 'This registration link has expired. Please contact White Collar Realty HR to generate a fresh link.' };
     }
 
     // Return sanitized document list
@@ -1533,96 +1533,232 @@ class DatabaseService {
         employeeCode: candidate.employeeCode,
         email: candidate.email,
         phone: candidate.phone,
+        alternatePhone: candidate.alternatePhone || '',
+        currentAddress: candidate.currentAddress || '',
+        permanentAddress: candidate.permanentAddress || '',
+        dateOfBirth: candidate.dateOfBirth || '',
+        gender: candidate.gender || 'Male',
+        nationality: candidate.nationality || 'Indian',
+        emergencyContact: candidate.emergencyContact || { name: '', relation: '', phone: '' },
+        bankDetails: candidate.bankDetails || { accountNo: '', bankName: '', ifscCode: '' },
+        identityDetails: candidate.identityDetails || { aadhaarNo: '', panNo: '', passportNo: '' },
         department: candidate.department,
         designation: candidate.designation,
         market: candidate.market,
         joiningDate: candidate.joiningDate,
         documents: sanitizedDocs,
         tokenInfo: t,
+        companyInfo: {
+          name: COMPANY_CONFIG.name,
+          officialAddress: COMPANY_CONFIG.officialAddress,
+          corporateEmail: COMPANY_CONFIG.hrEmail,
+          corporatePhone: COMPANY_CONFIG.corporatePhone,
+        },
       },
     };
   }
 
   public submitCandidateUpload(
     token: string,
-    uploadedDocs: Record<string, { fileName: string; fileSize?: string; fileData: string; mimeType: string; reviewNotes?: string }>
-  ): { success: boolean; message: string; candidate?: Employee } {
+    uploadedDocs: Record<string, { fileName: string; fileSize?: string; fileData: string; mimeType: string; reviewNotes?: string }>,
+    candidateInfo?: Record<string, any>,
+    idempotencyKey?: string
+  ): {
+    success: boolean;
+    code?: string;
+    message: string;
+    candidate?: Employee;
+    missingDocuments?: string[];
+    validationErrors?: string[];
+    submissionRef?: string;
+  } {
     const candidate = this.data.employees.find(e => e.uploadToken?.token === token);
     if (!candidate || !candidate.uploadToken) {
-      return { success: false, message: 'Invalid upload link.' };
+      return { success: false, code: 'INVALID_TOKEN', message: 'Invalid or non-existent upload link.' };
     }
 
     const t = candidate.uploadToken;
     if (t.revoked || t.isRevoked) {
-      return { success: false, message: 'This upload link has been revoked.' };
+      return { success: false, code: 'LINK_REVOKED', message: 'This upload link has been revoked by the HR compliance team.' };
     }
-    if (t.isOneTime !== false && t.isUsed) {
-      return { success: false, message: 'This one-time link has already been submitted.' };
+
+    // Idempotency check: if already completed and matching idempotency key, return successful previous result
+    if (t.isUsed) {
+      if (idempotencyKey && (t as any).lastIdempotencyKey === idempotencyKey) {
+        return {
+          success: true,
+          code: 'IDEMPOTENT_SUCCESS',
+          message: 'Documents and registration details already successfully received.',
+          candidate,
+          submissionRef: (t as any).lastSubmissionRef || `WCR-SUB-${t.token.slice(0, 8)}`,
+        };
+      }
+      return {
+        success: false,
+        code: 'LINK_ALREADY_USED',
+        message: 'This registration link has already been completed and closed.',
+      };
     }
+
     if (new Date() > new Date(t.expiresAt)) {
-      return { success: false, message: 'This upload link has expired.' };
+      return { success: false, code: 'LINK_EXPIRED', message: 'This upload link has expired. Please contact White Collar Realty HR.' };
     }
 
     if (!candidate.documents) {
       candidate.documents = getDefaultDocumentChecklist(candidate.market === 'Dubai' || candidate.market === 'Dual Market');
     }
 
-    let filesCount = 0;
-    const nowIso = new Date().toISOString();
+    // Server-side validation of mandatory documents
+    const missingRequired: string[] = [];
+    Object.values(candidate.documents).forEach(doc => {
+      if (!doc.required) return;
+      const alreadyHasFile = Boolean(
+        doc.fileName && (doc.fileData || doc.storagePath) && doc.status !== 'Missing' && doc.status !== 'Rejected'
+      );
+      const isBeingUploaded = Boolean(uploadedDocs && uploadedDocs[doc.key]?.fileData);
+      if (!alreadyHasFile && !isBeingUploaded) {
+        missingRequired.push(doc.title);
+      }
+    });
 
-    for (const [key, item] of Object.entries(uploadedDocs)) {
-      if (!item.fileData) continue;
-      filesCount++;
-      if (!candidate.documents[key]) {
-        candidate.documents[key] = {
-          key,
-          title: key.replace(/_/g, ' ').toUpperCase(),
-          category: 'Identity',
-          status: 'Submitted',
-          required: true,
+    if (missingRequired.length > 0) {
+      return {
+        success: false,
+        code: 'MISSING_MANDATORY_DOCUMENTS',
+        message: `Please upload all mandatory documents before final submission: ${missingRequired.join(', ')}.`,
+        missingDocuments: missingRequired,
+      };
+    }
+
+    // Validate required candidate information fields if candidateInfo is provided
+    const validationErrors: string[] = [];
+    if (candidateInfo) {
+      if (candidateInfo.phone !== undefined && !String(candidateInfo.phone).trim()) {
+        validationErrors.push('Primary contact phone is required.');
+      }
+      if (candidateInfo.currentAddress !== undefined && !String(candidateInfo.currentAddress).trim()) {
+        validationErrors.push('Current residential address is required.');
+      }
+      if (validationErrors.length > 0) {
+        return {
+          success: false,
+          code: 'VALIDATION_ERROR',
+          message: validationErrors.join(' '),
+          validationErrors,
         };
       }
-
-      // Persist raw file to secure disk storage
-      let savedPath: string | undefined = undefined;
-      try {
-        savedPath = this.saveSecureFile(candidate.id, key, item.fileName || `${key}.pdf`, item.fileData);
-      } catch (err) {
-        console.error(`[DB] Error writing upload to disk for candidate ${candidate.id}:`, err);
-      }
-
-      candidate.documents[key].status = 'Submitted';
-      candidate.documents[key].fileName = item.fileName;
-      candidate.documents[key].fileSize = item.fileSize || '1.0 MB';
-      candidate.documents[key].fileData = item.fileData;
-      candidate.documents[key].mimeType = item.mimeType;
-      candidate.documents[key].uploadedAt = nowIso;
-      if (savedPath) {
-        candidate.documents[key].storagePath = savedPath;
-      }
-      if (item.reviewNotes) {
-        candidate.documents[key].reviewNotes = item.reviewNotes;
-      }
     }
 
-    if (t.isOneTime !== false) {
+    let filesCount = 0;
+    const nowIso = new Date().toISOString();
+    const submissionRef = `WCR-SUB-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    // Execute atomic save & database transaction
+    try {
+      // 1. Process files and update documents
+      for (const [key, item] of Object.entries(uploadedDocs || {})) {
+        if (!item || !item.fileData) continue;
+        filesCount++;
+
+        if (!candidate.documents[key]) {
+          candidate.documents[key] = {
+            key,
+            title: key.replace(/_/g, ' ').toUpperCase(),
+            category: 'Identity',
+            status: 'Submitted',
+            required: true,
+          };
+        }
+
+        let savedPath: string | undefined = undefined;
+        try {
+          savedPath = this.saveSecureFile(candidate.id, key, item.fileName || `${key}.pdf`, item.fileData);
+        } catch (err) {
+          console.error(`[DB] Error writing upload to disk for candidate ${candidate.id}:`, err);
+        }
+
+        candidate.documents[key].status = 'Submitted';
+        candidate.documents[key].fileName = item.fileName;
+        candidate.documents[key].fileSize = item.fileSize || '1.0 MB';
+        candidate.documents[key].fileData = item.fileData;
+        candidate.documents[key].mimeType = item.mimeType;
+        candidate.documents[key].uploadedAt = nowIso;
+        candidate.documents[key].uploadedVia = 'Portal';
+        if (savedPath) {
+          candidate.documents[key].storagePath = savedPath;
+        }
+        if (item.reviewNotes) {
+          candidate.documents[key].reviewNotes = item.reviewNotes;
+        }
+      }
+
+      // 2. Update candidate personal information if submitted
+      if (candidateInfo) {
+        if (candidateInfo.fullName && typeof candidateInfo.fullName === 'string') {
+          candidate.fullName = candidateInfo.fullName.trim();
+        }
+        if (candidateInfo.phone) candidate.phone = String(candidateInfo.phone).trim();
+        if (candidateInfo.alternatePhone !== undefined) candidate.alternatePhone = String(candidateInfo.alternatePhone).trim();
+        if (candidateInfo.currentAddress) candidate.currentAddress = String(candidateInfo.currentAddress).trim();
+        if (candidateInfo.permanentAddress !== undefined) candidate.permanentAddress = String(candidateInfo.permanentAddress).trim();
+        if (candidateInfo.dateOfBirth) candidate.dateOfBirth = String(candidateInfo.dateOfBirth).trim();
+        if (candidateInfo.gender) candidate.gender = candidateInfo.gender;
+        if (candidateInfo.nationality) candidate.nationality = String(candidateInfo.nationality).trim();
+        if (candidateInfo.emergencyContact && typeof candidateInfo.emergencyContact === 'object') {
+          candidate.emergencyContact = {
+            name: String(candidateInfo.emergencyContact.name || '').trim(),
+            relation: String(candidateInfo.emergencyContact.relation || '').trim(),
+            phone: String(candidateInfo.emergencyContact.phone || '').trim(),
+          };
+        }
+        if (candidateInfo.bankDetails && typeof candidateInfo.bankDetails === 'object') {
+          candidate.bankDetails = {
+            accountNo: String(candidateInfo.bankDetails.accountNo || '').trim(),
+            bankName: String(candidateInfo.bankDetails.bankName || '').trim(),
+            ifscCode: String(candidateInfo.bankDetails.ifscCode || '').trim(),
+          };
+        }
+        if (candidateInfo.identityDetails && typeof candidateInfo.identityDetails === 'object') {
+          candidate.identityDetails = {
+            aadhaarNo: String(candidateInfo.identityDetails.aadhaarNo || '').trim(),
+            panNo: String(candidateInfo.identityDetails.panNo || '').trim(),
+            passportNo: String(candidateInfo.identityDetails.passportNo || '').trim(),
+          };
+        }
+      }
+
+      candidate.updatedAt = nowIso;
+      candidate.profileCompletion = calculateCompletion(candidate);
+
+      // Confirm persistence to JSON database FIRST
+      this.persist();
+
+      // 3. ONLY THEN mark the registration link as completed/expired
       t.isUsed = true;
       t.usedAt = nowIso;
-    }
-    t.submissionCount = (t.submissionCount || 0) + 1;
+      t.submissionCount = (t.submissionCount || 0) + 1;
+      (t as any).lastIdempotencyKey = idempotencyKey || null;
+      (t as any).lastSubmissionRef = submissionRef;
 
-    candidate.updatedAt = nowIso;
-    candidate.profileCompletion = calculateCompletion(candidate);
-    this.persist();
+      // Final persistence confirming token state
+      this.persist();
+    } catch (txErr: any) {
+      console.error(`[DB] Transaction failed for candidate upload (token ${token}):`, txErr);
+      return {
+        success: false,
+        code: 'TRANSACTION_ERROR',
+        message: 'A database transaction error occurred. Your link has NOT been expired and your uploaded data was preserved. Please try submitting again.',
+      };
+    }
 
     this.logAudit(
       'Candidate Portal',
       'HR',
-      'Candidate Documents Uploaded via Secure Link',
+      'Candidate Registration & Documents Submitted via Secure Link',
       'Candidate',
       candidate.id,
       candidate.fullName,
-      `Submitted ${filesCount} genuine documents via secure link.${t.isOneTime !== false ? ' Link is now closed.' : ' Multi-use link remains active.'}`
+      `Submitted ${filesCount} genuine document(s) and completed registration (Ref: ${submissionRef}).${t.isOneTime !== false ? ' One-time registration link is now closed.' : ' Multi-use link remains active.'}`
     );
 
     const payload = {
@@ -1633,6 +1769,7 @@ class DatabaseService {
       documents: candidate.documents,
       tokenInfo: t,
       employee: candidate,
+      submissionRef,
     };
 
     this.broadcast('CANDIDATE_DOCUMENTS_SUBMITTED', payload);
@@ -1642,10 +1779,12 @@ class DatabaseService {
 
     return {
       success: true,
+      code: 'SUBMISSION_CONFIRMED',
       message: t.isOneTime !== false
-        ? 'Documents successfully submitted. Your secure one-time link is now closed.'
-        : 'Documents successfully submitted and updated.',
+        ? 'Candidate registration details and onboarding documents have been successfully verified and saved. Your secure one-time registration link is now safely closed.'
+        : 'Documents and registration details successfully updated.',
       candidate,
+      submissionRef,
     };
   }
 

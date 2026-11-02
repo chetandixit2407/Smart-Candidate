@@ -48,6 +48,7 @@ import {
   parseAnnualCtc,
 } from '../../server/lifecycleEngine.js';
 import { api } from '../services/api.js';
+import { COMPANY_CONFIG } from '../config/company.js';
 
 interface OfferLetterModalProps {
   isOpen: boolean;
@@ -336,9 +337,9 @@ export const OfferLetterModal: React.FC<OfferLetterModalProps> = ({
       market: structure.market,
       workLocation:
         structure.market === 'Dubai'
-          ? 'White Collar Realty DIFC Branch, Gate Precinct 4, Dubai, UAE'
-          : '6th floor, TOWER-A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101',
-      place: structure.market === 'Dubai' ? 'Dubai, UAE' : 'Gurugram, Haryana',
+          ? COMPANY_CONFIG.dubaiBranchAddress
+          : COMPANY_CONFIG.officialAddress,
+      place: structure.market === 'Dubai' ? `${COMPANY_CONFIG.dubaiCity}, ${COMPANY_CONFIG.dubaiCountry}` : `${COMPANY_CONFIG.city}, ${COMPANY_CONFIG.state}`,
       compensationComponents: comps,
       ctcLpaFormatted: summary.ctcLpaFormatted,
       basicMonthly: summary.basicMonthly,

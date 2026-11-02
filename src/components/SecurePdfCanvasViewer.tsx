@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,15 +13,11 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
-// Configure PDF.js worker
+// Configure PDF.js worker to strictly match the installed library version (6.5.438)
+// Uses Vite's bundled worker asset URL with local versioned cache-busting
 if (typeof window !== 'undefined') {
-  try {
-    // Primary: locally hosted worker in /public/assets/
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '/assets/pdf.worker.min.mjs';
-  } catch (e) {
-    // Fallback: unpkg CDN matching library version
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    pdfWorker || `/assets/pdf.worker.min.mjs?v=${pdfjsLib.version || '6.5.438'}`;
 }
 
 interface SecurePdfCanvasViewerProps {

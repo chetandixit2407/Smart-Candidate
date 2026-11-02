@@ -12,6 +12,7 @@ import type {
   RoleSalaryStructure,
   RoleSalaryStructureRule,
 } from '../src/types/index.ts';
+import { COMPANY_CONFIG } from './companyConfig.ts';
 
 /**
  * Parses any user-entered CTC string or number into a standard annual integer.
@@ -980,8 +981,8 @@ export function buildOfferLetterData(
     mergedInput.workLocation !== undefined
       ? mergedInput.workLocation
       : isDubai
-        ? 'White Collar Realty DIFC Branch, Gate Precinct 4, Dubai, UAE'
-        : '6th floor, TOWER-A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101';
+        ? COMPANY_CONFIG.dubaiBranchAddress
+        : COMPANY_CONFIG.officialAddress;
 
   const place =
     mergedInput.place !== undefined

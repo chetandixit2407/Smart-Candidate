@@ -615,7 +615,7 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none cursor-pointer"
                   >
                     <option value="Google Meet">Google Meet (Online)</option>
-                    <option value="In-Person">In-Person (HQ Sector 65)</option>
+                    <option value="In-Person">In-Person (HQ: M3M Urbana, Sector 67)</option>
                     <option value="Phone Call">Phone Call</option>
                   </select>
                 </div>

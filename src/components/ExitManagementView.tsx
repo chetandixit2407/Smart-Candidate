@@ -28,6 +28,7 @@ import {
   FullAndFinalSettlement,
   AssetCondition,
 } from '../types/index.js';
+import { COMPANY_CONFIG } from '../config/company.js';
 
 interface ExitManagementViewProps {
   employees: Employee[];
@@ -993,9 +994,9 @@ export const ExitManagementView: React.FC<ExitManagementViewProps> = ({
               </div>
 
               <div className="text-right text-[11px] text-slate-500 font-mono">
-                <p>Golf Course Extension Road, Sector 65</p>
-                <p>Gurugram, Haryana - 122018</p>
-                <p>contact@whitecollarrealty.com</p>
+                <p>{COMPANY_CONFIG.building}</p>
+                <p>{COMPANY_CONFIG.sector}, {COMPANY_CONFIG.city}, {COMPANY_CONFIG.state} - {COMPANY_CONFIG.pincode}</p>
+                <p>{COMPANY_CONFIG.corporateEmail} · {COMPANY_CONFIG.corporatePhone}</p>
               </div>
             </div>
 

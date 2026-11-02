@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { UserRole, DepartmentWithCounts } from '../types/index.js';
+import { COMPANY_CONFIG } from '../config/company.js';
 
 interface SidebarProps {
   currentTab: string;
@@ -165,10 +166,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="overflow-hidden min-w-0">
               <h1 className="font-semibold text-sm tracking-tight text-white leading-tight truncate">
-                White Collar Realty
+                {COMPANY_CONFIG.name}
               </h1>
-              <p className="text-[11px] text-slate-400 tracking-wide font-normal truncate">
-                Gurgaon · Dubai Operations
+              <p
+                className="text-[10px] text-slate-400 tracking-wide font-normal truncate"
+                title={COMPANY_CONFIG.officialAddress}
+              >
+                M3M Urbana, Sec 67 · Gurugram
               </p>
             </div>
           </div>

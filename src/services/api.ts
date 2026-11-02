@@ -489,24 +489,42 @@ class ApiService {
     return data;
   }
 
-  public async getPublicCandidateByToken(token: string): Promise<{ valid: boolean; error?: string; candidate?: any }> {
+  public async getPublicCandidateByToken(
+    token: string
+  ): Promise<{ valid: boolean; code?: string; isAlreadyUsed?: boolean; candidateName?: string; submittedAt?: string; error?: string; candidate?: any }> {
     const res = await fetch(`/api/public/upload-portal/${token}`);
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to load candidate portal');
+    if (!res.ok && !data.isAlreadyUsed) {
+      const err = new Error(data.error || 'Failed to load candidate portal');
+      (err as any).code = data.code;
+      (err as any).status = res.status;
+      throw err;
+    }
     return data;
   }
 
   public async submitCandidateUpload(
     token: string,
-    documents: Record<string, { fileName: string; fileSize?: string; fileData: string; mimeType: string; reviewNotes?: string }>
-  ): Promise<{ success: boolean; message: string }> {
+    payload: {
+      documents: Record<string, { fileName: string; fileSize?: string; fileData: string; mimeType: string; reviewNotes?: string }>;
+      candidateInfo?: any;
+      idempotencyKey?: string;
+    }
+  ): Promise<{ success: boolean; message: string; candidate?: any; submissionRef?: string }> {
     const res = await fetch(`/api/public/upload-portal/${token}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documents }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || data.error || 'Failed to submit candidate documents');
+    if (!res.ok) {
+      const err = new Error(data.message || data.error || 'Failed to submit candidate documents');
+      (err as any).code = data.code;
+      (err as any).missingDocuments = data.missingDocuments;
+      (err as any).validationErrors = data.validationErrors;
+      (err as any).status = res.status;
+      throw err;
+    }
     return data;
   }
 
