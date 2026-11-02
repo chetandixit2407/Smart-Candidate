@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import * as XLSX from 'xlsx';
 import {
   FileSpreadsheet,
   UploadCloud,
@@ -13,6 +12,7 @@ import {
   Info,
 } from 'lucide-react';
 import { ImportPreviewRow, ImportSummary, Employee, UserRole } from '../types/index.js';
+import { api } from '../services/api.js';
 
 interface SpreadsheetImportViewProps {
   onPreviewImport: (payload: { fileBase64?: string; csvText?: string; targetType?: string }) => Promise<{
@@ -47,132 +47,23 @@ export const SpreadsheetImportView: React.FC<SpreadsheetImportViewProps> = ({
   const canEdit = userRole === 'HR' || userRole === 'Co-Founder';
 
   // 1. Generate & Download Sample Template: Chetan Information Sheet
-  const handleDownloadChetanTemplate = () => {
-    const wsData = [
-      [
-        'Full Name',
-        'Contact Number',
-        'Email Address',
-        'Date of Birth',
-        'Gender',
-        'Nationality',
-        'Current Residential Address',
-        'Permanent Address',
-        'Emergency Contact Name',
-        'Emergency Contact Relation',
-        'Emergency Contact Phone',
-        'Father Name',
-        'Father Contact',
-        'Mother Name',
-        'Previous Company',
-        'Previous Designation',
-        'Previous CTC',
-        'Current Offered CTC',
-        'Total Experience (Years)',
-        'Gurgaon Market Experience',
-        'Dubai Market Experience',
-        'Highest Qualification',
-        'Institution / College',
-        'Passing Year',
-        'Professional Reference Name',
-        'Professional Reference Contact',
-        'Designated Seat / Desk',
-      ],
-      [
-        'Chetan Sharma',
-        '+91 98712 34567',
-        'chetan.sharma@whitecollarrealty.com',
-        '1996-08-14',
-        'Male',
-        'Indian',
-        'DLF The Crest, Sector 54, Golf Course Road, Gurgaon',
-        'Sector 14, Urban Estate, Gurgaon',
-        'Ramesh Sharma',
-        'Father',
-        '+91 98101 23456',
-        'Ramesh Sharma',
-        '+91 98101 23456',
-        'Sunita Sharma',
-        'DLF Luxury Real Estate Advisors',
-        'Investment Consultant',
-        '₹8,40,000 p.a.',
-        '₹13,50,000 p.a.',
-        '5.2',
-        '4.0 Years (Golf Course Rd & DLF Camellias)',
-        '1.2 Years (Downtown Dubai & Dubai Hills)',
-        'BBA + PG Diploma in Real Estate Investment',
-        'Amity School of Business / RICS SBE',
-        '2017',
-        'Amit Singhania (VP Sales)',
-        '+91 99100 88776',
-        'B2',
-      ],
-      [
-        'Aanya Kapoor',
-        '+91 98112 00112',
-        'aanya.kapoor97@gmail.com',
-        '1997-02-19',
-        'Female',
-        'Indian',
-        'The Belaire, Golf Course Road, Gurgaon',
-        'The Belaire, Golf Course Road, Gurgaon',
-        'Sanjay Kapoor',
-        'Father',
-        '+91 98112 00113',
-        'Sanjay Kapoor',
-        '+91 98112 00113',
-        'Meena Kapoor',
-        'Damac Hills Advisory Office',
-        'Client Relationship Executive',
-        '₹8,50,000 p.a.',
-        '₹12,00,000 p.a.',
-        '3.8',
-        '1.5 Years',
-        '2.0 Years (Dubai Marina, Palm Jumeirah)',
-        'B.Sc Economics & Finance',
-        'NMIMS Mumbai',
-        '2019',
-        'Farhan Zaidi (Sales Manager)',
-        '+971 52 334 5566',
-        'F2',
-      ],
-    ];
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Chetan Information Sheet');
-    XLSX.writeFile(wb, 'Chetan_Information_Sheet_Template.xlsx');
+  const handleDownloadChetanTemplate = async () => {
+    try {
+      await api.downloadSpreadsheetTemplate('chetan');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to download Chetan Information Sheet template';
+      setErrorMsg(msg);
+    }
   };
 
   // 2. Generate & Download Sample Template: Employee Details (Birthday)
-  const handleDownloadBirthdayTemplate = () => {
-    const wsData = [
-      [
-        'Employee Code',
-        'Employee Name',
-        'Contact Number',
-        'Official Email',
-        'Designation',
-        'Department',
-        'Joining Date',
-        'Internship Completion Date',
-        'Date of Birth',
-        'Designated Seat',
-        'Reporting Manager',
-        'Status',
-      ],
-      ['WCR-001', 'Rohit Juneja', '+91 98110 54321', 'rohit.juneja@whitecollarrealty.com', 'Managing Director - Luxury Sales', 'Sales & Investments', '2021-01-15', '', '1987-03-22', 'A1', 'Board of Directors', 'Full-Time'],
-      ['WCR-002', 'Priya Sehgal', '+91 98188 77665', 'priya.sehgal@whitecollarrealty.com', 'Associate Director - CRM & Operations', 'CRM & Client Relations', '2021-03-01', '', '1990-11-05', 'A2', 'Rohit Juneja', 'Full-Time'],
-      ['WCR-003', 'Varun Batra', '+91 99990 12345', 'varun.batra@whitecollarrealty.com', 'Associate Director - Luxury Advisory', 'Sales & Investments', '2021-04-12', '', '1989-06-18', 'A3', 'Rohit Juneja', 'Full-Time'],
-      ['WCR-004', 'Simran Kaur', '+91 98105 88990', 'simran.kaur@whitecollarrealty.com', 'Senior Manager - HR & People Operations', 'Human Resources', '2021-06-01', '', '1992-09-19', 'A4', 'Rohit Juneja', 'Full-Time'],
-      ['WCR-018', 'Chetan Sharma', '+91 98712 34567', 'chetan.sharma@whitecollarrealty.com', 'Senior Portfolio Consultant - Dubai & Gurgaon', 'Luxury Residential & Investments', '2023-04-10', '', '1996-08-14', 'B2', 'Varun Batra', 'Full-Time'],
-      ['WCR-017', 'Pranav Joshi', '+91 98719 44332', 'pranav.joshi@whitecollarrealty.com', 'Property Advisor Intern', 'Sales & Investments', '2026-06-15', '2026-12-15', '2001-12-08', 'E1', 'Chetan Sharma', 'Intern'],
-    ];
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Employees Details (Birthday)');
-    XLSX.writeFile(wb, 'Employees_Details_Birthday_Template.xlsx');
+  const handleDownloadBirthdayTemplate = async () => {
+    try {
+      await api.downloadSpreadsheetTemplate('birthday');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to download Birthday template';
+      setErrorMsg(msg);
+    }
   };
 
   // Handle file selection and preview

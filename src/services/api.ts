@@ -644,6 +644,38 @@ class ApiService {
     }, 200);
   }
 
+  public async downloadSpreadsheetTemplate(templateType: 'chetan' | 'birthday'): Promise<void> {
+    const endpoint = `/api/import/template/${templateType}`;
+    const res = await fetch(endpoint, {
+      headers: this.getAuthOnlyHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to download template' }));
+      throw new Error(err.error || 'Failed to download template');
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    const disposition = res.headers.get('Content-Disposition');
+    let filename =
+      templateType === 'chetan'
+        ? 'Chetan_Information_Sheet_Template.xlsx'
+        : 'Employees_Details_Birthday_Template.xlsx';
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }, 200);
+  }
+
   // --- Lifecycle & Interviews ---
   public async addInterview(candidateId: string, data: Partial<InterviewRound>): Promise<any> {
     const res = await fetch(`/api/candidates/${candidateId}/interviews`, {

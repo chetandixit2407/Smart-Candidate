@@ -5,8 +5,14 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
+import {
+  parseSpreadsheetBuffer,
+  generateSingleSheetExcel,
+  generateMultiSheetExcel,
+  generateChetanTemplateExcel,
+  generateBirthdayTemplateExcel,
+} from './server/excelHelper.ts';
 import { db, QR_MAX_FILE_SIZE_BYTES, getPermanentPublicAppUrl } from './server/database.ts';
 import { ALL_DESK_CODES, mapSpreadsheetSeatToStandardDesk } from './server/seedData.ts';
 import { WCR_ORIGINAL_OFFER_SECTIONS, buildOfferLetterData } from './server/lifecycleEngine.ts';
@@ -828,7 +834,7 @@ app.get('/api/employees/:id', (req: Request, res: Response) => {
   res.json(emp);
 });
 
-app.get('/api/employees/:id/export/excel', (req: Request, res: Response) => {
+app.get('/api/employees/:id/export/excel', async (req: Request, res: Response) => {
   const auth = authenticateRequest(req, res, ALL_ROLES);
   if (!auth) return;
 
@@ -838,7 +844,7 @@ app.get('/api/employees/:id/export/excel', (req: Request, res: Response) => {
     return;
   }
 
-  const excelBuffer = db.generateIndividualProfileExcel(req.params.id, auth.role);
+  const excelBuffer = await db.generateIndividualProfileExcel(req.params.id, auth.role);
   if (!excelBuffer) {
     res.status(404).json({ error: 'Failed to generate profile spreadsheet' });
     return;
@@ -2038,33 +2044,31 @@ app.post('/api/alerts/reset-dismissed', (req: Request, res: Response) => {
 // --------------------------------------------------------------------------
 // Spreadsheet Import & Parsing Endpoints
 // --------------------------------------------------------------------------
-app.post('/api/import/preview', (req: Request, res: Response) => {
+app.post('/api/import/preview', async (req: Request, res: Response) => {
   const auth = authenticateRequest(req, res, OPERATIONAL_ROLES);
   if (!auth) return;
   try {
     const { fileBase64, csvText, targetType } = req.body;
-    let workbook: XLSX.WorkBook;
+    let parseResult: { rawRows: Record<string, unknown>[]; headers: string[]; sheetName: string };
 
     if (fileBase64) {
       const buffer = Buffer.from(fileBase64.replace(/^data:.*?;base64,/, ''), 'base64');
-      workbook = XLSX.read(buffer, { type: 'buffer' });
+      parseResult = await parseSpreadsheetBuffer(buffer, false);
     } else if (csvText) {
-      workbook = XLSX.read(csvText, { type: 'string' });
+      const buffer = Buffer.from(csvText, 'utf8');
+      parseResult = await parseSpreadsheetBuffer(buffer, true);
     } else {
       res.status(400).json({ error: 'No file data provided' });
       return;
     }
 
-    const firstSheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[firstSheetName];
-    const rawRows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    const { rawRows, headers, sheetName } = parseResult;
 
     if (rawRows.length === 0) {
       res.status(400).json({ error: 'Uploaded sheet contains no data rows.' });
       return;
     }
 
-    const headers = Object.keys(rawRows[0]);
     const existingEmployees = db.getEmployees('HR');
 
     // Smart Column Matching & Mapping
@@ -2233,7 +2237,7 @@ app.post('/api/import/preview', (req: Request, res: Response) => {
     });
 
     res.json({
-      sheetName: firstSheetName,
+      sheetName: sheetName || 'Sheet1',
       totalRows: previewRows.length,
       headers,
       preview: previewRows,
@@ -2271,29 +2275,23 @@ app.get('/api/export/backup', (req: Request, res: Response) => {
 });
 
 // Single-sheet Excel export (1 row per person, sorted alphabetically)
-app.get('/api/export/excel/single-sheet', (req: Request, res: Response) => {
+app.get('/api/export/excel/single-sheet', async (req: Request, res: Response) => {
   const auth = authenticateRequest(req, res, ALL_ROLES);
   if (!auth) return;
   const data = db.generateSingleSheetExportData(auth.role);
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(data);
-  XLSX.utils.book_append_sheet(wb, ws, 'Master Personnel Directory');
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const buf = await generateSingleSheetExcel(data, 'Master Personnel Directory');
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename=WhiteCollarRealty_Master_Directory_SingleSheet_${Date.now()}.xlsx`);
   res.send(buf);
 });
 
-app.get('/api/export/excel', (req: Request, res: Response) => {
+app.get('/api/export/excel', async (req: Request, res: Response) => {
   const auth = authenticateRequest(req, res, ALL_ROLES);
   if (!auth) return;
   const { role } = auth;
   if (req.query.format === 'single' || req.query.format === 'single-sheet') {
     const data = db.generateSingleSheetExportData(role);
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, 'Master Personnel Directory');
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const buf = await generateSingleSheetExcel(data, 'Master Personnel Directory');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=WhiteCollarRealty_Master_Directory_SingleSheet_${Date.now()}.xlsx`);
     res.send(buf);
@@ -2305,8 +2303,6 @@ app.get('/api/export/excel', (req: Request, res: Response) => {
   const desks = db.getDesks();
   const assets = db.getAssets();
   const logs = db.getAuditLogs(200);
-
-  const wb = XLSX.utils.book_new();
 
   // Sheet 1: Active Employees
   const empSheetData = activeEmployees.map(e => ({
@@ -2327,7 +2323,6 @@ app.get('/api/export/excel', (req: Request, res: Response) => {
     'Current CTC': e.offeredCTC || '',
     'Profile Completion %': e.profileCompletion,
   }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(empSheetData), 'Employees Directory');
 
   // Sheet 2: Upcoming Joiners / Candidates
   const candSheetData = candidates.map(c => ({
@@ -2344,7 +2339,6 @@ app.get('/api/export/excel', (req: Request, res: Response) => {
     'Offered CTC': c.offeredCTC || '',
     'Onboarding Completion %': c.profileCompletion,
   }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(candSheetData), 'Upcoming Candidates');
 
   // Sheet 3: Desk Allocations (A1-H5)
   const deskSheetData = desks.map(d => ({
@@ -2357,7 +2351,6 @@ app.get('/api/export/excel', (req: Request, res: Response) => {
     'Designation': d.assignedEmployeeDesignation || '—',
     'Is Candidate Reserved': d.isUpcoming ? 'Yes' : 'No',
   }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(deskSheetData), 'Desk Allocation');
 
   // Sheet 4: Company Assets & Inventory
   const assetSheetData = assets.map(a => ({
@@ -2374,7 +2367,6 @@ app.get('/api/export/excel', (req: Request, res: Response) => {
     'Return Date': a.returnDate || '—',
     'Notes': a.notes || '',
   }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(assetSheetData), 'Company Assets');
 
   // Sheet 5: Audit Log
   const logSheetData = logs.map(l => ({
@@ -2386,11 +2378,32 @@ app.get('/api/export/excel', (req: Request, res: Response) => {
     'Target Name': l.entityName,
     'Details': l.details,
   }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(logSheetData), 'Audit Trail');
 
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const buf = await generateMultiSheetExcel([
+    { name: 'Employees Directory', data: empSheetData },
+    { name: 'Upcoming Candidates', data: candSheetData },
+    { name: 'Desk Allocation', data: deskSheetData },
+    { name: 'Company Assets', data: assetSheetData },
+    { name: 'Audit Trail', data: logSheetData },
+  ]);
+
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename=WhiteCollarRealty_HR_Master_${Date.now()}.xlsx`);
+  res.send(buf);
+});
+
+// Download sample spreadsheet templates
+app.get('/api/import/template/chetan', async (_req: Request, res: Response) => {
+  const buf = await generateChetanTemplateExcel();
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename=Chetan_Information_Sheet_Template.xlsx');
+  res.send(buf);
+});
+
+app.get('/api/import/template/birthday', async (_req: Request, res: Response) => {
+  const buf = await generateBirthdayTemplateExcel();
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename=Employees_Details_Birthday_Template.xlsx');
   res.send(buf);
 });
 
