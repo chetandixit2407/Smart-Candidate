@@ -6,6 +6,7 @@ import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
 import * as XLSX from 'xlsx';
+import mammoth from 'mammoth';
 import { db, QR_MAX_FILE_SIZE_BYTES, getPermanentPublicAppUrl } from './server/database.ts';
 import { ALL_DESK_CODES, mapSpreadsheetSeatToStandardDesk } from './server/seedData.ts';
 import { WCR_ORIGINAL_OFFER_SECTIONS, buildOfferLetterData } from './server/lifecycleEngine.ts';
@@ -704,6 +705,18 @@ app.get('/api/public/document-qr/:token', (req: Request, res: Response) => {
   res.json(result.session);
 });
 
+app.post('/api/public/document-qr/:token/submit', (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+
+  const result = db.submitPublicQrRegistration(req.params.token);
+  if (!result.success) {
+    res.status(result.httpStatus || 400).json(result);
+    return;
+  }
+  res.status(200).json(result);
+});
+
 app.get('/api/system/network-info', (req: Request, res: Response) => {
   const defaultOrigin = resolveBaseOrigin(req);
   res.json({
@@ -1021,6 +1034,82 @@ app.get('/api/employees/:id/documents/:docKey/file', (req: Request, res: Respons
 
 app.get('/api/employees/:id/documents/:docKey/download', (req: Request, res: Response) => {
   handleDocumentStreaming(req, res, true);
+});
+
+// Word Document (.docx) preview endpoints: converts DOCX to clean HTML for native preview
+app.get('/api/employees/:id/documents/:docKey/docx-html', async (req: Request, res: Response) => {
+  const employeeId = req.params.id;
+  const docKey = req.params.docKey;
+  const queryToken = req.query.token as string | undefined;
+
+  let isAuthorized = false;
+  if (queryToken) {
+    const publicCand = db.getPublicCandidateByToken(queryToken);
+    if (publicCand.valid && publicCand.candidate?.id === employeeId) {
+      isAuthorized = true;
+    }
+  }
+
+  if (!isAuthorized) {
+    const auth = authenticateRequest(req, res, ALL_ROLES);
+    if (!auth) return;
+  }
+
+  const fileInfo = db.getSecureDocumentFile(employeeId, docKey);
+  if (!fileInfo) {
+    res.status(404).json({ error: 'No document file has been uploaded for this item yet.' });
+    return;
+  }
+
+  try {
+    let buf = fileInfo.buffer;
+    if (!buf && fileInfo.filePath && fs.existsSync(fileInfo.filePath)) {
+      buf = fs.readFileSync(fileInfo.filePath);
+    }
+    if (!buf) {
+      res.status(404).json({ error: 'Document data could not be retrieved from secure storage.' });
+      return;
+    }
+
+    const conversion = await mammoth.convertToHtml({ buffer: buf });
+    res.json({
+      success: true,
+      html: conversion.value,
+      fileName: fileInfo.fileName,
+      mimeType: fileInfo.mimeType,
+    });
+  } catch (err: any) {
+    console.error('[Docx Preview Error]:', err);
+    res.status(500).json({ error: 'Failed to convert Word document to preview format.' });
+  }
+});
+
+app.post('/api/documents/docx-preview', async (req: Request, res: Response) => {
+  const { fileData, fileName } = req.body || {};
+  if (!fileData) {
+    res.status(400).json({ error: 'fileData is required for preview.' });
+    return;
+  }
+
+  try {
+    let buf: Buffer;
+    if (fileData.startsWith('data:')) {
+      const b64 = fileData.split(',')[1] || '';
+      buf = Buffer.from(b64, 'base64');
+    } else {
+      buf = Buffer.from(fileData, 'base64');
+    }
+
+    const conversion = await mammoth.convertToHtml({ buffer: buf });
+    res.json({
+      success: true,
+      html: conversion.value,
+      fileName: fileName || 'Document.docx',
+    });
+  } catch (err: any) {
+    console.error('[Docx Base64 Preview Error]:', err);
+    res.status(500).json({ error: 'Failed to convert Word document to preview format.' });
+  }
 });
 
 // Candidate document upload link management with configurable expiry and single/multi use
@@ -1500,7 +1589,7 @@ app.get('/api/offer-letter/master-template', (req: Request, res: Response) => {
     contactInfo: {
       phone: '+91 124-4349007',
       email: 'hr@whitecollarrealty.com',
-      address: '6th floor, TOWER-A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101',
+      address: '6th Floor, Tower A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101, India.',
     },
   });
 });

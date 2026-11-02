@@ -5,16 +5,15 @@ import {
   CheckCircle2,
   AlertCircle,
   FileText,
-  Lock,
   ZoomIn,
   ZoomOut,
   RotateCw,
-  Maximize2,
-  Calendar,
   UserCheck,
   UploadCloud,
   FileCheck,
   Loader2,
+  FileCode,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { DocumentRecord, DocumentStatus, UserRole } from '../types/index.js';
 import { SecurePdfCanvasViewer } from './SecurePdfCanvasViewer.js';
@@ -27,7 +26,13 @@ interface LiveDocumentViewerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdateStatus: (docKey: string, status: DocumentStatus, notes: string) => Promise<void>;
-  onUploadFile?: (docKey: string, fileData: string, fileName: string, fileSize: string, mimeType: string) => Promise<void>;
+  onUploadFile?: (
+    docKey: string,
+    fileData: string,
+    fileName: string,
+    fileSize: string,
+    mimeType: string
+  ) => Promise<void>;
   userRole: UserRole;
   currentUserName: string;
 }
@@ -41,7 +46,6 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
   onUpdateStatus,
   onUploadFile,
   userRole,
-  currentUserName,
 }) => {
   const [selectedStatus, setSelectedStatus] = useState<DocumentStatus>(document.status);
   const [reviewNotes, setReviewNotes] = useState<string>(document.reviewNotes || '');
@@ -49,29 +53,93 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Zoom & View state for Images & Word documents
   const [zoomLevel, setZoomLevel] = useState<number>(100);
+  const [rotation, setRotation] = useState<number>(0);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
 
+  // Word Document (.docx) preview state
+  const [docxHtml, setDocxHtml] = useState<string | null>(null);
+  const [loadingDocx, setLoadingDocx] = useState<boolean>(false);
+  const [docxError, setDocxError] = useState<string | null>(null);
+
   const canEdit = userRole === 'HR' || userRole === 'Co-Founder';
 
-  // Check if document genuinely has an uploaded file (never show mock files)
+  // Check if document genuinely has an uploaded file
   const hasGenuineFile = Boolean(document.fileName || document.fileData || (document as any).storagePath);
+
+  const isDocx =
+    (document.fileName && /\.docx$/i.test(document.fileName)) ||
+    document.mimeType?.includes('wordprocessingml') ||
+    document.mimeType?.includes('officedocument.word') ||
+    document.key.toLowerCase().includes('offer_letter');
+
+  const isImage =
+    !isDocx &&
+    Boolean(fileUrl) &&
+    (document.mimeType?.startsWith('image/') ||
+      (document.fileName && /\.(png|jpe?g|webp|gif)$/i.test(document.fileName)) ||
+      (typeof fileUrl === 'string' && fileUrl.startsWith('data:image/')));
 
   useEffect(() => {
     setSelectedStatus(document.status);
     setReviewNotes(document.reviewNotes || '');
+    setZoomLevel(100);
+    setRotation(0);
   }, [document.key, document.status, document.reviewNotes]);
 
+  // Load Document Preview (PDF / Image / DOCX)
   useEffect(() => {
     let revokedUrl: string | null = null;
     let cancelled = false;
 
     if (!isOpen || !hasGenuineFile) {
       setFileUrl(null);
+      setDocxHtml(null);
       return;
     }
 
+    // Handle Word Document (.docx)
+    if (isDocx) {
+      setLoadingDocx(true);
+      setDocxError(null);
+      setDocxHtml(null);
+
+      if (document.fileData && document.fileData.startsWith('data:')) {
+        api
+          .previewDocxBase64(document.fileData, document.fileName)
+          .then(res => {
+            if (!cancelled) setDocxHtml(res.html);
+          })
+          .catch(err => {
+            if (!cancelled) {
+              setDocxError(err.message || 'Failed to render Word document preview');
+            }
+          })
+          .finally(() => {
+            if (!cancelled) setLoadingDocx(false);
+          });
+      } else {
+        api
+          .fetchDocxHtml(employeeId, document.key)
+          .then(res => {
+            if (!cancelled) setDocxHtml(res.html);
+          })
+          .catch(err => {
+            if (!cancelled) {
+              setDocxError(err.message || 'Failed to render Word document preview');
+            }
+          })
+          .finally(() => {
+            if (!cancelled) setLoadingDocx(false);
+          });
+      }
+      return;
+    }
+
+    // Handle PDF or Images
     if (document.fileData && document.fileData.startsWith('data:')) {
       setFileUrl(document.fileData);
       return;
@@ -107,15 +175,9 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
         window.URL.revokeObjectURL(revokedUrl);
       }
     };
-  }, [isOpen, hasGenuineFile, employeeId, document.key, document.fileData, document.uploadedAt, userRole]);
+  }, [isOpen, hasGenuineFile, isDocx, employeeId, document.key, document.fileData, document.uploadedAt, userRole]);
 
   if (!isOpen) return null;
-
-  const isImage =
-    Boolean(fileUrl) &&
-    (document.mimeType?.startsWith('image/') ||
-      (document.fileName && /\.(png|jpe?g|webp|gif)$/i.test(document.fileName)) ||
-      (typeof fileUrl === 'string' && fileUrl.startsWith('data:image/')));
 
   const handleDownload = async () => {
     try {
@@ -124,12 +186,16 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
       if (document.fileData && document.fileData.startsWith('data:')) {
         const a = window.document.createElement('a');
         a.href = document.fileData;
-        a.download = document.fileName || `${document.key}.pdf`;
+        a.download = document.fileName || `${document.key}.${isDocx ? 'docx' : 'pdf'}`;
         window.document.body.appendChild(a);
         a.click();
         window.document.body.removeChild(a);
       } else {
-        await api.downloadDocument(employeeId, document.key, document.fileName || `${document.key}.pdf`);
+        await api.downloadDocument(
+          employeeId,
+          document.key,
+          document.fileName || `${document.key}.${isDocx ? 'docx' : 'pdf'}`
+        );
       }
     } catch (err: unknown) {
       const errorText = err instanceof Error ? err.message : 'Failed to download document';
@@ -169,11 +235,18 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
         setUploading(true);
         setMsg(null);
         const base64 = reader.result as string;
-        const sizeStr = file.size < 1024 * 1024
-          ? `${Math.round(file.size / 1024)} KB`
-          : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+        const sizeStr =
+          file.size < 1024 * 1024
+            ? `${Math.round(file.size / 1024)} KB`
+            : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
 
-        await onUploadFile(document.key, base64, file.name, sizeStr, file.type || 'application/pdf');
+        await onUploadFile(
+          document.key,
+          base64,
+          file.name,
+          sizeStr,
+          file.type || (file.name.endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf')
+        );
         setMsg({ type: 'success', text: 'New file uploaded successfully.' });
       } catch (err: unknown) {
         const errorText = err instanceof Error ? err.message : 'Failed to upload document file';
@@ -187,9 +260,9 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
 
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto">
-      <div className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-300 overflow-hidden flex flex-col max-h-[95vh] my-auto">
+      <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl border border-slate-300 overflow-hidden flex flex-col h-[92vh] max-h-[92vh] my-auto">
         {/* Top Header */}
-        <div className="px-4 sm:px-6 py-3 sm:py-3.5 bg-slate-900 text-white flex items-center justify-between shrink-0">
+        <div className="px-4 sm:px-6 py-3 bg-slate-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
               <FileCheck className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -207,15 +280,27 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
                     Mandatory
                   </span>
                 )}
+                {isDocx && (
+                  <span className="text-[10px] text-blue-300 bg-blue-500/20 px-1.5 sm:px-2 py-0.5 rounded border border-blue-400/30 font-semibold">
+                    Word (.docx)
+                  </span>
+                )}
               </div>
               <p className="text-[11px] sm:text-xs text-slate-300 truncate mt-0.5">
-                Personnel: <strong>{employeeName}</strong> · File: <span className="font-mono text-slate-200">{document.fileName || 'No file uploaded'}</span> {document.fileSize ? `(${document.fileSize})` : ''} · Uploaded: <span className="text-amber-300 font-mono">{document.uploadedAt ? new Date(document.uploadedAt).toLocaleDateString() : 'Pending'}</span>
+                Personnel: <strong>{employeeName}</strong> · File:{' '}
+                <span className="font-mono text-slate-200">
+                  {document.fileName || 'No file uploaded'}
+                </span>{' '}
+                {document.fileSize ? `(${document.fileSize})` : ''} · Uploaded:{' '}
+                <span className="text-amber-300 font-mono">
+                  {document.uploadedAt ? new Date(document.uploadedAt).toLocaleDateString() : 'Pending'}
+                </span>
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {fileUrl && (
+            {(fileUrl || docxHtml || hasGenuineFile) && (
               <button
                 type="button"
                 onClick={handleDownload}
@@ -228,7 +313,9 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
                 ) : (
                   <Download className="w-3.5 h-3.5" />
                 )}
-                <span className="hidden sm:inline">{downloading ? 'Downloading...' : 'Download'}</span>
+                <span className="hidden sm:inline">
+                  {downloading ? 'Downloading...' : isDocx ? 'Download .docx' : 'Download'}
+                </span>
               </button>
             )}
 
@@ -238,7 +325,7 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
                 <span className="hidden sm:inline">{uploading ? 'Uploading...' : 'Replace'}</span>
                 <input
                   type="file"
-                  accept=".pdf,image/png,image/jpeg,image/jpg"
+                  accept=".pdf,.docx,image/png,image/jpeg,image/jpg,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   className="hidden"
                   disabled={uploading}
                   onChange={handleFileUpload}
@@ -249,6 +336,7 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
             <button
               onClick={onClose}
               className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors ml-1 sm:ml-2"
+              title="Close Viewer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -258,7 +346,7 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
         {/* Status Notification */}
         {msg && (
           <div
-            className={`px-4 sm:px-6 py-2 text-xs flex items-center gap-2 ${
+            className={`px-4 sm:px-6 py-2 text-xs flex items-center gap-2 shrink-0 ${
               msg.type === 'success'
                 ? 'bg-emerald-50 text-emerald-800 border-b border-emerald-200'
                 : 'bg-rose-50 text-rose-800 border-b border-rose-200'
@@ -273,77 +361,196 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
           </div>
         )}
 
-        {/* Content Body: Preview on Left/Center, Review controls on Right */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden bg-slate-100">
+        {/* Main Body */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-100 min-h-0">
           {/* Document Preview Stage */}
-          <div className="flex-1 relative bg-slate-900 flex flex-col items-center justify-center p-2 sm:p-4 overflow-hidden min-h-[260px] sm:min-h-[380px]">
-            {loadingPreview ? (
-              <div className="p-8 text-center space-y-3 text-slate-300">
-                <Loader2 className="w-7 h-7 animate-spin text-amber-400 mx-auto" />
+          <div className="flex-1 relative bg-slate-900 flex flex-col overflow-hidden min-h-0">
+            {isDocx ? (
+              /* Microsoft Word (.docx) Document Preview */
+              <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-900 text-slate-200 min-h-0">
+                {/* Word Document Toolbar */}
+                <div className="px-3 py-2 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs shrink-0 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-white flex items-center gap-1.5">
+                      <FileCode className="w-4 h-4 text-blue-400" />
+                      Microsoft Word Document (.docx)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      Formatted Text & Tables
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setZoomLevel(prev => Math.max(50, prev - 15))}
+                      className="p-1 rounded hover:bg-slate-800 text-slate-300 hover:text-white"
+                      title="Zoom Out"
+                    >
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="font-mono text-amber-300 font-bold w-12 text-center text-[11px]">
+                      {zoomLevel}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setZoomLevel(prev => Math.min(200, prev + 15))}
+                      className="p-1 rounded hover:bg-slate-800 text-slate-300 hover:text-white"
+                      title="Zoom In"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setZoomLevel(100)}
+                      className="px-2 py-0.5 text-[11px] font-medium rounded hover:bg-slate-800 text-slate-300 border border-slate-700 ml-1"
+                    >
+                      Fit Width
+                    </button>
+                  </div>
+                </div>
+
+                {/* Word Content Paper Canvas */}
+                <div className="flex-1 overflow-x-auto overflow-y-auto p-4 sm:p-6 bg-slate-900/90 flex justify-center min-h-0">
+                  {loadingDocx ? (
+                    <div className="m-auto text-center space-y-3 text-slate-300 py-16">
+                      <Loader2 className="w-8 h-8 animate-spin text-amber-400 mx-auto" />
+                      <p className="text-xs font-medium">Converting Word document for in-app preview...</p>
+                    </div>
+                  ) : docxError ? (
+                    <div className="m-auto max-w-md p-6 bg-slate-950 rounded-xl border border-rose-500/40 text-center space-y-3">
+                      <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+                      <h4 className="text-xs font-bold text-white uppercase">Word Preview Notice</h4>
+                      <p className="text-xs text-rose-300">{docxError}</p>
+                      <button
+                        type="button"
+                        onClick={handleDownload}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs rounded-lg inline-flex items-center gap-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Download Original .docx File
+                      </button>
+                    </div>
+                  ) : docxHtml ? (
+                    <div
+                      style={{
+                        transform: `scale(${zoomLevel / 100})`,
+                        transformOrigin: 'top center',
+                        width: '100%',
+                        maxWidth: '850px',
+                      }}
+                      className="transition-transform duration-150 mb-12"
+                    >
+                      <div className="bg-white text-slate-900 p-8 sm:p-12 rounded-xl shadow-2xl border border-slate-200 space-y-4 font-sans text-xs sm:text-sm leading-relaxed docx-preview-content">
+                        <div
+                          dangerouslySetInnerHTML={{ __html: docxHtml }}
+                          className="space-y-3 [&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-slate-900 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:text-slate-900 [&_p]:text-slate-800 [&_p]:leading-relaxed [&_table]:w-full [&_table]:border-collapse [&_table]:my-3 [&_td]:border [&_td]:border-slate-300 [&_td]:p-2 [&_th]:border [&_th]:border-slate-300 [&_th]:p-2 [&_th]:bg-slate-100 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:font-bold"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="m-auto text-center space-y-2 text-slate-400 py-16">
+                      <FileCode className="w-10 h-10 mx-auto text-slate-500" />
+                      <p className="text-xs">No Word content extracted.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : loadingPreview ? (
+              <div className="m-auto p-8 text-center space-y-3 text-slate-300">
+                <Loader2 className="w-8 h-8 animate-spin text-amber-400 mx-auto" />
                 <p className="text-xs">Decrypting protected personnel document...</p>
               </div>
             ) : fileUrl ? (
               isImage ? (
-                <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
-                  <img
-                    src={fileUrl}
-                    alt={document.title}
-                    style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'center' }}
-                    className="max-h-[68vh] max-w-full object-contain rounded shadow-2xl transition-transform"
-                  />
+                /* High-Fidelity Image Viewer with Fit and Zoom controls */
+                <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-900 min-h-0">
+                  <div className="flex-1 overflow-x-auto overflow-y-auto p-4 bg-slate-900/90 flex flex-col items-center justify-start min-h-0">
+                    <div className="min-w-full min-h-full flex items-center justify-center my-auto">
+                      <img
+                        src={fileUrl}
+                        alt={document.title}
+                        style={{
+                          transform: `scale(${zoomLevel / 100}) rotate(${rotation}deg)`,
+                          transformOrigin: 'center center',
+                        }}
+                        className="max-h-[72vh] max-w-full object-contain rounded-lg shadow-2xl transition-transform duration-150"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Image Zoom & Rotate Floating Bar */}
+                  <div className="px-3 py-2 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-300 shrink-0">
+                    <span className="font-mono text-[11px] text-slate-400 truncate">
+                      {document.fileName || 'Image Document'}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setZoomLevel(prev => Math.max(30, prev - 20))}
+                        className="p-1 hover:text-amber-400 text-slate-300"
+                        title="Zoom Out"
+                      >
+                        <ZoomOut className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="font-mono text-amber-300 font-bold w-12 text-center text-[11px]">
+                        {zoomLevel}%
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setZoomLevel(prev => Math.min(300, prev + 20))}
+                        className="p-1 hover:text-amber-400 text-slate-300"
+                        title="Zoom In"
+                      >
+                        <ZoomIn className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setZoomLevel(100);
+                          setRotation(0);
+                        }}
+                        className="px-2 py-0.5 text-[11px] rounded hover:bg-slate-800 text-slate-300 border border-slate-700 ml-1"
+                      >
+                        Fit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRotation(prev => (prev + 90) % 360)}
+                        className="p-1 hover:text-amber-400 text-slate-300 ml-1"
+                        title="Rotate 90°"
+                      >
+                        <RotateCw className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : (
+                /* PDF Viewer */
                 <SecurePdfCanvasViewer
                   source={fileUrl}
                   fileName={document.fileName || `${document.key}.pdf`}
-                  className="w-full h-full min-h-[460px]"
+                  className="w-full h-full"
                 />
               )
             ) : (
-              <div className="p-8 text-center space-y-3 max-w-sm mx-auto">
+              /* No document uploaded placeholder */
+              <div className="m-auto p-8 text-center space-y-3 max-w-sm">
                 <div className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto text-slate-500">
                   <FileText className="w-7 h-7" />
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold text-slate-200">No Document Uploaded Yet</h4>
                   <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    This document record is marked as <strong className="text-amber-400">{document.status}</strong>, but no genuine file has been uploaded by the candidate or compliance officer.
+                    This document record is marked as{' '}
+                    <strong className="text-amber-400">{document.status}</strong>, but no genuine file
+                    has been uploaded by the candidate or compliance officer.
                   </p>
                   <p className="text-[11px] text-slate-500 mt-2">
-                    To maintain strict compliance integrity, mock documents are never shown. Upload a file above or have the candidate submit it via their secure link.
+                    To maintain strict compliance integrity, mock documents are never shown. Upload a file
+                    above or have the candidate submit it via their secure link.
                   </p>
                 </div>
-              </div>
-            )}
-
-            {/* Floating Image Zoom Bar */}
-            {isImage && fileUrl && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-700 flex items-center gap-2 text-white text-xs shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => setZoomLevel(prev => Math.max(50, prev - 25))}
-                  className="p-1 hover:text-amber-400"
-                  title="Zoom Out"
-                >
-                  <ZoomOut className="w-3.5 h-3.5" />
-                </button>
-                <span className="font-mono text-[11px] w-12 text-center">{zoomLevel}%</span>
-                <button
-                  type="button"
-                  onClick={() => setZoomLevel(prev => Math.min(250, prev + 25))}
-                  className="p-1 hover:text-amber-400"
-                  title="Zoom In"
-                >
-                  <ZoomIn className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setZoomLevel(100)}
-                  className="p-1 hover:text-amber-400 ml-1 text-[11px]"
-                  title="Reset Zoom"
-                >
-                  Reset
-                </button>
               </div>
             )}
           </div>
@@ -371,7 +578,7 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
                   className="w-full px-3 py-2 text-xs font-medium border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:ring-1 focus:ring-slate-900"
                 >
                   <option value="Verified">Verified (Compliant)</option>
-                  <option value="Uploaded">Uploaded (Submitted via 24h QR — Needs Verification)</option>
+                  <option value="Uploaded">Uploaded (Submitted via QR — Needs Verification)</option>
                   <option value="Under Review">Under Review (Inspection in progress)</option>
                   <option value="Submitted">Submitted (Needs HR inspection)</option>
                   <option value="Not Submitted">Not Submitted</option>
@@ -396,7 +603,7 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
                   rows={3}
                   value={reviewNotes}
                   onChange={e => setReviewNotes(e.target.value)}
-                  placeholder="e.g. Verified Aadhaar number matches DOB and name. Approved."
+                  placeholder="e.g. Verified document details match personnel record. Approved."
                   className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 bg-slate-50 focus:bg-white leading-relaxed"
                 />
               ) : (
@@ -415,13 +622,17 @@ export const LiveDocumentViewerModal: React.FC<LiveDocumentViewerModalProps> = (
               {document.verifiedAt && (
                 <div className="flex items-center justify-between">
                   <span>Verified Date:</span>
-                  <strong className="text-slate-800">{new Date(document.verifiedAt).toLocaleDateString()}</strong>
+                  <strong className="text-slate-800">
+                    {new Date(document.verifiedAt).toLocaleDateString()}
+                  </strong>
                 </div>
               )}
               {document.uploadedAt && (
                 <div className="flex items-center justify-between">
                   <span>Uploaded At:</span>
-                  <strong className="text-slate-800">{new Date(document.uploadedAt).toLocaleDateString()}</strong>
+                  <strong className="text-slate-800">
+                    {new Date(document.uploadedAt).toLocaleDateString()}
+                  </strong>
                 </div>
               )}
               {document.uploadedVia && (

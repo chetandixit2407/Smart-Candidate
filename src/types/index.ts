@@ -105,6 +105,10 @@ export interface QrDocumentTokenRecord {
   revokeReason?: string;
   lastOpenedAt?: string;
   openCount: number;
+  isSubmitted?: boolean;
+  submittedAt?: string;
+  submissionRef?: string;
+  isUsed?: boolean;
 }
 
 export interface ProfileDocumentInspection {
@@ -160,6 +164,9 @@ export interface PublicQrSessionData {
   allowedFormats: string[];
   maxFileSizeBytes: number;
   documents: PublicQrDocumentSlot[];
+  isSubmitted?: boolean;
+  submittedAt?: string;
+  submissionRef?: string;
 }
 
 export interface LiveQrUploadEvent {
@@ -658,6 +665,7 @@ export interface Employee {
   isCandidate: boolean; // true for upcoming candidates/pipeline joiners
   candidateStatus?: 'Interviewing' | 'Offer Extended' | 'Offer Accepted' | 'Joining Confirmed';
   market: MarketType;
+  workLocation?: string;
   desk?: string; // Standard desk code e.g. C2, A3, B2, or ''
   sourceSpreadsheetSeat?: string; // Raw seat value from spreadsheet e.g. CB, AC, Reception, BB, etc.
   

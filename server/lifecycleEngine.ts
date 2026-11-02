@@ -12,7 +12,8 @@ import type {
   RoleSalaryStructure,
   RoleSalaryStructureRule,
 } from '../src/types/index.ts';
-import { COMPANY_CONFIG } from './companyConfig.ts';
+import { COMPANY_CONFIG, DEFAULT_WORK_LOCATION } from './companyConfig.ts';
+export { DEFAULT_WORK_LOCATION };
 
 /**
  * Parses any user-entered CTC string or number into a standard annual integer.
@@ -977,12 +978,17 @@ export function buildOfferLetterData(
     (candidate.employmentStatus === 'Upcoming Joiner' ? 'Full-Time' : candidate.employmentStatus) ||
     'Full-Time';
 
-  const workLocation =
-    mergedInput.workLocation !== undefined
-      ? mergedInput.workLocation
-      : isDubai
-        ? COMPANY_CONFIG.dubaiBranchAddress
-        : COMPANY_CONFIG.officialAddress;
+  // Permanent default Work Location for Offer Letter Generation:
+  // 6th Floor, Tower A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101, India.
+  // Applies to existing and future offer letters and generated documents, while remaining editable for authorized users.
+  const rawWorkLoc = (mergedInput.workLocation || '').trim();
+  const isOldOrLegacyAddress =
+    !rawWorkLoc ||
+    rawWorkLoc.includes('Sector 65') ||
+    rawWorkLoc.includes('Golf Course Ext') ||
+    (rawWorkLoc.toLowerCase().includes('m3m urbana') && !rawWorkLoc.includes('India'));
+
+  const workLocation = isOldOrLegacyAddress ? DEFAULT_WORK_LOCATION : rawWorkLoc;
 
   const place =
     mergedInput.place !== undefined

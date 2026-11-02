@@ -562,6 +562,35 @@ class ApiService {
     return window.URL.createObjectURL(blob);
   }
 
+  public async fetchDocxHtml(
+    employeeId: string,
+    docKey: string,
+    token?: string
+  ): Promise<{ html: string; fileName: string; mimeType?: string }> {
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    const res = await fetch(`/api/employees/${employeeId}/documents/${docKey}/docx-html${query}`, {
+      headers: this.getAuthOnlyHeaders(),
+    });
+    const data = await res.json().catch(() => ({ error: 'Unable to convert Word document' }));
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to load Word document preview');
+    }
+    return data;
+  }
+
+  public async previewDocxBase64(fileData: string, fileName?: string): Promise<{ html: string }> {
+    const res = await fetch('/api/documents/docx-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileData, fileName }),
+    });
+    const data = await res.json().catch(() => ({ error: 'Unable to parse Word document' }));
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to parse Word document preview');
+    }
+    return data;
+  }
+
   public async downloadDocument(employeeId: string, docKey: string, fallbackFileName?: string): Promise<void> {
     const res = await fetch(`/api/employees/${employeeId}/documents/${docKey}/download`, {
       headers: this.getAuthOnlyHeaders(),
@@ -1285,6 +1314,34 @@ class ApiService {
 
       xhr.send(file);
     });
+  }
+
+  public async submitPublicQrRegistration(token: string): Promise<{
+    success: boolean;
+    submissionRef: string;
+    candidateName: string;
+    candidateCode?: string;
+    designation: string;
+    department: string;
+    submittedAt: string;
+    documentsCount: number;
+    documents: Array<{ key: string; title: string; fileName?: string; fileSize?: string }>;
+  }> {
+    const res = await fetch(`/api/public/document-qr/${encodeURIComponent(token)}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await res.json().catch(() => ({ error: 'Unable to submit QR registration' }));
+    if (!res.ok) {
+      const err: Error & { status?: number; code?: string; missingDocuments?: string[] } = new Error(
+        data.message || data.error || 'Failed to submit registration documents'
+      );
+      err.status = res.status;
+      err.code = data.code;
+      err.missingDocuments = data.missingDocuments;
+      throw err;
+    }
+    return data;
   }
 
   // --- Reset Database ---

@@ -56,11 +56,13 @@ export const COMPANY_CONFIG: CompanyConfig = {
   dubaiCountry: 'UAE',
 };
 
+export const DEFAULT_WORK_LOCATION = '6th Floor, Tower A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101, India.';
+
 export function getWorkLocationForMarket(market?: string): string {
   if (market === 'Dubai') {
     return COMPANY_CONFIG.dubaiBranchAddress;
   }
-  return COMPANY_CONFIG.officialAddress;
+  return DEFAULT_WORK_LOCATION;
 }
 
 export function getJurisdictionPlaceForMarket(market?: string): string {

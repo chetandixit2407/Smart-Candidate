@@ -2680,8 +2680,14 @@
           "key": "passport",
           "title": "Passport Copy (First & Last Page)",
           "category": "Identity",
-          "status": "Missing",
-          "required": false
+          "status": "Uploaded",
+          "required": false,
+          "fileName": "vikram_passport.pdf",
+          "fileSize": "335 B",
+          "mimeType": "application/pdf",
+          "storagePath": "secure_uploads/cand-vikram-malhotra/passport_1793601537889_vikram_passport.pdf",
+          "uploadedAt": "2026-11-02T06:38:57.889Z",
+          "uploadedVia": "QR"
         },
         "edu_10th": {
           "key": "edu_10th",
@@ -2775,10 +2781,10 @@
           "required": false
         }
       },
-      "profileCompletion": 96,
+      "profileCompletion": 97,
       "notes": "Offer letter signed. Relieving letter expected by Nov 10.",
       "createdAt": "2026-10-20T10:00:00Z",
-      "updatedAt": "2026-11-02T06:07:16.527Z",
+      "updatedAt": "2026-11-02T06:39:06.464Z",
       "uploadToken": {
         "token": "wcr-upl-00jp3nw4-mvyuwwso",
         "employeeId": "cand-vikram-malhotra",
@@ -3053,7 +3059,7 @@
         "department": "Sales & Investments",
         "reportingManager": "Abhishek (VP Gurgoan)",
         "joiningDate": "2026-11-15",
-        "workLocation": "White Collar Realty HQ, Golf Course Ext Road, Sector 65, Gurugram, Haryana - 122018",
+        "workLocation": "6th Floor, Tower A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101, India.",
         "market": "Gurgaon",
         "probationMonths": 3,
         "noticePeriodDays": 30,
@@ -3142,24 +3148,22 @@
       "departmentId": "dept-gurgaon-market",
       "documentQrMeta": {
         "hasToken": true,
-        "isActive": false,
-        "isExpired": true,
+        "isActive": true,
+        "isExpired": false,
         "isRevoked": false,
-        "createdAt": "2026-10-30T10:22:04.199Z",
-        "expiresAt": "2026-10-31T10:22:04.199Z",
-        "remainingMs": 0,
-        "createdBy": "Nisha (HR)",
+        "createdAt": "2026-11-02T06:39:06.464Z",
+        "expiresAt": "2026-11-03T06:39:06.464Z",
+        "remainingMs": 86399999,
+        "createdBy": "HR User",
         "createdByRole": "HR",
         "targetDocKeys": [
-          "edu_12th",
-          "edu_graduation",
-          "photograph"
+          "prev_offer",
+          "prev_relieving",
+          "salary_slips",
+          "google_drive_dossier"
         ],
-        "uploadedDocKeys": [
-          "edu_12th"
-        ],
-        "openCount": 1,
-        "lastOpenedAt": "2026-10-30T10:22:04.291Z"
+        "uploadedDocKeys": [],
+        "openCount": 0
       },
       "employmentCategory": "Employee",
       "alternatePhone": "+91 98119 99888",
@@ -3380,7 +3384,7 @@
         "department": "Luxury Residential & Investments",
         "reportingManager": "Shaquib (Dubai Team)",
         "joiningDate": "2026-11-20",
-        "workLocation": "6th floor, TOWER-A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101",
+        "workLocation": "6th Floor, Tower A, M3M Urbana Business Park, Sector 67, Gurugram, Haryana 122101, India.",
         "market": "Dual Market",
         "probationMonths": 6,
         "noticePeriodDays": 45,
@@ -4337,6 +4341,83 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1793601546489-fzend",
+      "timestamp": "2026-11-02T06:39:06.489Z",
+      "actor": "HR User",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (0 missing required doc(s) detected; expires 11/3/2026, 6:39:06 AM)."
+    },
+    {
+      "id": "log-1793601537892-6ytv0",
+      "timestamp": "2026-11-02T06:38:57.892Z",
+      "actor": "Vikram Malhotra (QR Upload)",
+      "actorRole": "HR",
+      "action": "Document Uploaded via 24h QR",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra-passport",
+      "entityName": "Vikram Malhotra - Passport Copy (First & Last Page)",
+      "details": "Uploaded 'vikram_passport.pdf' (335 B, application/pdf) via candidate-specific QR. Status automatically updated: Missing -> Uploaded."
+    },
+    {
+      "id": "log-1793601537867-tzl0z",
+      "timestamp": "2026-11-02T06:38:57.867Z",
+      "actor": "HR User",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (0 missing required doc(s) detected; expires 11/3/2026, 6:38:57 AM)."
+    },
+    {
+      "id": "log-1793601522918-kjksj",
+      "timestamp": "2026-11-02T06:38:42.918Z",
+      "actor": "HR User",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (0 missing required doc(s) detected; expires 11/3/2026, 6:38:42 AM)."
+    },
+    {
+      "id": "log-1793601513011-xd8ca",
+      "timestamp": "2026-11-02T06:38:33.011Z",
+      "actor": "HR User",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (0 missing required doc(s) detected; expires 11/3/2026, 6:38:32 AM)."
+    },
+    {
+      "id": "log-1793601498612-4mvky",
+      "timestamp": "2026-11-02T06:38:18.612Z",
+      "actor": "HR User",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (0 missing required doc(s) detected; expires 11/3/2026, 6:38:18 AM)."
+    },
+    {
+      "id": "log-1793601487348-u9k4g",
+      "timestamp": "2026-11-02T06:38:07.349Z",
+      "actor": "HR User",
+      "actorRole": "HR",
+      "action": "Document QR Regenerated (24h)",
+      "entityType": "DocumentQR",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated candidate-specific 24-hour Document QR (0 missing required doc(s) detected; expires 11/3/2026, 6:38:07 AM)."
+    },
     {
       "id": "log-1793599636538-qnxq1",
       "timestamp": "2026-11-02T06:07:16.538Z",
@@ -6044,7 +6125,7 @@
     }
   },
   "version": 3,
-  "lastUpdated": "2026-11-02T06:07:16.538Z",
+  "lastUpdated": "2026-11-02T06:39:06.490Z",
   "salaryStructures": [
     {
       "id": "role-bde",
@@ -6777,6 +6858,138 @@
   "notificationDeliveryLogs": [],
   "qrDocumentTokens": [
     {
+      "id": "qrt-1793601546464-c6d245",
+      "token": "10cf3f149ba879e7407a28b6bddb0468f9efe03c75420c6803863ade9f487338",
+      "tokenHash": "676a037a8e3e38bb558820cb3699be755b98bd2264dbecf4340191ea510e3621",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-11-02T06:39:06.464Z",
+      "expiresAt": "2026-11-03T06:39:06.464Z",
+      "createdBy": "HR User",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "prev_offer",
+        "prev_relieving",
+        "salary_slips",
+        "google_drive_dossier"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 0
+    },
+    {
+      "id": "qrt-1793601537838-083561",
+      "token": "a51e99d86dbd0af1f79c21c25d7db713e94e0f0d60453082504084c80641e7c0",
+      "tokenHash": "f1c55a9722d3ff3f20105cd23fa1749ffe28fd878f9905ecfe6f0d6ba0e9a071",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-11-02T06:38:57.838Z",
+      "expiresAt": "2026-11-03T06:38:57.838Z",
+      "createdBy": "HR User",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "passport",
+        "prev_offer",
+        "prev_relieving",
+        "salary_slips",
+        "google_drive_dossier"
+      ],
+      "uploadedDocKeys": [
+        "passport"
+      ],
+      "openCount": 1,
+      "lastOpenedAt": "2026-11-02T06:38:57.911Z",
+      "revokedAt": "2026-11-02T06:39:06.464Z",
+      "revokedBy": "HR User",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
+    },
+    {
+      "id": "qrt-1793601522893-dbf2ef",
+      "token": "6fbf70111ffee0ffdaae7edde529e7ac146532d6a0196f37517b80df156b7466",
+      "tokenHash": "a52dbe33a1b3ce64fcc5ef66f5f3c72a5be8ca189a9ef4176d7ba9b60d85843b",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-11-02T06:38:42.893Z",
+      "expiresAt": "2026-11-03T06:38:42.893Z",
+      "createdBy": "HR User",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "passport",
+        "prev_offer",
+        "prev_relieving",
+        "salary_slips",
+        "google_drive_dossier"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 0,
+      "revokedAt": "2026-11-02T06:38:57.838Z",
+      "revokedBy": "HR User",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
+    },
+    {
+      "id": "qrt-1793601512985-97cc59",
+      "token": "1c14e16743a03b8876307bc51e32a7ca01c6af729dfb50127e41560e8e6d2799",
+      "tokenHash": "177b5e038b5904a3905da22dfd6417bf4bd5bc733c8c9a877dca5d60b0a46f19",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-11-02T06:38:32.985Z",
+      "expiresAt": "2026-11-03T06:38:32.985Z",
+      "createdBy": "HR User",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "passport",
+        "prev_offer",
+        "prev_relieving",
+        "salary_slips",
+        "google_drive_dossier"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 0,
+      "revokedAt": "2026-11-02T06:38:42.893Z",
+      "revokedBy": "HR User",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
+    },
+    {
+      "id": "qrt-1793601498575-69f0d4",
+      "token": "d9e85925bbaf193c714a5f5600fc14eaae06baeb1a8f0ef5105096c4c6502970",
+      "tokenHash": "f403c361ce00a9957ad3ece85b575dd8b59acb95ef830b1bd0ebd95e44e11a85",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-11-02T06:38:18.575Z",
+      "expiresAt": "2026-11-03T06:38:18.575Z",
+      "createdBy": "HR User",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "passport",
+        "prev_offer",
+        "prev_relieving",
+        "salary_slips",
+        "google_drive_dossier"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 2,
+      "lastOpenedAt": "2026-11-02T06:38:18.650Z",
+      "revokedAt": "2026-11-02T06:38:32.985Z",
+      "revokedBy": "HR User",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
+    },
+    {
+      "id": "qrt-1793601487287-38d186",
+      "token": "d0f67497139f61d1a66e6a18f76a585a7bbadfbfe9fe7d8aaff52d7b2ff54060",
+      "tokenHash": "9c8bdec27b3a387faf4446b9ec84aa2d9636c1a974ab5f939775b65fe11cda5f",
+      "employeeId": "cand-vikram-malhotra",
+      "createdAt": "2026-11-02T06:38:07.287Z",
+      "expiresAt": "2026-11-03T06:38:07.287Z",
+      "createdBy": "HR User",
+      "createdByRole": "HR",
+      "targetDocKeys": [
+        "passport",
+        "prev_offer",
+        "prev_relieving",
+        "salary_slips",
+        "google_drive_dossier"
+      ],
+      "uploadedDocKeys": [],
+      "openCount": 0,
+      "revokedAt": "2026-11-02T06:38:18.575Z",
+      "revokedBy": "HR User",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
+    },
+    {
       "id": "qrt-1793357826510-efad76",
       "token": "11a3c2be717b4159fdf8874ab18c1e468f24485844029655cf62c4750f49c63a",
       "tokenHash": "4964304cc7c4b3d2d818ca44d8535d3b52c064c8b8fa854c30733525a7ac3428",
@@ -6842,7 +7055,10 @@
         "edu_12th"
       ],
       "openCount": 1,
-      "lastOpenedAt": "2026-10-30T10:22:04.291Z"
+      "lastOpenedAt": "2026-10-30T10:22:04.291Z",
+      "revokedAt": "2026-11-02T06:38:07.287Z",
+      "revokedBy": "HR User",
+      "revokeReason": "Superseded by newly generated 24-hour Document QR"
     },
     {
       "id": "qrt-1793352681239-0d4b83",
@@ -7232,8 +7448,8 @@
           "id": "sub-gurgaon-market-emp",
           "name": "Gurgaon Employees",
           "description": "Full-time Gurgaon employees and team members",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7249,8 +7465,8 @@
           "id": "sub-dubai-market-emp",
           "name": "Dubai Employees",
           "description": "Full-time Dubai employees and team members",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7265,14 +7481,14 @@
         {
           "id": "sub-ai-emp",
           "name": "AI Employees",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         },
         {
           "id": "sub-ai-intern",
           "name": "AI Interns",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7287,14 +7503,14 @@
         {
           "id": "sub-dm-emp",
           "name": "DM Employees",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         },
         {
           "id": "sub-dm-intern",
           "name": "DM Interns",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7309,14 +7525,14 @@
         {
           "id": "sub-hr-emp",
           "name": "HR Employees",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         },
         {
           "id": "sub-hr-intern",
           "name": "HR Interns",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7332,8 +7548,8 @@
           "id": "sub-executive-emp",
           "name": "Executive Leadership Employees",
           "description": "Full-time Executive Leadership employees and team members",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7349,8 +7565,8 @@
           "id": "sub-admin-ops-emp",
           "name": "Administration & Operations Employees",
           "description": "Full-time Administration & Operations employees and team members",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7366,8 +7582,8 @@
           "id": "sub-uae-luxury-advisory-9atn-emp",
           "name": "Global NRI Desk Employees",
           "description": "Full-time Global NRI Desk employees and team members",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         }
       ],
       "createdAt": "2026-10-30T06:18:15.957Z",
@@ -7382,14 +7598,14 @@
         {
           "id": "sub-da-emp",
           "name": "DA Employees",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         },
         {
           "id": "sub-da-intern",
           "name": "DA Interns",
-          "createdAt": "2026-11-02T05:59:21.741Z",
-          "updatedAt": "2026-11-02T05:59:21.741Z"
+          "createdAt": "2026-11-02T06:37:11.152Z",
+          "updatedAt": "2026-11-02T06:37:11.152Z"
         }
       ],
       "createdAt": "2026-10-30T09:05:33.312Z",

@@ -8,6 +8,7 @@ import {
   DepartmentWithCounts,
   isInternAllowedDepartment,
 } from '../types/index.js';
+import { DEFAULT_WORK_LOCATION } from '../config/company.js';
 
 interface AddPersonModalProps {
   isOpen: boolean;
@@ -150,6 +151,9 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({
           isCandidate,
           employmentCategory: chosenCat,
           employmentStatus: chosenStatus,
+          workLocation:
+            formData.workLocation?.trim() ||
+            (formData.market === 'Dubai' ? 'Dubai Office, UAE' : DEFAULT_WORK_LOCATION),
           internshipCompletionDate: isInternAllowed ? formData.internshipCompletionDate : undefined,
           candidateStatus: isCandidate ? 'Offer Accepted' : undefined,
         },

@@ -74,6 +74,43 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
   const [submissionSummary, setSubmissionSummary] = useState<any>(null);
   const [previewFile, setPreviewFile] = useState<LocalFileItem | null>(null);
   const [alreadyUsedNotice, setAlreadyUsedNotice] = useState<{ candidateName?: string; submittedAt?: string } | null>(null);
+  const [stagedDocxHtml, setStagedDocxHtml] = useState<string | null>(null);
+  const [loadingDocx, setLoadingDocx] = useState<boolean>(false);
+  const [docxError, setDocxError] = useState<string | null>(null);
+
+  // Load DOCX preview HTML when previewFile changes
+  useEffect(() => {
+    if (!previewFile) {
+      setStagedDocxHtml(null);
+      setDocxError(null);
+      return;
+    }
+    const isDoc =
+      previewFile.fileName?.toLowerCase().endsWith('.docx') ||
+      previewFile.mimeType?.includes('wordprocessingml');
+
+    if (isDoc) {
+      setLoadingDocx(true);
+      setDocxError(null);
+      setStagedDocxHtml(null);
+
+      if (previewFile.fileData?.startsWith('data:')) {
+        api
+          .previewDocxBase64(previewFile.fileData, previewFile.fileName)
+          .then(res => setStagedDocxHtml(res.html))
+          .catch(err => setDocxError(err.message || 'Failed to render Word document preview'))
+          .finally(() => setLoadingDocx(false));
+      } else if (candidateData?.id) {
+        api
+          .fetchDocxHtml(candidateData.id, previewFile.key, token)
+          .then(res => setStagedDocxHtml(res.html))
+          .catch(err => setDocxError(err.message || 'Failed to render Word document preview'))
+          .finally(() => setLoadingDocx(false));
+      } else {
+        setLoadingDocx(false);
+      }
+    }
+  }, [previewFile, candidateData?.id, token]);
 
   // Stable idempotency key per browser session
   const [idempotencyKey] = useState<string>(() => `cand-sub-${token.slice(0, 8)}-${Date.now()}`);
@@ -190,6 +227,16 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
           ? `${Math.round(file.size / 1024)} KB`
           : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
 
+      const isDocx = file.name.toLowerCase().endsWith('.docx');
+      const isDoc = file.name.toLowerCase().endsWith('.doc');
+      const detectedMime =
+        file.type ||
+        (isDocx
+          ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          : isDoc
+          ? 'application/msword'
+          : 'application/pdf');
+
       setStagedFiles(prev => ({
         ...prev,
         [key]: {
@@ -198,7 +245,7 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
           fileName: file.name,
           fileSize: sizeStr,
           fileData: base64,
-          mimeType: file.type || 'application/pdf',
+          mimeType: detectedMime,
         },
       }));
 
@@ -1027,6 +1074,9 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
                             <button
                               type="button"
                               onClick={() => {
+                                const isDocx =
+                                  doc.fileName?.toLowerCase().endsWith('.docx') ||
+                                  doc.mimeType?.includes('wordprocessingml');
                                 setPreviewFile({
                                   key: doc.key,
                                   file: null as any,
@@ -1035,7 +1085,9 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
                                   fileData: `/api/employees/${candidateData.id}/documents/${doc.key}/file?token=${token}`,
                                   mimeType:
                                     doc.mimeType ||
-                                    (doc.fileName.endsWith('.png')
+                                    (isDocx
+                                      ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                                      : doc.fileName.endsWith('.png')
                                       ? 'image/png'
                                       : doc.fileName.endsWith('.jpg') || doc.fileName.endsWith('.jpeg')
                                       ? 'image/jpeg'
@@ -1073,7 +1125,7 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
                           <span>{doc.fileName ? 'Replace File' : 'Choose File'}</span>
                           <input
                             type="file"
-                            accept=".pdf,image/png,image/jpeg,image/jpg"
+                            accept=".pdf,image/png,image/jpeg,image/jpg,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                             className="hidden"
                             onChange={e => handleFileSelect(doc.key, e)}
                           />
@@ -1152,18 +1204,38 @@ export const CandidateUploadPortal: React.FC<CandidateUploadPortalProps> = ({ to
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center min-h-[350px]">
+            <div className="flex-1 overflow-auto bg-slate-950 rounded-xl border border-slate-800 p-2 min-h-[400px] flex flex-col">
               {previewFile.mimeType.startsWith('image/') ? (
-                <img
-                  src={previewFile.fileData}
-                  alt={previewFile.fileName}
-                  className="max-h-[60vh] object-contain rounded-lg mx-auto"
-                />
+                <div className="min-w-full min-h-full flex flex-col items-center justify-start my-auto py-2">
+                  <img
+                    src={previewFile.fileData}
+                    alt={previewFile.fileName}
+                    className="max-h-[70vh] w-auto max-w-full object-contain rounded-lg shadow-lg"
+                  />
+                </div>
+              ) : previewFile.fileName?.toLowerCase().endsWith('.docx') ||
+                previewFile.mimeType?.includes('wordprocessingml') ? (
+                loadingDocx ? (
+                  <div className="flex flex-col items-center justify-center p-12 text-slate-400 my-auto">
+                    <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-3" />
+                    <p className="text-xs">Rendering Word document preview...</p>
+                  </div>
+                ) : docxError ? (
+                  <div className="p-8 text-center text-rose-400 text-xs my-auto">
+                    <p>{docxError}</p>
+                  </div>
+                ) : (
+                  <div className="w-full h-full overflow-y-auto bg-slate-900/70 p-4 flex justify-center">
+                    <div className="bg-white text-slate-900 rounded shadow-lg max-w-3xl w-full p-8 text-xs sm:text-sm font-sans leading-relaxed prose prose-slate">
+                      <div dangerouslySetInnerHTML={{ __html: stagedDocxHtml || '' }} />
+                    </div>
+                  </div>
+                )
               ) : (
                 <SecurePdfCanvasViewer
                   source={previewFile.fileData}
                   fileName={previewFile.fileName}
-                  className="w-full h-[60vh] rounded-lg"
+                  className="w-full h-[65vh] rounded-lg"
                 />
               )}
             </div>

@@ -5561,6 +5561,17 @@ class DatabaseService {
       };
     }
 
+    if (matched.isSubmitted) {
+      return {
+        ok: false,
+        httpStatus: 409,
+        code: 'ALREADY_SUBMITTED' as any,
+        error: 'Onboarding registration has already been completed and confirmed for this candidate.',
+        tokenRecord: matched,
+        employee: emp,
+      };
+    }
+
     return {
       ok: true,
       httpStatus: 200,
@@ -5588,6 +5599,31 @@ class DatabaseService {
   } {
     const check = this.validatePublicQrToken(rawToken);
     if (!check.ok || !check.tokenRecord || !check.employee) {
+      if ((check as any).code === 'ALREADY_SUBMITTED' && check.tokenRecord && check.employee) {
+        return {
+          ok: false,
+          httpStatus: 409,
+          code: 'ALREADY_SUBMITTED',
+          error: check.error || 'Onboarding registration has already been completed.',
+          session: {
+            valid: false,
+            recipientName: check.employee.fullName,
+            designation: check.employee.designation,
+            department: check.employee.department,
+            subDepartment: check.employee.subDepartment,
+            companyName: 'White Collar Realty',
+            createdAt: check.tokenRecord.createdAt,
+            expiresAt: check.tokenRecord.expiresAt,
+            remainingMs: 0,
+            allowedFormats: ['PDF', 'JPG', 'PNG'],
+            maxFileSizeBytes: QR_MAX_FILE_SIZE_BYTES,
+            documents: [],
+            isSubmitted: true,
+            submissionRef: check.tokenRecord.submissionRef,
+            submittedAt: check.tokenRecord.submittedAt,
+          },
+        };
+      }
       return {
         ok: false,
         httpStatus: check.httpStatus,
@@ -5682,11 +5718,11 @@ class DatabaseService {
     }
 
     const ext = path.extname(fileName || '').toLowerCase();
-    const allowedExts = ['.pdf', '.jpg', '.jpeg', '.png'];
+    const allowedExts = ['.pdf', '.jpg', '.jpeg', '.png', '.docx', '.doc'];
     if (!allowedExts.includes(ext)) {
       return {
         valid: false,
-        error: `Unsupported file extension '${ext || 'unknown'}'. Only PDF, JPG, and PNG files are allowed.`,
+        error: `Unsupported file extension '${ext || 'unknown'}'. PDF, JPG, PNG, and DOCX files are allowed.`,
       };
     }
 
@@ -5709,6 +5745,17 @@ class DatabaseService {
       buffer[6] === 0x1a &&
       buffer[7] === 0x0a;
 
+    const isZipDocxMagic =
+      buffer[0] === 0x50 &&
+      buffer[1] === 0x4b &&
+      (buffer[2] === 0x03 || buffer[2] === 0x05 || buffer[2] === 0x07);
+
+    const isDocOleMagic =
+      buffer[0] === 0xd0 &&
+      buffer[1] === 0xcf &&
+      buffer[2] === 0x11 &&
+      buffer[3] === 0xe0;
+
     if (ext === '.pdf') {
       if (!isPdfMagic) {
         return { valid: false, error: 'File content does not match a valid PDF document.' };
@@ -5717,6 +5764,23 @@ class DatabaseService {
         return { valid: false, error: 'Invalid MIME type for PDF upload.' };
       }
       return { valid: true, mimeType: 'application/pdf' };
+    }
+
+    if (ext === '.docx') {
+      if (!isZipDocxMagic) {
+        return { valid: false, error: 'File content does not match a valid DOCX document.' };
+      }
+      return {
+        valid: true,
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      };
+    }
+
+    if (ext === '.doc') {
+      if (!isDocOleMagic && !isZipDocxMagic) {
+        return { valid: false, error: 'File content does not match a valid Word document.' };
+      }
+      return { valid: true, mimeType: 'application/msword' };
     }
 
     if (ext === '.jpg' || ext === '.jpeg') {
@@ -5739,7 +5803,7 @@ class DatabaseService {
       return { valid: true, mimeType: 'image/png' };
     }
 
-    return { valid: false, error: 'Only PDF, JPG, and PNG files are accepted.' };
+    return { valid: false, error: 'Only PDF, JPG, PNG, and DOCX files are accepted.' };
   }
 
   private formatBytesHuman(bytes: number): string {
@@ -5927,6 +5991,126 @@ class DatabaseService {
       code: 'UPLOADED',
       slot: updatedSlot,
       session: refreshedSession.session,
+    };
+  }
+
+  public submitPublicQrRegistration(rawToken: string): {
+    success: boolean;
+    httpStatus: number;
+    code: string;
+    message: string;
+    submissionRef?: string;
+    candidateName?: string;
+    candidateCode?: string;
+    designation?: string;
+    department?: string;
+    submittedAt?: string;
+    documentsCount?: number;
+    missingDocuments?: string[];
+    documents?: Array<{ key: string; title: string; fileName?: string; fileSize?: string }>;
+  } {
+    const check = this.validatePublicQrToken(rawToken);
+    if (!check.ok || !check.tokenRecord || !check.employee) {
+      return {
+        success: false,
+        httpStatus: check.httpStatus,
+        code: check.code,
+        message: check.error || 'Invalid or expired QR upload link.',
+      };
+    }
+
+    const { tokenRecord, employee } = check;
+    const empDocs = employee.documents || {};
+    const targetKeys =
+      tokenRecord.targetDocKeys && tokenRecord.targetDocKeys.length > 0
+        ? tokenRecord.targetDocKeys
+        : Object.values(empDocs)
+            .filter(d => d.required && d.status !== 'Not Applicable')
+            .map(d => d.key);
+
+    // Validate that all required target documents have been uploaded
+    const missingDocs: string[] = [];
+    targetKeys.forEach(k => {
+      const d = empDocs[k];
+      if (!d || d.status === 'Missing' || d.status === 'Not Submitted' || d.status === 'Rejected') {
+        missingDocs.push(d ? d.title : k);
+      }
+    });
+
+    if (missingDocs.length > 0) {
+      return {
+        success: false,
+        httpStatus: 400,
+        code: 'MISSING_MANDATORY_DOCUMENTS',
+        message: `Please upload all mandatory documents before submission: ${missingDocs.join(', ')}.`,
+        missingDocuments: missingDocs,
+      };
+    }
+
+    const nowIso = new Date().toISOString();
+    const submissionRef = `WCR-QR-SUB-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    // Mark documents as Submitted (if Uploaded) so HR knows submission is finalized
+    targetKeys.forEach(k => {
+      if (empDocs[k] && empDocs[k].status === 'Uploaded') {
+        empDocs[k].status = 'Submitted';
+      }
+    });
+
+    // Mark token record as submitted
+    tokenRecord.isSubmitted = true;
+    tokenRecord.submittedAt = nowIso;
+    tokenRecord.submissionRef = submissionRef;
+    tokenRecord.isUsed = true;
+    // Expire the one-time link ONLY after successful server-side submission
+    tokenRecord.expiresAt = nowIso;
+
+    employee.updatedAt = nowIso;
+    employee.profileCompletion = calculateCompletion(employee);
+    employee.documentQrMeta = this.computeEmployeeQrMeta(employee.id);
+
+    this.persist();
+
+    this.logAudit(
+      `${employee.fullName} (QR Registration)`,
+      'HR',
+      'Onboarding Registration Completed via QR',
+      'DocumentQR',
+      `${employee.id}-qr-sub`,
+      `${employee.fullName}`,
+      `Completed registration submission (${submissionRef}) with ${targetKeys.length} document(s). 24h QR link permanently locked.`
+    );
+
+    const submittedDocsList = targetKeys.map(k => ({
+      key: k,
+      title: empDocs[k]?.title || k,
+      fileName: empDocs[k]?.fileName,
+      fileSize: empDocs[k]?.fileSize,
+    }));
+
+    this.broadcast('QR_SUBMISSION_COMPLETED', {
+      employeeId: employee.id,
+      employeeName: employee.fullName,
+      submissionRef,
+      submittedAt: nowIso,
+      documentsCount: targetKeys.length,
+    });
+    this.broadcast('EMPLOYEE_UPDATED', employee);
+    this.broadcast('ALERT_UPDATED', { candidateId: employee.id });
+
+    return {
+      success: true,
+      httpStatus: 200,
+      code: 'SUBMITTED',
+      message: 'Onboarding registration successfully submitted and confirmed.',
+      submissionRef,
+      candidateName: employee.fullName,
+      candidateCode: employee.employeeCode,
+      designation: employee.designation,
+      department: employee.department,
+      submittedAt: nowIso,
+      documentsCount: targetKeys.length,
+      documents: submittedDocsList,
     };
   }
 }
