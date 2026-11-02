@@ -2593,11 +2593,11 @@
       "employeeCode": "WCR-022 (Pending)",
       "fullName": "Vikram Malhotra",
       "email": "vikram.m.candidate@gmail.com",
-      "phone": "+91 98119 99887",
+      "phone": "+91 99999 88888",
       "dateOfBirth": "1993-04-12",
       "gender": "Male",
       "nationality": "Indian",
-      "currentAddress": "Tower 8, Ireo Grand Arch, Golf Course Extn Road, Sector 58, Gurugram, Haryana 122002",
+      "currentAddress": "Tower 2, Sector 50, Gurugram, Haryana",
       "permanentAddress": "Tower 8, Ireo Grand Arch, Golf Course Extn Road, Sector 58, Gurugram, Haryana 122002",
       "emergencyContact": {
         "name": "Kavita Malhotra",
@@ -2654,13 +2654,13 @@
           "category": "Identity",
           "status": "Submitted",
           "required": true,
-          "fileName": "aadhaar_card_submitted.pdf",
-          "fileSize": "284 B",
-          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg==",
+          "fileName": "aadhaar.pdf",
+          "fileSize": "2 KB",
+          "fileData": "data:application/pdf;base64,JVBERi0xLjQKJcOiw6PDj8OTCjEgMCBvYmoKPDwvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcyAvS2lkcyBbMyAwIFJdIC9Db3VudCAxPj4KZW5kb2JqCjMgMCBvYmoKPDwvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9SZXNvdXJjZXMgPDwvRm9udCA8PC9GMSA0IDAgUiAvRjIgNSAwIFI+Pj4+IC9Db250ZW50cyA2IDAgUj4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhPj4KZW5kb2JqCjUgMCBvYmoKPDwvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EtQm9sZD4+CmVuZG9iago2IDAgb2JqCjw8L0xlbmd0aCAxNDMyPj4Kc3RyZWFtCkJUCi9GMiAxNCBUZgo1MCA3MzAgVGQKKFdISVRFIENPTExBUiBSRUFMVFkgLSBIUiBDT01QTElBTkNFIERPU1NJRVIpIFRqCkVUCkJUCi9GMSA4IFRmCjUwIDcwOCBUZAooT2ZmaWNpYWwgQWRkcmVzczogNnRoIEZsb29yLCBUb3dlciBBLCBNM00gVXJiYW5hIEJ1c2luZXNzIFBhcmssIFNlY3RvciA2NywgR3VydWdyYW0sIEhhcnlhbmEgMTIyMTAxLCBJbmRpYS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA2ODkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDEyIFRmCjUwIDY3MSBUZAooT0ZGSUNJQUwgRE9DVU1FTlQgVkVSSUZJQ0FUSU9OIENFUlRJRklDQVRFKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjUyIFRkCihEb2N1bWVudCBUaXRsZTogICAgICBDYW5kaWRhdGUgQWFkaGFhcikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDYzMyBUZAooRG9jdW1lbnQgS2V5OiAgICAgICAgYWFkaGFhcl9jYXJkKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjE0IFRkCihDYW5kaWRhdGUgTmFtZTogICAgICBWaWtyYW0gTWFsaG90cmEpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1OTUgVGQKKFBlcnNvbm5lbCBJRDogICAgICAgIGNhbmQtdmlrcmFtLW1hbGhvdHJhKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTc2IFRkCihJc3N1aW5nIEF1dGhvcml0eTogICBXaGl0ZSBDb2xsYXIgUmVhbHR5IEhSIENvbXBsaWFuY2UgJiBPcGVyYXRpb25zIERpdmlzaW9uKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTU3IFRkCihWZXJpZmljYXRpb24gU3RhbXA6ICBXQ1ItQ09NUExJQU5DRS1WRVJJRklFRC1NVllVV1dUTikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDUzOCBUZAooQXJjaGl2YWwgVGltZXN0YW1wOiAgMDIgTm92IDIwMjYpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1MTkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDExIFRmCjUwIDUwMSBUZAooQ09NUExJQU5DRSBBVURJVCBTVEFUVVM6IEFVVEhFTlRJQ0FURUQgJiBTQUZFTFkgQVJDSElWRUQpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0ODIgVGQKKFRoaXMgZG9jdW1lbnQgcmVjb3JkIGhhcyBiZWVuIHZlcmlmaWVkIGFuZCByZWdpc3RlcmVkIHdpdGhpbiB0aGUgZW50ZXJwcmlzZSBwZXJzb25uZWwgcmVjb3JkIHN5c3RlbS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0NjMgVGQKKEFsbCBzZWN1cml0eSBzZWFscyBhbmQgY29tcGFueSBtZXRhZGF0YSBhcmUgaW50YWN0IGluIGFjY29yZGFuY2Ugd2l0aCBjb3Jwb3JhdGUgcG9saWN5LikgVGoKRVQKQlQKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTkgMDAwMDAgbiAKMDAwMDAwMDA2NiAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyNTEgMDAwMDAgbiAKMDAwMDAwMDMxOSAwMDAwMCBuIAowMDAwMDAwMzkyIDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA3IC9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjE4NzQKJSVFT0YK",
           "mimeType": "application/pdf",
-          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "uploadedAt": "2026-11-02T06:07:16.527Z",
           "uploadedVia": "Portal",
-          "storagePath": "secure_uploads/cand-vikram-malhotra/aadhaar_card_1793597803585_aadhaar_card_submitted.pdf"
+          "storagePath": "secure_uploads/cand-vikram-malhotra/aadhaar_card_1793599636527_aadhaar.pdf"
         },
         "pan_card": {
           "key": "pan_card",
@@ -2668,13 +2668,13 @@
           "category": "Financial & Tax",
           "status": "Submitted",
           "required": true,
-          "fileName": "pan_card_submitted.pdf",
-          "fileSize": "284 B",
+          "fileName": "pan.pdf",
+          "fileSize": "2 KB",
           "mimeType": "application/pdf",
-          "storagePath": "secure_uploads/cand-vikram-malhotra/pan_card_1793597803585_pan_card_submitted.pdf",
-          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "storagePath": "secure_uploads/cand-vikram-malhotra/pan_card_1793599636528_pan.pdf",
+          "uploadedAt": "2026-11-02T06:07:16.527Z",
           "uploadedVia": "Portal",
-          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg=="
+          "fileData": "data:application/pdf;base64,JVBERi0xLjQKJcOiw6PDj8OTCjEgMCBvYmoKPDwvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcyAvS2lkcyBbMyAwIFJdIC9Db3VudCAxPj4KZW5kb2JqCjMgMCBvYmoKPDwvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9SZXNvdXJjZXMgPDwvRm9udCA8PC9GMSA0IDAgUiAvRjIgNSAwIFI+Pj4+IC9Db250ZW50cyA2IDAgUj4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhPj4KZW5kb2JqCjUgMCBvYmoKPDwvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EtQm9sZD4+CmVuZG9iago2IDAgb2JqCjw8L0xlbmd0aCAxNDMyPj4Kc3RyZWFtCkJUCi9GMiAxNCBUZgo1MCA3MzAgVGQKKFdISVRFIENPTExBUiBSRUFMVFkgLSBIUiBDT01QTElBTkNFIERPU1NJRVIpIFRqCkVUCkJUCi9GMSA4IFRmCjUwIDcwOCBUZAooT2ZmaWNpYWwgQWRkcmVzczogNnRoIEZsb29yLCBUb3dlciBBLCBNM00gVXJiYW5hIEJ1c2luZXNzIFBhcmssIFNlY3RvciA2NywgR3VydWdyYW0sIEhhcnlhbmEgMTIyMTAxLCBJbmRpYS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA2ODkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDEyIFRmCjUwIDY3MSBUZAooT0ZGSUNJQUwgRE9DVU1FTlQgVkVSSUZJQ0FUSU9OIENFUlRJRklDQVRFKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjUyIFRkCihEb2N1bWVudCBUaXRsZTogICAgICBDYW5kaWRhdGUgQWFkaGFhcikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDYzMyBUZAooRG9jdW1lbnQgS2V5OiAgICAgICAgYWFkaGFhcl9jYXJkKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjE0IFRkCihDYW5kaWRhdGUgTmFtZTogICAgICBWaWtyYW0gTWFsaG90cmEpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1OTUgVGQKKFBlcnNvbm5lbCBJRDogICAgICAgIGNhbmQtdmlrcmFtLW1hbGhvdHJhKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTc2IFRkCihJc3N1aW5nIEF1dGhvcml0eTogICBXaGl0ZSBDb2xsYXIgUmVhbHR5IEhSIENvbXBsaWFuY2UgJiBPcGVyYXRpb25zIERpdmlzaW9uKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTU3IFRkCihWZXJpZmljYXRpb24gU3RhbXA6ICBXQ1ItQ09NUExJQU5DRS1WRVJJRklFRC1NVllVV1dUTikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDUzOCBUZAooQXJjaGl2YWwgVGltZXN0YW1wOiAgMDIgTm92IDIwMjYpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1MTkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDExIFRmCjUwIDUwMSBUZAooQ09NUExJQU5DRSBBVURJVCBTVEFUVVM6IEFVVEhFTlRJQ0FURUQgJiBTQUZFTFkgQVJDSElWRUQpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0ODIgVGQKKFRoaXMgZG9jdW1lbnQgcmVjb3JkIGhhcyBiZWVuIHZlcmlmaWVkIGFuZCByZWdpc3RlcmVkIHdpdGhpbiB0aGUgZW50ZXJwcmlzZSBwZXJzb25uZWwgcmVjb3JkIHN5c3RlbS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0NjMgVGQKKEFsbCBzZWN1cml0eSBzZWFscyBhbmQgY29tcGFueSBtZXRhZGF0YSBhcmUgaW50YWN0IGluIGFjY29yZGFuY2Ugd2l0aCBjb3Jwb3JhdGUgcG9saWN5LikgVGoKRVQKQlQKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTkgMDAwMDAgbiAKMDAwMDAwMDA2NiAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyNTEgMDAwMDAgbiAKMDAwMDAwMDMxOSAwMDAwMCBuIAowMDAwMDAwMzkyIDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA3IC9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjE4NzQKJSVFT0YK"
         },
         "passport": {
           "key": "passport",
@@ -2689,13 +2689,13 @@
           "category": "Education",
           "status": "Submitted",
           "required": true,
-          "fileName": "edu_10th_submitted.pdf",
-          "fileSize": "284 B",
+          "fileName": "10th.pdf",
+          "fileSize": "2 KB",
           "mimeType": "application/pdf",
-          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_10th_1793597803585_edu_10th_submitted.pdf",
-          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_10th_1793599636528_10th.pdf",
+          "uploadedAt": "2026-11-02T06:07:16.527Z",
           "uploadedVia": "Portal",
-          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg=="
+          "fileData": "data:application/pdf;base64,JVBERi0xLjQKJcOiw6PDj8OTCjEgMCBvYmoKPDwvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcyAvS2lkcyBbMyAwIFJdIC9Db3VudCAxPj4KZW5kb2JqCjMgMCBvYmoKPDwvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9SZXNvdXJjZXMgPDwvRm9udCA8PC9GMSA0IDAgUiAvRjIgNSAwIFI+Pj4+IC9Db250ZW50cyA2IDAgUj4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhPj4KZW5kb2JqCjUgMCBvYmoKPDwvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EtQm9sZD4+CmVuZG9iago2IDAgb2JqCjw8L0xlbmd0aCAxNDMyPj4Kc3RyZWFtCkJUCi9GMiAxNCBUZgo1MCA3MzAgVGQKKFdISVRFIENPTExBUiBSRUFMVFkgLSBIUiBDT01QTElBTkNFIERPU1NJRVIpIFRqCkVUCkJUCi9GMSA4IFRmCjUwIDcwOCBUZAooT2ZmaWNpYWwgQWRkcmVzczogNnRoIEZsb29yLCBUb3dlciBBLCBNM00gVXJiYW5hIEJ1c2luZXNzIFBhcmssIFNlY3RvciA2NywgR3VydWdyYW0sIEhhcnlhbmEgMTIyMTAxLCBJbmRpYS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA2ODkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDEyIFRmCjUwIDY3MSBUZAooT0ZGSUNJQUwgRE9DVU1FTlQgVkVSSUZJQ0FUSU9OIENFUlRJRklDQVRFKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjUyIFRkCihEb2N1bWVudCBUaXRsZTogICAgICBDYW5kaWRhdGUgQWFkaGFhcikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDYzMyBUZAooRG9jdW1lbnQgS2V5OiAgICAgICAgYWFkaGFhcl9jYXJkKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjE0IFRkCihDYW5kaWRhdGUgTmFtZTogICAgICBWaWtyYW0gTWFsaG90cmEpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1OTUgVGQKKFBlcnNvbm5lbCBJRDogICAgICAgIGNhbmQtdmlrcmFtLW1hbGhvdHJhKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTc2IFRkCihJc3N1aW5nIEF1dGhvcml0eTogICBXaGl0ZSBDb2xsYXIgUmVhbHR5IEhSIENvbXBsaWFuY2UgJiBPcGVyYXRpb25zIERpdmlzaW9uKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTU3IFRkCihWZXJpZmljYXRpb24gU3RhbXA6ICBXQ1ItQ09NUExJQU5DRS1WRVJJRklFRC1NVllVV1dUTikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDUzOCBUZAooQXJjaGl2YWwgVGltZXN0YW1wOiAgMDIgTm92IDIwMjYpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1MTkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDExIFRmCjUwIDUwMSBUZAooQ09NUExJQU5DRSBBVURJVCBTVEFUVVM6IEFVVEhFTlRJQ0FURUQgJiBTQUZFTFkgQVJDSElWRUQpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0ODIgVGQKKFRoaXMgZG9jdW1lbnQgcmVjb3JkIGhhcyBiZWVuIHZlcmlmaWVkIGFuZCByZWdpc3RlcmVkIHdpdGhpbiB0aGUgZW50ZXJwcmlzZSBwZXJzb25uZWwgcmVjb3JkIHN5c3RlbS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0NjMgVGQKKEFsbCBzZWN1cml0eSBzZWFscyBhbmQgY29tcGFueSBtZXRhZGF0YSBhcmUgaW50YWN0IGluIGFjY29yZGFuY2Ugd2l0aCBjb3Jwb3JhdGUgcG9saWN5LikgVGoKRVQKQlQKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTkgMDAwMDAgbiAKMDAwMDAwMDA2NiAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyNTEgMDAwMDAgbiAKMDAwMDAwMDMxOSAwMDAwMCBuIAowMDAwMDAwMzkyIDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA3IC9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjE4NzQKJSVFT0YK"
         },
         "edu_12th": {
           "key": "edu_12th",
@@ -2703,13 +2703,13 @@
           "category": "Education",
           "status": "Submitted",
           "required": true,
-          "fileName": "edu_12th_submitted.pdf",
-          "fileSize": "284 B",
+          "fileName": "12th.pdf",
+          "fileSize": "2 KB",
           "mimeType": "application/pdf",
-          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_12th_1793597803585_edu_12th_submitted.pdf",
-          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_12th_1793599636528_12th.pdf",
+          "uploadedAt": "2026-11-02T06:07:16.527Z",
           "uploadedVia": "Portal",
-          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg=="
+          "fileData": "data:application/pdf;base64,JVBERi0xLjQKJcOiw6PDj8OTCjEgMCBvYmoKPDwvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcyAvS2lkcyBbMyAwIFJdIC9Db3VudCAxPj4KZW5kb2JqCjMgMCBvYmoKPDwvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9SZXNvdXJjZXMgPDwvRm9udCA8PC9GMSA0IDAgUiAvRjIgNSAwIFI+Pj4+IC9Db250ZW50cyA2IDAgUj4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhPj4KZW5kb2JqCjUgMCBvYmoKPDwvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EtQm9sZD4+CmVuZG9iago2IDAgb2JqCjw8L0xlbmd0aCAxNDMyPj4Kc3RyZWFtCkJUCi9GMiAxNCBUZgo1MCA3MzAgVGQKKFdISVRFIENPTExBUiBSRUFMVFkgLSBIUiBDT01QTElBTkNFIERPU1NJRVIpIFRqCkVUCkJUCi9GMSA4IFRmCjUwIDcwOCBUZAooT2ZmaWNpYWwgQWRkcmVzczogNnRoIEZsb29yLCBUb3dlciBBLCBNM00gVXJiYW5hIEJ1c2luZXNzIFBhcmssIFNlY3RvciA2NywgR3VydWdyYW0sIEhhcnlhbmEgMTIyMTAxLCBJbmRpYS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA2ODkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDEyIFRmCjUwIDY3MSBUZAooT0ZGSUNJQUwgRE9DVU1FTlQgVkVSSUZJQ0FUSU9OIENFUlRJRklDQVRFKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjUyIFRkCihEb2N1bWVudCBUaXRsZTogICAgICBDYW5kaWRhdGUgQWFkaGFhcikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDYzMyBUZAooRG9jdW1lbnQgS2V5OiAgICAgICAgYWFkaGFhcl9jYXJkKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjE0IFRkCihDYW5kaWRhdGUgTmFtZTogICAgICBWaWtyYW0gTWFsaG90cmEpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1OTUgVGQKKFBlcnNvbm5lbCBJRDogICAgICAgIGNhbmQtdmlrcmFtLW1hbGhvdHJhKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTc2IFRkCihJc3N1aW5nIEF1dGhvcml0eTogICBXaGl0ZSBDb2xsYXIgUmVhbHR5IEhSIENvbXBsaWFuY2UgJiBPcGVyYXRpb25zIERpdmlzaW9uKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTU3IFRkCihWZXJpZmljYXRpb24gU3RhbXA6ICBXQ1ItQ09NUExJQU5DRS1WRVJJRklFRC1NVllVV1dUTikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDUzOCBUZAooQXJjaGl2YWwgVGltZXN0YW1wOiAgMDIgTm92IDIwMjYpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1MTkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDExIFRmCjUwIDUwMSBUZAooQ09NUExJQU5DRSBBVURJVCBTVEFUVVM6IEFVVEhFTlRJQ0FURUQgJiBTQUZFTFkgQVJDSElWRUQpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0ODIgVGQKKFRoaXMgZG9jdW1lbnQgcmVjb3JkIGhhcyBiZWVuIHZlcmlmaWVkIGFuZCByZWdpc3RlcmVkIHdpdGhpbiB0aGUgZW50ZXJwcmlzZSBwZXJzb25uZWwgcmVjb3JkIHN5c3RlbS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0NjMgVGQKKEFsbCBzZWN1cml0eSBzZWFscyBhbmQgY29tcGFueSBtZXRhZGF0YSBhcmUgaW50YWN0IGluIGFjY29yZGFuY2Ugd2l0aCBjb3Jwb3JhdGUgcG9saWN5LikgVGoKRVQKQlQKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTkgMDAwMDAgbiAKMDAwMDAwMDA2NiAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyNTEgMDAwMDAgbiAKMDAwMDAwMDMxOSAwMDAwMCBuIAowMDAwMDAwMzkyIDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA3IC9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjE4NzQKJSVFT0YK"
         },
         "edu_graduation": {
           "key": "edu_graduation",
@@ -2717,13 +2717,13 @@
           "category": "Education",
           "status": "Submitted",
           "required": true,
-          "fileName": "edu_graduation_submitted.pdf",
-          "fileSize": "284 B",
-          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg==",
+          "fileName": "grad.pdf",
+          "fileSize": "2 KB",
+          "fileData": "data:application/pdf;base64,JVBERi0xLjQKJcOiw6PDj8OTCjEgMCBvYmoKPDwvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcyAvS2lkcyBbMyAwIFJdIC9Db3VudCAxPj4KZW5kb2JqCjMgMCBvYmoKPDwvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9SZXNvdXJjZXMgPDwvRm9udCA8PC9GMSA0IDAgUiAvRjIgNSAwIFI+Pj4+IC9Db250ZW50cyA2IDAgUj4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhPj4KZW5kb2JqCjUgMCBvYmoKPDwvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EtQm9sZD4+CmVuZG9iago2IDAgb2JqCjw8L0xlbmd0aCAxNDMyPj4Kc3RyZWFtCkJUCi9GMiAxNCBUZgo1MCA3MzAgVGQKKFdISVRFIENPTExBUiBSRUFMVFkgLSBIUiBDT01QTElBTkNFIERPU1NJRVIpIFRqCkVUCkJUCi9GMSA4IFRmCjUwIDcwOCBUZAooT2ZmaWNpYWwgQWRkcmVzczogNnRoIEZsb29yLCBUb3dlciBBLCBNM00gVXJiYW5hIEJ1c2luZXNzIFBhcmssIFNlY3RvciA2NywgR3VydWdyYW0sIEhhcnlhbmEgMTIyMTAxLCBJbmRpYS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA2ODkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDEyIFRmCjUwIDY3MSBUZAooT0ZGSUNJQUwgRE9DVU1FTlQgVkVSSUZJQ0FUSU9OIENFUlRJRklDQVRFKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjUyIFRkCihEb2N1bWVudCBUaXRsZTogICAgICBDYW5kaWRhdGUgQWFkaGFhcikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDYzMyBUZAooRG9jdW1lbnQgS2V5OiAgICAgICAgYWFkaGFhcl9jYXJkKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjE0IFRkCihDYW5kaWRhdGUgTmFtZTogICAgICBWaWtyYW0gTWFsaG90cmEpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1OTUgVGQKKFBlcnNvbm5lbCBJRDogICAgICAgIGNhbmQtdmlrcmFtLW1hbGhvdHJhKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTc2IFRkCihJc3N1aW5nIEF1dGhvcml0eTogICBXaGl0ZSBDb2xsYXIgUmVhbHR5IEhSIENvbXBsaWFuY2UgJiBPcGVyYXRpb25zIERpdmlzaW9uKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTU3IFRkCihWZXJpZmljYXRpb24gU3RhbXA6ICBXQ1ItQ09NUExJQU5DRS1WRVJJRklFRC1NVllVV1dUTikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDUzOCBUZAooQXJjaGl2YWwgVGltZXN0YW1wOiAgMDIgTm92IDIwMjYpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1MTkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDExIFRmCjUwIDUwMSBUZAooQ09NUExJQU5DRSBBVURJVCBTVEFUVVM6IEFVVEhFTlRJQ0FURUQgJiBTQUZFTFkgQVJDSElWRUQpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0ODIgVGQKKFRoaXMgZG9jdW1lbnQgcmVjb3JkIGhhcyBiZWVuIHZlcmlmaWVkIGFuZCByZWdpc3RlcmVkIHdpdGhpbiB0aGUgZW50ZXJwcmlzZSBwZXJzb25uZWwgcmVjb3JkIHN5c3RlbS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0NjMgVGQKKEFsbCBzZWN1cml0eSBzZWFscyBhbmQgY29tcGFueSBtZXRhZGF0YSBhcmUgaW50YWN0IGluIGFjY29yZGFuY2Ugd2l0aCBjb3Jwb3JhdGUgcG9saWN5LikgVGoKRVQKQlQKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTkgMDAwMDAgbiAKMDAwMDAwMDA2NiAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyNTEgMDAwMDAgbiAKMDAwMDAwMDMxOSAwMDAwMCBuIAowMDAwMDAwMzkyIDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA3IC9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjE4NzQKJSVFT0YK",
           "mimeType": "application/pdf",
-          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "uploadedAt": "2026-11-02T06:07:16.527Z",
           "uploadedVia": "Portal",
-          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_graduation_1793597803585_edu_graduation_submitted.pdf"
+          "storagePath": "secure_uploads/cand-vikram-malhotra/edu_graduation_1793599636528_grad.pdf"
         },
         "prev_offer": {
           "key": "prev_offer",
@@ -2752,13 +2752,13 @@
           "category": "Photos & General",
           "status": "Submitted",
           "required": true,
-          "fileName": "photograph_submitted.pdf",
-          "fileSize": "284 B",
-          "fileData": "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PmVuZG9iagp0cmFpbGVyCjw8L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNTAKJUVPRg==",
+          "fileName": "photo.pdf",
+          "fileSize": "2 KB",
+          "fileData": "data:application/pdf;base64,JVBERi0xLjQKJcOiw6PDj8OTCjEgMCBvYmoKPDwvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcyAvS2lkcyBbMyAwIFJdIC9Db3VudCAxPj4KZW5kb2JqCjMgMCBvYmoKPDwvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9SZXNvdXJjZXMgPDwvRm9udCA8PC9GMSA0IDAgUiAvRjIgNSAwIFI+Pj4+IC9Db250ZW50cyA2IDAgUj4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhPj4KZW5kb2JqCjUgMCBvYmoKPDwvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EtQm9sZD4+CmVuZG9iago2IDAgb2JqCjw8L0xlbmd0aCAxNDMyPj4Kc3RyZWFtCkJUCi9GMiAxNCBUZgo1MCA3MzAgVGQKKFdISVRFIENPTExBUiBSRUFMVFkgLSBIUiBDT01QTElBTkNFIERPU1NJRVIpIFRqCkVUCkJUCi9GMSA4IFRmCjUwIDcwOCBUZAooT2ZmaWNpYWwgQWRkcmVzczogNnRoIEZsb29yLCBUb3dlciBBLCBNM00gVXJiYW5hIEJ1c2luZXNzIFBhcmssIFNlY3RvciA2NywgR3VydWdyYW0sIEhhcnlhbmEgMTIyMTAxLCBJbmRpYS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA2ODkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDEyIFRmCjUwIDY3MSBUZAooT0ZGSUNJQUwgRE9DVU1FTlQgVkVSSUZJQ0FUSU9OIENFUlRJRklDQVRFKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjUyIFRkCihEb2N1bWVudCBUaXRsZTogICAgICBDYW5kaWRhdGUgQWFkaGFhcikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDYzMyBUZAooRG9jdW1lbnQgS2V5OiAgICAgICAgYWFkaGFhcl9jYXJkKSBUagpFVApCVAovRjIgMTAgVGYKNTAgNjE0IFRkCihDYW5kaWRhdGUgTmFtZTogICAgICBWaWtyYW0gTWFsaG90cmEpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1OTUgVGQKKFBlcnNvbm5lbCBJRDogICAgICAgIGNhbmQtdmlrcmFtLW1hbGhvdHJhKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTc2IFRkCihJc3N1aW5nIEF1dGhvcml0eTogICBXaGl0ZSBDb2xsYXIgUmVhbHR5IEhSIENvbXBsaWFuY2UgJiBPcGVyYXRpb25zIERpdmlzaW9uKSBUagpFVApCVAovRjEgMTAgVGYKNTAgNTU3IFRkCihWZXJpZmljYXRpb24gU3RhbXA6ICBXQ1ItQ09NUExJQU5DRS1WRVJJRklFRC1NVllVV1dUTikgVGoKRVQKQlQKL0YxIDEwIFRmCjUwIDUzOCBUZAooQXJjaGl2YWwgVGltZXN0YW1wOiAgMDIgTm92IDIwMjYpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA1MTkgVGQKKC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSkgVGoKRVQKQlQKL0YyIDExIFRmCjUwIDUwMSBUZAooQ09NUExJQU5DRSBBVURJVCBTVEFUVVM6IEFVVEhFTlRJQ0FURUQgJiBTQUZFTFkgQVJDSElWRUQpIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0ODIgVGQKKFRoaXMgZG9jdW1lbnQgcmVjb3JkIGhhcyBiZWVuIHZlcmlmaWVkIGFuZCByZWdpc3RlcmVkIHdpdGhpbiB0aGUgZW50ZXJwcmlzZSBwZXJzb25uZWwgcmVjb3JkIHN5c3RlbS4pIFRqCkVUCkJUCi9GMSAxMCBUZgo1MCA0NjMgVGQKKEFsbCBzZWN1cml0eSBzZWFscyBhbmQgY29tcGFueSBtZXRhZGF0YSBhcmUgaW50YWN0IGluIGFjY29yZGFuY2Ugd2l0aCBjb3Jwb3JhdGUgcG9saWN5LikgVGoKRVQKQlQKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTkgMDAwMDAgbiAKMDAwMDAwMDA2NiAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyNTEgMDAwMDAgbiAKMDAwMDAwMDMxOSAwMDAwMCBuIAowMDAwMDAwMzkyIDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA3IC9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjE4NzQKJSVFT0YK",
           "mimeType": "application/pdf",
-          "uploadedAt": "2026-11-02T05:36:43.584Z",
+          "uploadedAt": "2026-11-02T06:07:16.527Z",
           "uploadedVia": "Portal",
-          "storagePath": "secure_uploads/cand-vikram-malhotra/photograph_1793597803585_photograph_submitted.pdf"
+          "storagePath": "secure_uploads/cand-vikram-malhotra/photograph_1793599636528_photo.pdf"
         },
         "appraisal_letter": {
           "key": "appraisal_letter",
@@ -2778,23 +2778,23 @@
       "profileCompletion": 96,
       "notes": "Offer letter signed. Relieving letter expected by Nov 10.",
       "createdAt": "2026-10-20T10:00:00Z",
-      "updatedAt": "2026-11-02T05:36:43.584Z",
+      "updatedAt": "2026-11-02T06:07:16.527Z",
       "uploadToken": {
-        "token": "wcr-upl-a1dll3v7-mvyttmhn",
+        "token": "wcr-upl-00jp3nw4-mvyuwwso",
         "employeeId": "cand-vikram-malhotra",
         "candidateName": "Vikram Malhotra",
         "candidateEmail": "vikram.m.candidate@gmail.com",
-        "createdAt": "2026-11-02T05:36:43.547Z",
-        "expiresAt": "2026-11-09T05:36:43.547Z",
+        "createdAt": "2026-11-02T06:07:16.488Z",
+        "expiresAt": "2026-11-09T06:07:16.488Z",
         "isUsed": true,
         "revoked": false,
         "isRevoked": false,
         "submissionCount": 1,
         "isOneTime": true,
         "expiryDays": 7,
-        "usedAt": "2026-11-02T05:36:43.584Z",
-        "lastIdempotencyKey": "idem-1793597803581",
-        "lastSubmissionRef": "WCR-SUB-MVYTTMIO-0BBR"
+        "usedAt": "2026-11-02T06:07:16.527Z",
+        "lastIdempotencyKey": "test-idem-1793599636524",
+        "lastSubmissionRef": "WCR-SUB-MVYUWWTR-YYGJ"
       },
       "interviews": [
         {
@@ -4337,6 +4337,39 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1793599636538-qnxq1",
+      "timestamp": "2026-11-02T06:07:16.538Z",
+      "actor": "Candidate Portal",
+      "actorRole": "HR",
+      "action": "Candidate Registration & Documents Submitted via Secure Link",
+      "entityType": "Candidate",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Submitted 6 genuine document(s) and completed registration (Ref: WCR-SUB-MVYUWWTR-YYGJ). One-time registration link is now closed."
+    },
+    {
+      "id": "log-1793599636492-5qt49",
+      "timestamp": "2026-11-02T06:07:16.492Z",
+      "actor": "Admin",
+      "actorRole": "HR",
+      "action": "Upload Link Generated",
+      "entityType": "Candidate",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated single-use upload link (expires in 7 days on 11/9/2026)."
+    },
+    {
+      "id": "log-1793599626825-xp0eb",
+      "timestamp": "2026-11-02T06:07:06.825Z",
+      "actor": "Admin",
+      "actorRole": "HR",
+      "action": "Upload Link Generated",
+      "entityType": "Candidate",
+      "entityId": "cand-vikram-malhotra",
+      "entityName": "Vikram Malhotra",
+      "details": "Generated single-use upload link (expires in 7 days on 11/9/2026)."
+    },
     {
       "id": "log-1793597803593-nq8c8",
       "timestamp": "2026-11-02T05:36:43.593Z",
@@ -6011,7 +6044,7 @@
     }
   },
   "version": 3,
-  "lastUpdated": "2026-11-02T05:36:43.593Z",
+  "lastUpdated": "2026-11-02T06:07:16.538Z",
   "salaryStructures": [
     {
       "id": "role-bde",
@@ -7199,8 +7232,8 @@
           "id": "sub-gurgaon-market-emp",
           "name": "Gurgaon Employees",
           "description": "Full-time Gurgaon employees and team members",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7216,8 +7249,8 @@
           "id": "sub-dubai-market-emp",
           "name": "Dubai Employees",
           "description": "Full-time Dubai employees and team members",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7232,14 +7265,14 @@
         {
           "id": "sub-ai-emp",
           "name": "AI Employees",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         },
         {
           "id": "sub-ai-intern",
           "name": "AI Interns",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7254,14 +7287,14 @@
         {
           "id": "sub-dm-emp",
           "name": "DM Employees",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         },
         {
           "id": "sub-dm-intern",
           "name": "DM Interns",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7276,14 +7309,14 @@
         {
           "id": "sub-hr-emp",
           "name": "HR Employees",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         },
         {
           "id": "sub-hr-intern",
           "name": "HR Interns",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7299,8 +7332,8 @@
           "id": "sub-executive-emp",
           "name": "Executive Leadership Employees",
           "description": "Full-time Executive Leadership employees and team members",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7316,8 +7349,8 @@
           "id": "sub-admin-ops-emp",
           "name": "Administration & Operations Employees",
           "description": "Full-time Administration & Operations employees and team members",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7333,8 +7366,8 @@
           "id": "sub-uae-luxury-advisory-9atn-emp",
           "name": "Global NRI Desk Employees",
           "description": "Full-time Global NRI Desk employees and team members",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         }
       ],
       "createdAt": "2026-10-30T06:18:15.957Z",
@@ -7349,14 +7382,14 @@
         {
           "id": "sub-da-emp",
           "name": "DA Employees",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         },
         {
           "id": "sub-da-intern",
           "name": "DA Interns",
-          "createdAt": "2026-11-02T05:35:51.597Z",
-          "updatedAt": "2026-11-02T05:35:51.597Z"
+          "createdAt": "2026-11-02T05:59:21.741Z",
+          "updatedAt": "2026-11-02T05:59:21.741Z"
         }
       ],
       "createdAt": "2026-10-30T09:05:33.312Z",

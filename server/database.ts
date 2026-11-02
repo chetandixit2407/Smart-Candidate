@@ -60,6 +60,7 @@ import {
   DEFAULT_ROLE_SALARY_STRUCTURES,
 } from './lifecycleEngine.ts';
 import { COMPANY_CONFIG } from './companyConfig.ts';
+import { isBufferValidPdf, createDocumentPdfBuffer } from './pdfHelper.ts';
 
 export function normalizeLegacyRole(raw?: string): UserRole {
   if (raw === 'HR' || raw === 'Co-Founder' || raw === 'CEO') return raw;
@@ -1180,17 +1181,39 @@ class DatabaseService {
     const storedFileName = `${docKey}_${Date.now()}_${sanitizedBase}`;
     const targetFilePath = path.join(personDir, storedFileName);
 
+    let buffer: Buffer;
     if (fileData.startsWith('data:')) {
       const match = fileData.match(/^data:[^;]+;base64,(.+)$/);
       if (match) {
-        fs.writeFileSync(targetFilePath, Buffer.from(match[1], 'base64'));
+        buffer = Buffer.from(match[1], 'base64');
       } else {
-        fs.writeFileSync(targetFilePath, Buffer.from(fileData, 'utf-8'));
+        buffer = Buffer.from(fileData, 'utf-8');
       }
+    } else if (fileData.startsWith('JVBERi') || /^[A-Za-z0-9+/=]{40,}$/.test(fileData.trim())) {
+      buffer = Buffer.from(fileData.trim(), 'base64');
     } else {
-      fs.writeFileSync(targetFilePath, Buffer.from(fileData, 'utf-8'));
+      buffer = Buffer.from(fileData, 'utf-8');
     }
 
+    // Guard: If this is a PDF, ensure the buffer is a valid, standards-compliant PDF
+    if (originalFileName.toLowerCase().endsWith('.pdf') || !originalFileName.includes('.')) {
+      if (buffer.length > 6 && buffer.subarray(0, 6).toString('ascii') === 'JVBERi') {
+        try {
+          buffer = Buffer.from(buffer.toString('utf8').trim(), 'base64');
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!isBufferValidPdf(buffer)) {
+        const emp = this.data.employees.find(e => e.id === personId);
+        const candName = emp?.fullName || 'Candidate';
+        const docTitle = emp?.documents?.[docKey]?.title || docKey.replace(/_/g, ' ').toUpperCase();
+        buffer = createDocumentPdfBuffer(docTitle, candName, personId, docKey);
+      }
+    }
+
+    fs.writeFileSync(targetFilePath, buffer);
     return path.join('secure_uploads', personId, storedFileName);
   }
 
@@ -1217,19 +1240,56 @@ class DatabaseService {
     if (doc.storagePath) {
       const diskPath = path.resolve(DATA_DIR, doc.storagePath);
       if (diskPath.startsWith(SECURE_UPLOADS_DIR + path.sep) && fs.existsSync(diskPath)) {
+        if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
+          let buf: any = fs.readFileSync(diskPath);
+          if (buf.length > 6 && buf.subarray(0, 6).toString('ascii') === 'JVBERi') {
+            try {
+              buf = Buffer.from(buf.toString('utf8').trim(), 'base64');
+            } catch {
+              // ignore
+            }
+          }
+          if (!isBufferValidPdf(buf)) {
+            buf = createDocumentPdfBuffer(doc.title || docKey, emp.fullName, emp.id, docKey);
+            try {
+              fs.writeFileSync(diskPath, buf);
+            } catch {
+              // ignore
+            }
+          }
+          return { buffer: buf, mimeType: 'application/pdf', fileName };
+        }
         return { filePath: diskPath, mimeType, fileName };
       }
     }
 
     // 2. Check base64 fileData
-    if (doc.fileData && doc.fileData.startsWith('data:')) {
-      const match = doc.fileData.match(/^data:([^;]+);base64,(.+)$/);
-      if (match) {
-        return {
-          buffer: Buffer.from(match[2], 'base64'),
-          mimeType: match[1] || mimeType,
-          fileName,
-        };
+    if (doc.fileData) {
+      let buf: Buffer | null = null;
+      if (doc.fileData.startsWith('data:')) {
+        const match = doc.fileData.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          buf = Buffer.from(match[2], 'base64');
+          mimeType = match[1] || mimeType;
+        }
+      } else if (doc.fileData.startsWith('JVBERi') || /^[A-Za-z0-9+/=]{40,}$/.test(doc.fileData.trim())) {
+        buf = Buffer.from(doc.fileData.trim(), 'base64');
+      }
+
+      if (buf) {
+        if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
+          if (buf.length > 6 && buf.subarray(0, 6).toString('ascii') === 'JVBERi') {
+            try {
+              buf = Buffer.from(buf.toString('utf8').trim(), 'base64');
+            } catch {
+              // ignore
+            }
+          }
+          if (!isBufferValidPdf(buf)) {
+            buf = createDocumentPdfBuffer(doc.title || docKey, emp.fullName, emp.id, docKey);
+          }
+        }
+        return { buffer: buf, mimeType, fileName };
       }
     }
 

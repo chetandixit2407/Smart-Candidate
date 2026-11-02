@@ -56,25 +56,95 @@ export const SecurePdfCanvasViewer: React.FC<SecurePdfCanvasViewerProps> = ({
         setPdfDoc(null);
         setCurrentPage(1);
 
-        let loadingTask: any;
+        let dataBytes: Uint8Array | null = null;
 
         if (source.startsWith('data:')) {
-          // Base64 data URL -> convert to Uint8Array for maximum speed & stability
-          const base64Data = source.split(',')[1];
-          const binaryString = atob(base64Data);
-          const len = binaryString.length;
-          const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+          // Base64 data URL
+          const parts = source.split(',');
+          const base64Data = parts[1] || '';
+          let binaryString = atob(base64Data);
+          // If double-encoded (starts with JVBERi)
+          if (binaryString.startsWith('JVBERi')) {
+            try {
+              binaryString = atob(binaryString.trim());
+            } catch {
+              // ignore
+            }
           }
-          loadingTask = pdfjsLib.getDocument({ data: bytes });
+          const len = binaryString.length;
+          dataBytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+            dataBytes[i] = binaryString.charCodeAt(i);
+          }
         } else {
-          // URL source
-          loadingTask = pdfjsLib.getDocument({
-            url: source,
-            withCredentials: true,
-          });
+          // Fetch from URL or Blob URL
+          const response = await fetch(source, { credentials: 'include' });
+          if (!response.ok) {
+            throw new Error(`Failed to load document (HTTP ${response.status})`);
+          }
+          const arrayBuffer = await response.arrayBuffer();
+          let bytes = new Uint8Array(arrayBuffer);
+
+          // Check if payload is ASCII base64 (e.g. starts with JVBERi)
+          if (
+            bytes.length > 6 &&
+            bytes[0] === 0x4a && // 'J'
+            bytes[1] === 0x56 && // 'V'
+            bytes[2] === 0x42 && // 'B'
+            bytes[3] === 0x45 // 'E'
+          ) {
+            try {
+              const decoder = new TextDecoder('utf-8');
+              const text = decoder.decode(bytes).trim();
+              let binStr = atob(text);
+              if (binStr.startsWith('JVBERi')) {
+                binStr = atob(binStr.trim());
+              }
+              const decoded = new Uint8Array(binStr.length);
+              for (let i = 0; i < binStr.length; i++) {
+                decoded[i] = binStr.charCodeAt(i);
+              }
+              bytes = decoded;
+            } catch {
+              // ignore
+            }
+          }
+          dataBytes = bytes;
         }
+
+        if (isCancelled) return;
+
+        if (!dataBytes || dataBytes.length === 0) {
+          throw new Error('Empty document received.');
+        }
+
+        // Check if PDF starts with %PDF- within the first 1024 bytes
+        const checkLen = Math.min(dataBytes.length, 1024);
+        let hasHeader = false;
+        for (let i = 0; i <= checkLen - 5; i++) {
+          if (
+            dataBytes[i] === 0x25 && // %
+            dataBytes[i + 1] === 0x50 && // P
+            dataBytes[i + 2] === 0x44 && // D
+            dataBytes[i + 3] === 0x46 && // F
+            dataBytes[i + 4] === 0x2d // -
+          ) {
+            hasHeader = true;
+            break;
+          }
+        }
+
+        if (!hasHeader) {
+          setErrorMsg('The document file is not a valid PDF or has an unreadable header format.');
+          setLoading(false);
+          return;
+        }
+
+        const loadingTask = pdfjsLib.getDocument({
+          data: dataBytes,
+          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/cmaps/',
+          cMapPacked: true,
+        });
 
         const loadedDoc = await loadingTask.promise;
         if (isCancelled) return;
@@ -84,8 +154,12 @@ export const SecurePdfCanvasViewer: React.FC<SecurePdfCanvasViewerProps> = ({
         setLoading(false);
       } catch (err: any) {
         if (isCancelled) return;
-        console.error('[PDF.js] Failed to load document:', err);
-        setErrorMsg(err.message || 'Failed to parse PDF document.');
+        const msg = String(err?.message || '');
+        if (msg.includes('Invalid PDF structure') || err?.name === 'InvalidPDFException') {
+          setErrorMsg('This document file contains an invalid or incomplete internal PDF structure.');
+        } else {
+          setErrorMsg(msg || 'Failed to parse PDF document.');
+        }
         setLoading(false);
       }
     }
