@@ -194,10 +194,10 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner / Summary */}
-      <div className="bg-slate-900 text-white p-5 sm:p-6 rounded-2xl shadow-xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="card-3d-dark p-5 sm:p-6 text-white rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 badge-3d">
               White Collar Realty · Talent Acquisition
             </span>
             <span className="text-xs text-slate-400">· Gurugram & Dubai Expansion</span>
@@ -210,14 +210,14 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
           {canEdit && candidates.length > 0 && (
             <button
               type="button"
               onClick={() => onOpenOfferModal(candidates[0])}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl text-xs sm:text-sm flex items-center gap-2 border border-slate-700 transition-colors"
+              className="btn-3d-dark px-4 py-2 text-xs sm:text-sm flex items-center gap-2"
             >
-              <FileText className="w-4 h-4 text-amber-400" />
+              <FileText className="w-4 h-4 text-amber-400 font-bold" />
               Generate Offer Letter
             </button>
           )}
@@ -225,9 +225,9 @@ export const HiringLifecycleView: React.FC<HiringLifecycleViewProps> = ({
             <button
               type="button"
               onClick={onOpenAddModal}
-              className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/10 transition-colors"
+              className="btn-3d-gold px-4 py-2 text-xs sm:text-sm flex items-center gap-2"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 text-slate-950 font-bold" />
               Enroll Candidate
             </button>
           )}

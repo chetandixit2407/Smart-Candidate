@@ -375,7 +375,7 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
   return (
     <div className="space-y-5">
       {/* Top Summary Bar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="card-3d p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <Building2 className="w-5 h-5 text-slate-800" />
@@ -409,9 +409,9 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
                 setFeedbackError(null);
                 setShowCreateDeptModal(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-colors shrink-0 cursor-pointer"
+              className="btn-3d-dark px-3.5 py-2 text-xs flex items-center gap-1.5"
             >
-              <Plus className="w-4 h-4 text-amber-400" />
+              <Plus className="w-4 h-4 text-amber-400 font-bold" />
               Create Department
             </button>
           </div>
@@ -455,10 +455,10 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
                     setSelectedSubDept('All');
                     setEditingDeptId(null);
                   }}
-                  className={`w-full text-left rounded-xl border p-3.5 transition-all ${
+                  className={`w-full text-left rounded-xl p-3.5 transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-md'
-                      : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300 hover:bg-slate-50/70'
+                      ? 'card-3d-dark text-white border-amber-500/40 shadow-lg'
+                      : 'card-3d text-slate-800 hover:border-amber-300'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -522,7 +522,7 @@ export const DepartmentsView: React.FC<DepartmentsViewProps> = ({
           {activeDepartment ? (
             <>
               {/* Department Header & Management Controls */}
-              <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 space-y-4">
+              <div className="card-3d p-4 sm:p-5 space-y-4">
                 {editingDeptId === activeDepartment.id ? (
                   <div className="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

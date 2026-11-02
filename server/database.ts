@@ -390,7 +390,7 @@ export function classifyPersonByJobRole(
     };
   }
 
-  // 8. CUSTOM DEPARTMENTS (e.g. Global NRI Desk) - Interns strictly forbidden
+  // 8. CUSTOM DEPARTMENTS - Interns strictly forbidden
   if (availableDepartments && availableDepartments.length > 0) {
     const customMatch = availableDepartments.find(
       d => (emp.departmentId && d.id === emp.departmentId) || (emp.department && d.name.toLowerCase() === currentDeptLower)
@@ -4448,7 +4448,7 @@ class DatabaseService {
       };
     }
 
-    if (desig.includes('dubai') || emp.market === 'Dubai' || dept.includes('dubai') || dept.includes('nri')) {
+    if (desig.includes('dubai') || emp.market === 'Dubai' || dept.includes('dubai')) {
       return {
         department: 'Dubai Market',
         subDepartment: 'Dubai Employees',

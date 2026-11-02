@@ -104,7 +104,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           <button
             onClick={onResetDatabase}
             title="Reset to pristine White Collar Realty dataset"
-            className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-900 px-2 py-1 rounded hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-900 px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
           >
             <RefreshCw className="w-3 h-3" />
             Reset Seed Data
@@ -112,23 +112,23 @@ export const TopNav: React.FC<TopNavProps> = ({
         )}
       </div>
 
-      {/* Zone 3: Primary Actions (Responsive without horizontal overflow) */}
-      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+      {/* Zone 3: Primary Actions with Tactile 3D Buttons */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* Milestone & Compliance 2-Day Alerts Bell */}
         {onOpenAlertsModal && (
           <button
             onClick={onOpenAlertsModal}
-            className={`relative inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+            className={`relative inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
               alertsCount > 0
-                ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 animate-pulse'
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                ? 'bg-amber-50 text-amber-950 border-amber-400 shadow-[0_2px_6px_rgba(217,119,6,0.18)] hover:bg-amber-100'
+                : 'btn-3d-white text-slate-700'
             }`}
             title="View 2-Day Advance Alerts for Birthdays & Internship Completions"
           >
-            <Bell className={`w-3.5 h-3.5 ${alertsCount > 0 ? 'text-amber-600' : 'text-slate-500'}`} />
+            <Bell className={`w-3.5 h-3.5 ${alertsCount > 0 ? 'text-amber-600 animate-bounce' : 'text-slate-500'}`} />
             <span className="hidden md:inline">2-Day Alerts</span>
             {alertsCount > 0 && (
-              <span className="px-1.5 py-0.2 bg-amber-500 text-slate-950 rounded-full font-mono text-[10px] font-bold">
+              <span className="px-1.5 py-0.2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 rounded-full font-mono text-[10px] font-extrabold badge-3d">
                 {alertsCount}
               </span>
             )}
@@ -141,7 +141,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             <button
               type="button"
               onClick={() => api.downloadExcelExport('single-sheet')}
-              className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors rounded-l-lg border-r border-slate-200"
+              className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors rounded-l-lg border-r border-slate-200 cursor-pointer"
               title="Export all employees and candidates in master Excel"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -151,7 +151,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             <button
               type="button"
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="px-1.5 py-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-r-lg transition-colors"
+              className="px-2 py-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-r-lg transition-colors cursor-pointer"
               title="Choose Excel format"
               aria-label="Export options"
             >
@@ -160,8 +160,8 @@ export const TopNav: React.FC<TopNavProps> = ({
           </div>
 
           {showExportMenu && (
-            <div className="absolute right-0 mt-1 w-64 sm:w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95">
-              <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="absolute right-0 mt-1.5 w-64 sm:w-72 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 text-xs animate-in fade-in zoom-in-95 card-3d">
+              <div className="px-3.5 py-1.5 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Export Format Options
               </div>
               <button
@@ -170,11 +170,11 @@ export const TopNav: React.FC<TopNavProps> = ({
                   setShowExportMenu(false);
                   api.downloadExcelExport('single-sheet');
                 }}
-                className="w-full text-left flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-emerald-50/60 transition-colors text-slate-800 group"
+                className="w-full text-left flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-emerald-50/70 transition-colors text-slate-800 group cursor-pointer"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-slate-900 group-hover:text-emerald-800">
+                  <p className="font-bold text-slate-900 group-hover:text-emerald-800">
                     Single-Sheet Master Roster
                   </p>
                   <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
@@ -188,11 +188,11 @@ export const TopNav: React.FC<TopNavProps> = ({
                   setShowExportMenu(false);
                   api.downloadExcelExport('multi-sheet');
                 }}
-                className="w-full text-left flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-slate-50 transition-colors text-slate-800 group border-t border-slate-100"
+                className="w-full text-left flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-slate-50 transition-colors text-slate-800 group border-t border-slate-100 cursor-pointer"
               >
                 <Download className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-slate-900 group-hover:text-blue-800">
+                  <p className="font-bold text-slate-900 group-hover:text-blue-800">
                     Multi-Tab Workbook
                   </p>
                   <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
@@ -208,7 +208,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           <button
             type="button"
             onClick={onOpenOfferGenerator}
-            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-blue-900 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors whitespace-nowrap shadow-xs"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-900 bg-blue-50/90 border border-blue-300 rounded-lg hover:bg-blue-100 transition-all whitespace-nowrap shadow-xs cursor-pointer hover:-translate-y-0.5"
             title="Generate Offer Letter (.docx)"
           >
             <FileText className="w-3.5 h-3.5 text-blue-700 shrink-0" />
@@ -221,7 +221,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           <div className="flex items-center gap-1 sm:gap-1.5">
             <button
               onClick={() => onOpenAddModal(false)}
-              className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap shadow-xs"
+              className="btn-3d-dark px-2.5 sm:px-3 py-1.5 text-xs whitespace-nowrap cursor-pointer"
               title="Add Employee"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -231,10 +231,10 @@ export const TopNav: React.FC<TopNavProps> = ({
             </button>
             <button
               onClick={() => onOpenAddModal(true)}
-              className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-amber-900 bg-amber-100 border border-amber-300 rounded-lg hover:bg-amber-200 transition-colors whitespace-nowrap"
+              className="btn-3d-gold px-2.5 sm:px-3 py-1.5 text-xs whitespace-nowrap cursor-pointer"
               title="Add Candidate"
             >
-              <Plus className="w-3.5 h-3.5 text-amber-800" />
+              <Plus className="w-3.5 h-3.5 text-slate-950 font-bold" />
               <span className="hidden sm:inline">Add </span>
               <span className="hidden xs:inline">Candidate</span>
               <span className="xs:hidden inline">Cand</span>

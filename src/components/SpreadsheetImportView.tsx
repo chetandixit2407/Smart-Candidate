@@ -163,7 +163,7 @@ export const SpreadsheetImportView: React.FC<SpreadsheetImportViewProps> = ({
       ],
       ['WCR-001', 'Rohit Juneja', '+91 98110 54321', 'rohit.juneja@whitecollarrealty.com', 'Managing Director - Luxury Sales', 'Sales & Investments', '2021-01-15', '', '1987-03-22', 'A1', 'Board of Directors', 'Full-Time'],
       ['WCR-002', 'Priya Sehgal', '+91 98188 77665', 'priya.sehgal@whitecollarrealty.com', 'Associate Director - CRM & Operations', 'CRM & Client Relations', '2021-03-01', '', '1990-11-05', 'A2', 'Rohit Juneja', 'Full-Time'],
-      ['WCR-003', 'Varun Batra', '+91 99990 12345', 'varun.batra@whitecollarrealty.com', 'Associate Director - Sales & NRI Desk', 'Sales & Investments', '2021-04-12', '', '1989-06-18', 'A3', 'Rohit Juneja', 'Full-Time'],
+      ['WCR-003', 'Varun Batra', '+91 99990 12345', 'varun.batra@whitecollarrealty.com', 'Associate Director - Luxury Advisory', 'Sales & Investments', '2021-04-12', '', '1989-06-18', 'A3', 'Rohit Juneja', 'Full-Time'],
       ['WCR-004', 'Simran Kaur', '+91 98105 88990', 'simran.kaur@whitecollarrealty.com', 'Senior Manager - HR & People Operations', 'Human Resources', '2021-06-01', '', '1992-09-19', 'A4', 'Rohit Juneja', 'Full-Time'],
       ['WCR-018', 'Chetan Sharma', '+91 98712 34567', 'chetan.sharma@whitecollarrealty.com', 'Senior Portfolio Consultant - Dubai & Gurgaon', 'Luxury Residential & Investments', '2023-04-10', '', '1996-08-14', 'B2', 'Varun Batra', 'Full-Time'],
       ['WCR-017', 'Pranav Joshi', '+91 98719 44332', 'pranav.joshi@whitecollarrealty.com', 'Property Advisor Intern', 'Sales & Investments', '2026-06-15', '2026-12-15', '2001-12-08', 'E1', 'Chetan Sharma', 'Intern'],

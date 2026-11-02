@@ -123,7 +123,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
   return (
     <div className="space-y-4">
       {/* Control Bar: Filters & Search */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
+      <div className="card-3d p-4 sm:p-5 space-y-3">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Search Box */}
           <div className="relative w-full md:w-80">
@@ -149,9 +149,9 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
             {canEdit && (
               <button
                 onClick={onOpenAddModal}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap shadow-xs"
+                className="btn-3d-dark px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 text-amber-400 font-bold" />
                 Add Employee
               </button>
             )}
@@ -226,7 +226,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
       </div>
 
       {/* Employees Directory: Mobile Cards (hidden on md+) & Desktop Table (hidden on mobile) */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs w-full min-w-0">
+      <div className="card-3d overflow-hidden w-full min-w-0">
         {/* Mobile View: High-Usability Cards */}
         <div className="block md:hidden divide-y divide-slate-100">
           {paginatedEmployees.map(emp => {

@@ -90,7 +90,7 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6 w-full min-w-0">
       {/* Top Banner & Metrics */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4 w-full min-w-0">
+      <div className="card-3d p-4 sm:p-5 space-y-4 w-full min-w-0">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4">
           <div className="min-w-0">
             <h2 className="text-sm sm:text-base font-semibold text-slate-900 truncate">
@@ -175,7 +175,7 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
             if (filteredBayDesks.length === 0) return null;
 
             return (
-              <div key={bay.id} className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-3 w-full min-w-0">
+              <div key={bay.id} className="card-3d p-4 sm:p-5 space-y-3 w-full min-w-0">
                 <div className="flex flex-col xs:flex-row xs:items-center justify-between pb-2 border-b border-slate-100 gap-1">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-sm bg-slate-800 shrink-0" />
@@ -199,12 +199,12 @@ export const DeskAllocationView: React.FC<DeskAllocationViewProps> = ({
                     return (
                       <div
                         key={slot.code}
-                        className={`p-3.5 rounded-xl border transition-all flex flex-col justify-between min-h-[140px] ${
+                        className={`card-3d p-3.5 flex flex-col justify-between min-h-[140px] ${
                           slot.status === 'Available'
-                            ? 'bg-emerald-50/40 border-emerald-200 hover:border-emerald-300'
+                            ? 'bg-emerald-50/40 border-emerald-300/80'
                             : slot.status === 'Reserved'
-                            ? 'bg-amber-50/50 border-amber-200 hover:border-amber-300'
-                            : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
+                            ? 'bg-amber-50/40 border-amber-300/80'
+                            : 'border-slate-200'
                         }`}
                       >
                         <div>

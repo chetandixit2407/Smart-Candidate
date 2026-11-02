@@ -221,7 +221,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
             <div
               key={cand.id}
               onClick={() => onSelectCandidate(cand)}
-              className="bg-white rounded-xl border border-slate-200 p-5 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between space-y-4"
+              className="card-3d-interactive p-5 flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
                 {/* Header */}
@@ -413,10 +413,10 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                         e.stopPropagation();
                         onOpenQrModal(cand);
                       }}
-                      className="px-2.5 py-1.5 text-xs text-slate-950 bg-amber-400 hover:bg-amber-300 border border-amber-500 rounded font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                      className="btn-3d-gold px-2.5 py-1.5 text-xs flex items-center gap-1 cursor-pointer"
                       title="Inspect missing documents & generate 24-hour candidate QR code"
                     >
-                      <QrCode className="w-3.5 h-3.5" />
+                      <QrCode className="w-3.5 h-3.5 text-slate-950 font-bold" />
                       <span>Generate Document QR</span>
                     </button>
                   )}
@@ -534,7 +534,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
 
                   <button
                     onClick={() => onSelectCandidate(cand)}
-                    className="px-3 py-1.5 text-xs text-slate-700 hover:text-slate-900 border border-slate-200 rounded hover:bg-slate-50 font-medium transition-colors"
+                    className="btn-3d-white px-3 py-1.5 text-xs"
                   >
                     View Dossier
                   </button>
@@ -542,9 +542,9 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                   {canEdit && (
                     <button
                       onClick={e => openConvertModal(e, cand)}
-                      className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-600 rounded transition-colors flex items-center gap-1 shadow-xs"
+                      className="btn-3d-dark px-3 py-1.5 text-xs text-emerald-300 border-emerald-700/60 flex items-center gap-1 shadow-xs hover:text-emerald-200"
                     >
-                      <UserCheck className="w-3.5 h-3.5" />
+                      <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Convert</span>
                     </button>
                   )}

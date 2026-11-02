@@ -3853,9 +3853,9 @@
         "phone": ""
       },
       "familyDetails": [],
-      "departmentId": "dept-uae-luxury-advisory-9atn",
-      "department": "Global NRI Desk",
-      "subDepartment": "Global NRI Desk Employees",
+      "departmentId": "dept-dubai-market",
+      "department": "Dubai Market",
+      "subDepartment": "Dubai Employees",
       "designation": "Portfolio Consultant",
       "reportingManager": "Management",
       "joiningDate": "2026-11-15",
@@ -4712,8 +4712,8 @@
       "action": "Department Renamed",
       "entityType": "Department",
       "entityId": "dept-uae-luxury-advisory-9atn",
-      "entityName": "Global NRI Desk",
-      "details": "Renamed department from 'UAE Luxury Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+      "entityName": "Dubai Advisory",
+      "details": "Renamed department from 'UAE Luxury Advisory' to 'Dubai Advisory' (1 profile(s) synchronized)."
     },
     {
       "id": "log-1793341095980-68mfp",
@@ -4756,8 +4756,8 @@
       "action": "Department Deleted",
       "entityType": "Department",
       "entityId": "dept-uae-luxury-advisory-0fc7",
-      "entityName": "Global NRI Desk",
-      "details": "Deleted empty department 'Global NRI Desk'."
+      "entityName": "Dubai Advisory",
+      "details": "Deleted empty department 'Dubai Advisory'."
     },
     {
       "id": "log-1793341095670-11yf3",
@@ -4789,8 +4789,8 @@
       "action": "Department Renamed",
       "entityType": "Department",
       "entityId": "dept-uae-luxury-advisory-0fc7",
-      "entityName": "Global NRI Desk",
-      "details": "Renamed department from 'UAE Luxury Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+      "entityName": "Dubai Advisory",
+      "details": "Renamed department from 'UAE Luxury Advisory' to 'Dubai Advisory' (1 profile(s) synchronized)."
     },
     {
       "id": "log-1793341009123-q5l4r",
@@ -4833,8 +4833,8 @@
       "action": "Department Deleted",
       "entityType": "Department",
       "entityId": "dept-uae-luxury-advisory-9ma1",
-      "entityName": "Global NRI Desk",
-      "details": "Deleted empty department 'Global NRI Desk'."
+      "entityName": "Dubai Advisory",
+      "details": "Deleted empty department 'Dubai Advisory'."
     },
     {
       "id": "log-1793341008792-1bofz",
@@ -4866,8 +4866,8 @@
       "action": "Department Renamed",
       "entityType": "Department",
       "entityId": "dept-uae-luxury-advisory-9ma1",
-      "entityName": "Global NRI Desk",
-      "details": "Renamed department from 'UAE Luxury Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+      "entityName": "Dubai Advisory",
+      "details": "Renamed department from 'UAE Luxury Advisory' to 'Dubai Advisory' (1 profile(s) synchronized)."
     },
     {
       "id": "log-1793340967162-txp4n",
@@ -4910,8 +4910,8 @@
       "action": "Department Deleted",
       "entityType": "Department",
       "entityId": "dept-uae-luxury-advisory-vxc2",
-      "entityName": "Global NRI Desk",
-      "details": "Deleted empty department 'Global NRI Desk'."
+      "entityName": "Dubai Advisory",
+      "details": "Deleted empty department 'Dubai Advisory'."
     },
     {
       "id": "log-1793340966857-rfmfr",
@@ -4932,8 +4932,8 @@
       "action": "Department Renamed",
       "entityType": "Department",
       "entityId": "dept-uae-luxury-advisory-vxc2",
-      "entityName": "Global NRI Desk",
-      "details": "Renamed department from 'UAE Luxury Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+      "entityName": "Dubai Advisory",
+      "details": "Renamed department from 'UAE Luxury Advisory' to 'Dubai Advisory' (1 profile(s) synchronized)."
     },
     {
       "id": "log-1793340903715-1chq5",
@@ -4976,8 +4976,8 @@
       "action": "Department Deleted",
       "entityType": "Department",
       "entityId": "dept-nri-advisory-desk-i8n7",
-      "entityName": "Global NRI Desk",
-      "details": "Deleted empty department 'Global NRI Desk'."
+      "entityName": "Dubai Advisory",
+      "details": "Deleted empty department 'Dubai Advisory'."
     },
     {
       "id": "log-1793340903392-qz0dw",
@@ -5042,8 +5042,8 @@
       "action": "Department Renamed",
       "entityType": "Department",
       "entityId": "dept-nri-advisory-desk-i8n7",
-      "entityName": "Global NRI Desk",
-      "details": "Renamed department from 'Global NRI Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+      "entityName": "Dubai Advisory",
+      "details": "Renamed department from 'Global NRI Advisory' to 'Dubai Advisory' (1 profile(s) synchronized)."
     },
     {
       "id": "log-1793340779479-xhke0",
@@ -5097,8 +5097,8 @@
       "action": "Department Deleted",
       "entityType": "Department",
       "entityId": "dept-nri-advisory-desk-u6yg",
-      "entityName": "Global NRI Desk",
-      "details": "Deleted empty department 'Global NRI Desk'."
+      "entityName": "Dubai Advisory",
+      "details": "Deleted empty department 'Dubai Advisory'."
     },
     {
       "id": "log-1793340779158-kce5g",
@@ -5141,8 +5141,8 @@
       "action": "Department Renamed",
       "entityType": "Department",
       "entityId": "dept-nri-advisory-desk-u6yg",
-      "entityName": "Global NRI Desk",
-      "details": "Renamed department from 'Global NRI Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+      "entityName": "Dubai Advisory",
+      "details": "Renamed department from 'Global NRI Advisory' to 'Dubai Advisory' (1 profile(s) synchronized)."
     },
     {
       "id": "log-1793340716592-htbn7",
@@ -5196,8 +5196,8 @@
       "action": "Department Deleted",
       "entityType": "Department",
       "entityId": "dept-nri-advisory-desk-o1qy",
-      "entityName": "Global NRI Desk",
-      "details": "Deleted empty department 'Global NRI Desk'."
+      "entityName": "Dubai Advisory",
+      "details": "Deleted empty department 'Dubai Advisory'."
     },
     {
       "id": "log-1793340716258-bhru4",
@@ -5229,8 +5229,8 @@
       "action": "Department Renamed",
       "entityType": "Department",
       "entityId": "dept-nri-advisory-desk-o1qy",
-      "entityName": "Global NRI Desk",
-      "details": "Renamed department from 'Global NRI Advisory' to 'Global NRI Desk' (1 profile(s) synchronized)."
+      "entityName": "Dubai Advisory",
+      "details": "Renamed department from 'Global NRI Advisory' to 'Dubai Advisory' (1 profile(s) synchronized)."
     },
     {
       "id": "log-1793340654065-6bo7d",
@@ -7448,8 +7448,8 @@
           "id": "sub-gurgaon-market-emp",
           "name": "Gurgaon Employees",
           "description": "Full-time Gurgaon employees and team members",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7465,8 +7465,8 @@
           "id": "sub-dubai-market-emp",
           "name": "Dubai Employees",
           "description": "Full-time Dubai employees and team members",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7481,14 +7481,14 @@
         {
           "id": "sub-ai-emp",
           "name": "AI Employees",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         },
         {
           "id": "sub-ai-intern",
           "name": "AI Interns",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7503,14 +7503,14 @@
         {
           "id": "sub-dm-emp",
           "name": "DM Employees",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         },
         {
           "id": "sub-dm-intern",
           "name": "DM Interns",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7525,14 +7525,14 @@
         {
           "id": "sub-hr-emp",
           "name": "HR Employees",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         },
         {
           "id": "sub-hr-intern",
           "name": "HR Interns",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7548,8 +7548,8 @@
           "id": "sub-executive-emp",
           "name": "Executive Leadership Employees",
           "description": "Full-time Executive Leadership employees and team members",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
@@ -7565,29 +7565,12 @@
           "id": "sub-admin-ops-emp",
           "name": "Administration & Operations Employees",
           "description": "Full-time Administration & Operations employees and team members",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         }
       ],
       "createdAt": "2026-01-01T09:00:00Z",
       "updatedAt": "2026-01-01T09:00:00Z"
-    },
-    {
-      "id": "dept-uae-luxury-advisory-9atn",
-      "name": "Global NRI Desk",
-      "description": "Dubai off-plan portfolio desk",
-      "marketFocus": "Gurgaon",
-      "subDepartments": [
-        {
-          "id": "sub-uae-luxury-advisory-9atn-emp",
-          "name": "Global NRI Desk Employees",
-          "description": "Full-time Global NRI Desk employees and team members",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
-        }
-      ],
-      "createdAt": "2026-10-30T06:18:15.957Z",
-      "updatedAt": "2026-10-30T06:18:15.987Z"
     },
     {
       "id": "dept-da",
@@ -7598,14 +7581,14 @@
         {
           "id": "sub-da-emp",
           "name": "DA Employees",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         },
         {
           "id": "sub-da-intern",
           "name": "DA Interns",
-          "createdAt": "2026-11-02T06:37:11.152Z",
-          "updatedAt": "2026-11-02T06:37:11.152Z"
+          "createdAt": "2026-11-02T06:51:44.619Z",
+          "updatedAt": "2026-11-02T06:51:44.619Z"
         }
       ],
       "createdAt": "2026-10-30T09:05:33.312Z",

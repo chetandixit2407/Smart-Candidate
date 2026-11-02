@@ -76,11 +76,11 @@ export const HRAlertsFloatingBanner: React.FC<HRAlertsFloatingBannerProps> = ({
   };
 
   return (
-    <div className="w-full bg-amber-50/90 border-b border-amber-300 shadow-xs shrink-0 z-20 transition-all overflow-hidden">
+    <div className="w-full glass-panel-gold border-b border-amber-300/80 shadow-3d-subtle shrink-0 z-20 transition-all overflow-hidden">
       {/* Header Bar - strictly within the main content area, never overlapping sidebar or top navigation */}
       <div
         onClick={() => setIsMinimized(!isMinimized)}
-        className="px-3 sm:px-6 py-2.5 bg-gradient-to-r from-amber-100/90 via-amber-50 to-orange-50/80 text-slate-900 flex items-center justify-between cursor-pointer select-none gap-2"
+        className="px-3 sm:px-6 py-2.5 bg-gradient-to-r from-amber-100/90 via-amber-50 to-orange-50/80 text-slate-900 flex items-center justify-between cursor-pointer select-none gap-2 hover:bg-amber-100/70 transition-colors"
       >
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <div className="p-1 sm:p-1.5 rounded-lg bg-amber-500/20 text-amber-800 border border-amber-500/40 shrink-0">
@@ -149,10 +149,10 @@ export const HRAlertsFloatingBanner: React.FC<HRAlertsFloatingBannerProps> = ({
               return (
                 <div
                   key={alert.id}
-                  className={`p-3.5 rounded-xl border transition-all flex flex-col justify-between gap-2.5 ${
+                  className={`card-3d p-3.5 flex flex-col justify-between gap-2.5 ${
                     isOverdue
-                      ? 'bg-rose-50/70 border-rose-200 text-rose-950 shadow-2xs'
-                      : 'bg-white border-slate-200 text-slate-900 shadow-2xs'
+                      ? 'border-rose-300 bg-rose-50/50'
+                      : 'border-slate-200'
                   }`}
                 >
                   {/* Top candidate summary row */}
